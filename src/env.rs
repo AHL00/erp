@@ -36,9 +36,9 @@ pub static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| {
 pub static PORT: LazyLock<u16> = LazyLock::new(|| {
     std::env::var("PORT")
         .unwrap_or_else(|_| {
-            log::warn!("No PORT environment variable found, using default port 8080");
+            log::warn!("No PORT environment variable found, using default port 8000");
 
-            "8080".to_string()
+            "8000".to_string()
         })
         .parse()
         .expect("Failed to parse PORT environment variable")

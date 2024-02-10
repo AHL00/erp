@@ -1,28 +1,13 @@
 #![feature(lazy_cell)]
 
-use std::{ops::BitOr, sync::LazyLock};
+use std::sync::LazyLock;
+
+use rocket::{fs::FileServer, routes};
+
+use crate::auth::UserPermissions;
 
 pub mod auth;
 pub mod env;
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-enum UserPermissions {
-    ProductRead = 0b00000001,
-    ProductWrite = 0b00000010,
-    OrderRead = 0b00000100,
-    OrderWrite = 0b00001000,
-    UserRead = 0b00010000,
-    UserWrite = 0b00100000,
-    Admin = 0b10000000,
-}
-
-impl BitOr for UserPermissions {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Self {
-        unsafe { std::mem::transmute(self as u8 | rhs as u8) }
-    }
-}
 
 pub static mut DB: LazyLock<async_std::sync::RwLock<rusqlite::Connection>> = LazyLock::new(|| {
     if !std::path::Path::new(&env::DATABASE_PATH.as_str()).exists() {
@@ -50,32 +35,66 @@ pub static mut DB: LazyLock<async_std::sync::RwLock<rusqlite::Connection>> = Laz
     }
 });
 
-#[async_std::main]
-async fn main() -> Result<(), std::io::Error> {
-    tide::log::start();
+#[rocket::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Set env logger to info mode
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .format_timestamp(None)
+        .init();
+
 
     // Make sure lazy cell initializes
     let _ = unsafe { DB.read() };
 
-    let mut app = tide::new();
+    let config = rocket::Config {
+        address: env::HOST.as_str().parse().unwrap(),
+        port: *env::PORT,
+        ..Default::default()
+    };
 
-    // Session middleware
-    app.with(tide::sessions::SessionMiddleware::new(
-        tide::sessions::CookieStore::new(),
-        &env::JWT_SECRET.as_ref(),
-    ));
-
-    // Serve Svelte app
-    app.at("/").serve_dir("public/")?;
-    app.at("/").serve_file("public/index.html")?;
-
-    app.at("/api/auth/login").post(auth::login);
-    app.at("/api/auth/info").get(auth::info);
-    app.at("/api/auth/logout").post(auth::logout);
-
-    app.listen(format!("{}:{}", *env::HOST, *env::PORT))
-        .await
-        .unwrap();
+    rocket::custom(config)
+        .mount("/api", routes![auth::login, auth::status, auth::logout])
+        .mount("/", FileServer::from("./frontend/dist").rank(3))
+        .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
+        .launch()
+        .await?;
 
     Ok(())
 }
+
+// #[async_std::main]
+// async fn main() -> Result<(), std::io::Error> {
+//     tide::log::start();
+
+//     // Make sure lazy cell initializes
+//     let _ = unsafe { DB.read() };
+
+//     let mut app = tide::new();
+
+//     // CORS middleware
+//     app.with(tide::security::CorsMiddleware::new());
+
+//     // Session middleware
+//     app.with(
+//         tide::sessions::SessionMiddleware::new(
+//             tide::sessions::CookieStore::new(),
+//             &env::JWT_SECRET.as_ref(),
+//         )
+//         .with_same_site_policy(tide::http::cookies::SameSite::None),
+//     );
+
+//     app.at("/api/auth/login").post(auth::tide_login);
+//     app.at("/api/auth/info").get(auth::tide_info);
+//     app.at("/api/auth/logout").post(auth::tide_logout);
+
+//     app.at("/api/orders")
+//         .with(UserPermissionsMiddleware::new(UserPermissions::Admin))
+//         .get(|_| async { Ok(tide::Response::new(200)) });
+
+//     app.listen(format!("{}:{}", *env::HOST, *env::PORT))
+//         .await
+//         .unwrap();
+
+//     Ok(())
+// }
