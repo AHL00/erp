@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { login, auth_info_store } from '$lib/auth';
 	import { get } from 'svelte/store';
+    import logo from '$lib/assets/logo.jpg';
+
 	let username = '';
 	let password = '';
 
-	function handleLogin() {
+	function handleSubmit() {
 		// Handle login here
 		let login_promise = login(username, password);
 
 		login_promise.then(() => {
-            console.log("Checking auth status");
+			console.log('Checking auth status');
 			if (get(auth_info_store) !== null) {
 				// Redirect to app which will check for auth
 				// TODO: Redirect to the page the user was trying to access
@@ -22,39 +24,78 @@
 	}
 </script>
 
-<div class="login-page">
-	<h1>Login</h1>
-	<form on:submit|preventDefault={handleLogin}>
-		<div class="form-group">
-			<label for="username">Username</label>
-			<input id="username" bind:value={username} type="text" required />
+<section class="hero is-primary is-fullheight">
+	<div class="hero-body">
+		<div class="container">
+			<div class="columns is-centered">
+                <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+                    <form action="" class="box" on:submit|preventDefault={handleSubmit}>
+                        <figure class="image is-128x128 ml-auto mr-auto mb-4">
+                            <img src={logo} alt="Logo" />
+                        </figure>
+						<div class="field">
+							<label for="" class="label">Username</label>
+							<div class="control has-icons-left">
+								<input
+									type="username"
+									placeholder=". . . . ."
+									class="input"
+									bind:value={username}
+									required
+								/>
+								<span class="icon is-small is-left">
+									<i class="fa fa-user"></i>
+								</span>
+							</div>
+						</div>
+						<div class="field">
+							<label for="" class="label">Password</label>
+							<div class="control has-icons-left">
+								<input
+									type="password"
+									placeholder="*******"
+									class="input"
+									bind:value={password}
+									required
+								/>
+								<span class="icon is-small is-left">
+									<i class="fa fa-lock"></i>
+								</span>
+							</div>
+						</div>
+						<div class="field">
+							<div class="columns is-centered">
+								<div class="column is-narrow">
+									<button class="button brand-color" type="submit"> Login </button>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
 		</div>
-		<div class="form-group">
-			<label for="password">Password</label>
-			<input id="password" bind:value={password} type="password" required />
-		</div>
-		<button type="submit" disabled={!username || !password}> Login </button>
-	</form>
-</div>
+	</div>
+</section>
 
 <style>
-	.login-page {
-		width: 300px;
-		margin: 0 auto;
-		padding: 1em;
-	}
-	.form-group {
-		margin-bottom: 1em;
-	}
-	label {
-		display: block;
-		margin-bottom: 0.5em;
-	}
-	input {
-		width: 100%;
-		padding: 0.5em;
-	}
-	button {
-		padding: 0.5em 1em;
-	}
+    @keyframes gradient {
+        0% {background-position: 0% 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0% 50%;}
+    }
+
+    .brand-color {
+        background: #ffae23;
+        color: #fff;
+    }
+
+    .brand-color:hover {
+        background: #ffa200;
+    }
+
+    .hero {
+        background: linear-gradient(0deg, #ff963f, #fdc36b, #ff9147);
+        background-size: 200% 200%;
+        animation: gradient 5s ease infinite;
+    }
 </style>

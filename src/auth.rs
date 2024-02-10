@@ -1,4 +1,4 @@
-use rocket::{http::{Cookie, CookieJar, SameSite, Status}, serde::json::Json};
+use rocket::{fairing::{Fairing, Info, Kind}, http::{uri::Origin, Cookie, CookieJar, SameSite, Status}, serde::json::Json, Data};
 use serde::{Deserialize, Serialize};
 use std::{cell::LazyCell, ops::BitOr, sync::LazyLock};
 use tide::{Middleware, Next, Request};
@@ -140,63 +140,5 @@ impl UserPermissions {
         let permission = *permission as u32;
 
         (*self as u32 & permission) == permission
-    }
-}
-
-pub struct UserPermissionsMiddleware {
-    permission: UserPermissions,
-}
-
-impl UserPermissionsMiddleware {
-    pub fn new(permission: UserPermissions) -> Self {
-        Self { permission }
-    }
-}
-
-impl<State> Middleware<State> for UserPermissionsMiddleware
-where
-    State: Clone + Send + Sync + 'static,
-{
-    fn handle<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        request: Request<State>,
-        next: Next<'life1, State>,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = tide::Result> + ::core::marker::Send + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            let session = request.session();
-
-            let auth_info: Option<AuthInfo> = session.get("login_info");
-
-            if let Some(login_info) = auth_info {
-                if login_info.permissions.has_permission(&self.permission) {
-                    Ok(next.run(request).await)
-                } else {
-                    let mut response = tide::Response::new(403);
-
-                    response.set_body(serde_json::json!({
-                        "error": "Insufficient permissions"
-                    }));
-
-                    Ok(response)
-                }
-            } else {
-                let mut response = tide::Response::new(401);
-
-                response.set_body(serde_json::json!({
-                    "error": "Not logged in"
-                }));
-
-                Ok(response)
-            }
-        })
     }
 }
