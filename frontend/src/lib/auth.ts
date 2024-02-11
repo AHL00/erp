@@ -9,7 +9,7 @@ export const auth_info_store: any = writable(null);
 
 /// Attempt to login
 export async function login(username: string, password: string) {
-    const response = await fetch(`${api_base}/auth/login`, {
+    const response = await fetch(`${api_base}auth/login`, {
         method: 'POST',
         headers: {
             Accept: "application/json",
@@ -32,7 +32,7 @@ export async function login(username: string, password: string) {
 /// This will update the auth_info_store.
 /// Returns true if call was successful.
 export async function refreshAuthStatus(): Promise<boolean> {
-    const response = await fetch(`${api_base}/auth/status`, {
+    const response = await fetch(`${api_base}auth/status`, {
         method: 'GET',
     });
     
@@ -49,7 +49,7 @@ export async function refreshAuthStatus(): Promise<boolean> {
 }
 
 export async function logout() {
-    const response = await fetch(`${api_base}/auth/logout`, {
+    const response = await fetch(`${api_base}auth/logout`, {
         method: 'POST',
         credentials: 'include'
     });
