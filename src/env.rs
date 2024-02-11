@@ -7,12 +7,60 @@
 
 use std::sync::LazyLock;
 
-pub static DATABASE_PATH: LazyLock<String> = LazyLock::new(|| {
-    std::env::var("DATABASE_PATH")
+pub static DATABASE_HOST: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("DATABASE_HOST")
         .unwrap_or_else(|_| {
-            log::warn!("No DATABASE_PATH environment variable found, using default path db.sqlite3");
+            let host = "dpg-cn4bfoocmk4c73em0bug-a.singapore-postgres.render.com".to_string();
 
-            "db.sqlite3".to_string()
+            log::warn!("No DATABASE_HOST environment variable found, using default host {}", host);
+
+            host
+        })
+});
+
+pub static DATABASE_PORT: LazyLock<u16> = LazyLock::new(|| {
+    std::env::var("DATABASE_PORT")
+        .unwrap_or_else(|_| {
+            let port = 5432;
+
+            log::warn!("No DATABASE_PORT environment variable found, using default port {}", port);
+
+            port.to_string()
+        })
+        .parse()
+        .expect("Failed to parse DATABASE_PORT environment variable")
+});
+
+pub static DATABASE_USER: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("DATABASE_USER")
+        .unwrap_or_else(|_| {
+            let user = "yuny_db_user".to_string();
+
+            log::warn!("No DATABASE_USER environment variable found, using default user {}", user);
+
+            user
+        })
+});
+
+pub static DATABASE_NAME: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("DATABASE_NAME")
+        .unwrap_or_else(|_| {
+            let name = "yuny_db".to_string();
+
+            log::warn!("No DATABASE_NAME environment variable found, using default database {}", name);
+
+            name
+        })
+});
+
+pub static DATABASE_PASSWORD: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("DATABASE_PASSWORD")
+        .unwrap_or_else(|_| {
+            let password = "SYf4ctmI8unj4Rr8mSw7FJdULPL3AbEq".to_string();
+
+            log::warn!("No DATABASE_PASSWORD environment variable found, using default password {}", password);
+
+            password
         })
 });
 

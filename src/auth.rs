@@ -1,11 +1,11 @@
-use rocket::{fairing::{Fairing, Info, Kind}, http::{uri::Origin, Cookie, CookieJar, SameSite, Status}, serde::json::Json, Data};
+use rocket::{http::{Cookie, CookieJar, SameSite, Status}, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use std::{cell::LazyCell, ops::BitOr, sync::LazyLock};
+use std::ops::BitOr;
 
-use crate::{env, DB};
+use crate::DB;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct AuthInfo {
+pub struct AuthInfo {
     /// Subject (whom the token refers to)
     sub: String,
     /// Expiration time (as UTC timestamp)
@@ -28,7 +28,7 @@ struct AuthInfo {
 //     "error": "Invalid username" | "Invalid password"
 // }
 #[derive(serde::Deserialize)]
-struct LoginInfo {
+pub struct LoginInfo {
     username: String,
     password: String,
 }
@@ -40,19 +40,18 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
 
     let conn = unsafe { DB.write().await };
 
-    let mut stmt = conn
-        .prepare("SELECT * FROM users WHERE username = ?")
-        .unwrap();
+    let stmt = conn.client
+        .prepare("SELECT * FROM users WHERE username = ?").await.unwrap();
 
-    let mut rows = stmt.query(rusqlite::params![username]).unwrap();
+    let rows = conn.client.query(&stmt, &[&username]).await.unwrap();
 
     let mut user_exists = false;
 
-    while let Some(row) = rows.next().unwrap() {
+    for row in rows {
         user_exists = true;
 
-        if row.get::<_, String>(1).unwrap() == password {
-            let permissions: u32 = row.get(3).unwrap();
+        if row.get::<_, String>(1) == password {
+            let permissions: u32 = row.get(3);
             let permissions: UserPermissions = unsafe { std::mem::transmute(permissions) };
 
             let mut cookie = Cookie::new("auth_info", serde_json::json!(

@@ -2,47 +2,71 @@
 
 use std::sync::LazyLock;
 
+use pollster::FutureExt;
 use rocket::{config::SecretKey, fs::FileServer, routes};
 
-use crate::auth::UserPermissions;
+use tokio_postgres::{tls::NoTlsStream, GenericClient, NoTls, Socket};
 
 pub mod auth;
 pub mod env;
 
-pub static mut DB: LazyLock<async_std::sync::RwLock<rusqlite::Connection>> = LazyLock::new(|| {
-    if !std::path::Path::new(&env::DATABASE_PATH.as_str()).exists() {
-        log::info!("Creating new db with schema");
+pub struct DbState {
+    pub client: tokio_postgres::Client,
+    pub connection: tokio_postgres::Connection<Socket, NoTlsStream>,
+}
 
-        let conn = rusqlite::Connection::open("db.sqlite3").unwrap();
+unsafe impl Send for DbState {}
+unsafe impl Sync for DbState {}
 
-        conn.execute_batch(include_str!("schema.sql"))
-            .expect("Failed to create schema");
+pub static mut DB: LazyLock<tokio::sync::RwLock<DbState>> = LazyLock::new(|| {
+    log::info!("Connecting to database...");
 
-        let admin_permissions = UserPermissions::Admin;
-
-        // Default users
-        conn.execute(
-            "INSERT INTO users (username, password, permissions) VALUES (?, ?, ?)",
-            ["admin", "admin", &(admin_permissions as u8).to_string()],
+    let (client, connection) = tokio_postgres::connect(
+        format!(
+            "host={} user={} port={} dbname={} password={}",
+            *env::DATABASE_HOST,
+            *env::DATABASE_USER,
+            *env::DATABASE_PORT,
+            *env::DATABASE_NAME,
+            *env::DATABASE_PASSWORD
         )
+        .as_str(),
+        NoTls,
+    )
+    .block_on()
+    .unwrap_or_else(|e| {
+        log::error!("Failed to connect to database: {}", e);
+        std::process::exit(1);
+    });
+
+    log::info!("Connected to database");
+
+    // Make sure schema is created
+    // client
+    //     .batch_execute(include_str!("schema.sql"))
+    //     .block_on()
+    //     .unwrap_or_else(|e| {
+    //         log::error!("Failed to create schema: {}", e);
+    //         std::process::exit(1);
+    //     });
+
+    client
+        .execute("CREATE SCHEMA IF NOT EXISTS public", &[])
+        .block_on()
         .unwrap();
 
-        async_std::sync::RwLock::new(conn)
-    } else {
-        log::info!("Using existing db");
+    log::info!("Schema created");
 
-        async_std::sync::RwLock::new(rusqlite::Connection::open("db.sqlite3").unwrap())
-    }
+    tokio::sync::RwLock::new(DbState { client, connection })
 });
 
-#[rocket::main]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set env logger to info mode
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp(None)
         .init();
-
 
     // Make sure lazy cell initializes
     let _ = unsafe { DB.read() };
