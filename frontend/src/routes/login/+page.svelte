@@ -2,6 +2,9 @@
 	import { login, auth_info_store } from '$lib/auth';
 	import { get } from 'svelte/store';
     import logo from '$lib/assets/logo.jpg';
+    import { page } from '$app/stores';
+
+
 
 	let username = '';
 	let password = '';
@@ -15,7 +18,11 @@
 			if (get(auth_info_store) !== null) {
 				// Redirect to app which will check for auth
 				// TODO: Redirect to the page the user was trying to access
-				window.location.href = '/app';
+                let url_params = new URLSearchParams(window.location.search);
+                let redirect = url_params.get('redirect');
+                console.log('Redirecting to', redirect);
+                
+                window.location.href = redirect ? redirect : '/app';
 			} else {
 				// TODO: Show error message
 				alert('Login failed');

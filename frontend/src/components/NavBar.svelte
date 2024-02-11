@@ -1,25 +1,30 @@
 <script lang="ts">
-	let is_open = false;
-
-	function toggleNav() {
-		is_open = !is_open;
-	}
+    import { redirect } from '$lib';
+import { logout, auth_info_store } from '$lib/auth';
 </script>
 
 <div class="sidebar">
-	<div class="item">
+	<div class="item" on:click={() => redirect('/app/orders')}>
         <div class="icon">
             <i class="fa fa-clipboard-list"></i>
         </div>
 		<span class="label">Orders</span>
     </div>
+	
+    <div class="separator"></div>
+    
+    <div class="item">
+        
+    </div>
 
-	<div class="separator"></div>
-	<div class="item" style="margin-top: auto;">
+
+	<div class="item" style="margin-top: auto;" on:click={logout}>
         <div class="icon">
-            <i class="fa fa-sign-out-alt"></i>
+            <i class="fa fa-user"></i>
         </div>
-		<span class="label">Logout</span>
+		<span class="label">
+            Account
+        </span>
 	</div>
 </div>
 
@@ -28,7 +33,7 @@
 		width: 60px;
 		height: 100vh;
 		background-color: #ffffff;
-		transition: width 0.15s ease-in-out;
+		transition: width 0.2s ease-in-out;
 		overflow: hidden;
 		align-self: start;
 		justify-self: start;
@@ -52,7 +57,7 @@
 
     .sidebar > .item > .label {
         color: #444;
-		transition: all 0.1s;
+		transition: all 0.2s;
 		opacity: 0;
 		font-size: 18px;
 		width: 0;
@@ -93,5 +98,4 @@
 	.item:hover {
 		scale: 1.1;
 	}
-
 </style>

@@ -5,7 +5,7 @@ import { api_base } from './backend';
 /// of the user.
 /// If null, the user is not logged in.
 /// For type info, check Rust code for the AuthInfo struct.
-export const auth_info_store = writable(null);
+export const auth_info_store: any = writable(null);
 
 /// Attempt to login
 export async function login(username: string, password: string) {

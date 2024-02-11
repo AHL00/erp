@@ -1,10 +1,12 @@
-<script lang="ts">
+<script>
 	import { auth_info_store, refreshAuthStatus } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import NavBar from '../../components/NavBar.svelte';
+	import Loader from '../../components/Loader.svelte';
 
-	onMount(async () => {
+    onMount(async () => {
+        console.log('Checking auth status');
 		await refreshAuthStatus();
 		if ($auth_info_store === null) {
 			// Redirect to login page with a way to return to the current page
@@ -15,7 +17,9 @@
 
 {#if $auth_info_store === null}
     <!-- TODO Add a loading spinner -->
-	<p>Authenticating...</p>
+    <div style="display: flex; flex-direction: row; overflow: hidden; height: 100vh; align-items: center; justify-content: center;">
+        <Loader />
+    </div>
 {:else}
 	<div style="display: flex; flex-direction: row; overflow: hidden; height: 100vh;">
 		<NavBar />
