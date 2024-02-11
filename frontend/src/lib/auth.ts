@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { api_base } from './backend';
+import { api_call } from './backend';
 
 /// This is a store that will hold the login information
 /// of the user.
@@ -9,14 +9,12 @@ export const auth_info_store: any = writable(null);
 
 /// Attempt to login
 export async function login(username: string, password: string) {
-    const response = await fetch(`${api_base}auth/login`, {
-        method: 'POST',
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-    });
+    const response = await api_call('auth/login', 'POST', { username, password });
+
+    if (response === null) {
+        console.error('Failed to call login API');
+        return;
+    }
 
     if (response.ok) {
         let refresh_success = await refreshAuthStatus();
@@ -32,9 +30,12 @@ export async function login(username: string, password: string) {
 /// This will update the auth_info_store.
 /// Returns true if call was successful.
 export async function refreshAuthStatus(): Promise<boolean> {
-    const response = await fetch(`${api_base}auth/status`, {
-        method: 'GET',
-    });
+    const response = await api_call('auth/status', 'GET', {});
+
+    if (response === null) {
+        console.error('Failed to call refreshAuthStatus API');
+        return false;
+    }
     
     if (response.ok) {
         auth_info_store.set(await response.json());
@@ -49,10 +50,12 @@ export async function refreshAuthStatus(): Promise<boolean> {
 }
 
 export async function logout() {
-    const response = await fetch(`${api_base}auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
-    });
+    const response = await api_call('auth/logout', 'POST', {});
+
+    if (response === null) {
+        console.error('Failed to call logout API');
+        return;
+    }
 
     if (response.ok) {
         auth_info_store.set(null);

@@ -1,7 +1,33 @@
-export const api_base = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL : '/';
+import { browser } from "$app/environment";
 
-console.log('API_BASE:', api_base);
 
-if (!api_base) {
-	throw new Error('VITE_API_BASE_URL is not set');
+export async function api_call(path: string, method: string, body: any) {
+    if (!browser) {
+        console.error('Tried to make API call from server');
+        return null;
+    }
+
+    if (method === 'GET') {
+        return fetch(`${window.location.origin}/api/${path}`, {
+            method: method,
+            headers: {
+                Accept: "application/json",
+            },
+        });
+    }
+
+    if (method === 'HEAD') {
+        return fetch(`${window.location.origin}/api/${path}`, {
+            method: method,
+        });
+    }
+
+    return fetch(`${window.location.origin}/api/${path}`, {
+        method: method,
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    });
 }
