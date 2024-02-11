@@ -2,7 +2,7 @@
 
 use std::sync::LazyLock;
 
-use rocket::{fs::FileServer, routes};
+use rocket::{config::SecretKey, fs::FileServer, routes};
 
 use crate::auth::UserPermissions;
 
@@ -50,6 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = rocket::Config {
         address: env::HOST.as_str().parse().unwrap(),
         port: *env::PORT,
+        secret_key: SecretKey::from(&env::JWT_SECRET),
         ..Default::default()
     };
 

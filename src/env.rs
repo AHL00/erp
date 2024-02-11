@@ -21,12 +21,12 @@ pub static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| {
         {
             log::warn!("No JWT_SECRET environment variable found, using default secret");
 
-            "default_secret_lashflashlalkshjsakl".to_string()
+            "9K+7wGkwH2In5yMFVWra4f8cBsuEBzIA3ZMo0SoRM09r8DeGuNjLyKWiHvEnSG4illto6RZvOjMrq+Nx40I/msKhiK/J0U499xjF2JK/1RI=".to_string()
         });
 
     // Make sure secret is a valid length
-    if secret.len() < 32 {
-        log::error!("JWT_SECRET must be at least 32 bytes long");
+    if secret.len() < 64 {
+        log::error!("JWT_SECRET must be at least 64 bytes long");
         std::process::exit(1);
     }
 
@@ -36,9 +36,9 @@ pub static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| {
 pub static PORT: LazyLock<u16> = LazyLock::new(|| {
     std::env::var("PORT")
         .unwrap_or_else(|_| {
-            log::warn!("No PORT environment variable found, using default port 8000");
+            log::warn!("No PORT environment variable found, using default port 8080");
 
-            "8000".to_string()
+            "8080".to_string()
         })
         .parse()
         .expect("Failed to parse PORT environment variable")
