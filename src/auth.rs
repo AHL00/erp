@@ -1,7 +1,6 @@
 use rocket::{fairing::{Fairing, Info, Kind}, http::{uri::Origin, Cookie, CookieJar, SameSite, Status}, serde::json::Json, Data};
 use serde::{Deserialize, Serialize};
 use std::{cell::LazyCell, ops::BitOr, sync::LazyLock};
-use tide::{Middleware, Next, Request};
 
 use crate::{env, DB};
 
