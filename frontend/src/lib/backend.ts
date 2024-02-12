@@ -1,5 +1,7 @@
 import { browser } from "$app/environment";
 
+// ENV
+export let api_base = import.meta.env.VITE_API_BASE? import.meta.env.VITE_API_BASE : `${window.location.origin}/api`;
 
 export async function api_call(path: string, method: string, body?: any) {
     if (!browser) {
@@ -8,7 +10,7 @@ export async function api_call(path: string, method: string, body?: any) {
     }
 
     if (method === 'GET') {
-        return fetch(`${window.location.origin}/api/${path}`, {
+        return fetch(`${api_base}/${path}`, {
             method: method,
             headers: {
                 Accept: "application/json",
@@ -17,12 +19,12 @@ export async function api_call(path: string, method: string, body?: any) {
     }
 
     if (method === 'HEAD') {
-        return fetch(`${window.location.origin}/api/${path}`, {
+        return fetch(`${api_base}/${path}`, {
             method: method,
         });
     }
 
-    return fetch(`${window.location.origin}/api/${path}`, {
+    return fetch(`${api_base}/${path}`, {
         method: method,
         headers: {
             Accept: "application/json",
