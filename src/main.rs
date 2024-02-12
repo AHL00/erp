@@ -23,7 +23,7 @@ pub static mut DB: LazyLock<async_std::sync::RwLock<rusqlite::Connection>> = Laz
         // Default users
         conn.execute(
             "INSERT INTO users (username, password, permissions) VALUES (?, ?, ?)",
-            ["admin", "admin", &(admin_permissions as u8).to_string()],
+            ["admin", "admin", &(admin_permissions as u32).to_string()],
         )
         .unwrap();
 

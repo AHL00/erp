@@ -51,24 +51,16 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
 
     let mut rows = stmt.query(rusqlite::params![username]).unwrap();
 
-    log::info!("User {} is logging in", username);
-    log::info!("Got database data");
-
     let mut user_exists = false;
 
     while let Some(row) = rows.next().unwrap_or_else(|e| {
         log::error!("Failed to get row: {}", e);
         None
     }) {
-        log::info!("Got row");
-
         user_exists = true;
 
-        if row.get::<_, String>(1).unwrap() == password {
-            let permissions: u32 = row.get(3).expect("Failed to get permissions at row 3");
-            let permissions: UserPermissions = unsafe { std::mem::transmute(permissions) };
-
-            log::info!("User {} has permissions {:?}", username, permissions);
+        if row.get::<_, String>(2).expect("Failed to get string at row 1") == password {
+            let permissions: UserPermissions = row.get::<_, u32>(3).expect("Failed to get permissions at row 3").into();
 
             let mut cookie = Cookie::new(
                 "auth_info",
@@ -84,8 +76,6 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
             cookie.set_same_site(SameSite::Lax);
 
             cookies.add_private(cookie);
-
-            log::info!("Cookie added");
 
             return rocket::http::Status::Ok;
         } else {
@@ -133,6 +123,7 @@ pub async fn status(cookies: &CookieJar<'_>) -> Result<Json<AuthInfo>, Status> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
+#[repr(u32)]
 pub enum UserPermissions {
     ProductRead = 0b00000001,
     ProductWrite = 0b00000010,
@@ -148,6 +139,27 @@ impl BitOr for UserPermissions {
 
     fn bitor(self, rhs: Self) -> Self {
         unsafe { std::mem::transmute(self as u32 | rhs as u32) }
+    }
+}
+
+impl From<u32> for UserPermissions {
+    fn from(permissions: u32) -> Self {
+        match permissions {
+            0b00000001 => UserPermissions::ProductRead,
+            0b00000010 => UserPermissions::ProductWrite,
+            0b00000100 => UserPermissions::OrderRead,
+            0b00001000 => UserPermissions::OrderWrite,
+            0b00010000 => UserPermissions::UserRead,
+            0b00100000 => UserPermissions::UserWrite,
+            0xFFFFFFFF => UserPermissions::Admin,
+            _ => panic!("Invalid u32 -> permissions conversion"),
+        }
+    }
+}
+
+impl Into<u32> for UserPermissions {
+    fn into(self) -> u32 {
+        self as u32
     }
 }
 
