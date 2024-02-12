@@ -7,6 +7,10 @@ use std::ops::BitOr;
 
 use crate::DB;
 
+// TODO: Invalidating tokens
+// How could we invalidate tokens?
+// - Store tokens in a database
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthInfo {
     /// Subject (whom the token refers to)
@@ -128,52 +132,45 @@ pub async fn status(cookies: &CookieJar<'_>) -> Result<Json<AuthInfo>, Status> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
-#[repr(u32)]
-pub enum UserPermissions {
-    ProductRead = 0b00000001,
-    ProductWrite = 0b00000010,
-    OrderRead = 0b00000100,
-    OrderWrite = 0b00001000,
-    UserRead = 0b00010000,
-    UserWrite = 0b00100000,
-    ManageDB = 0b01000000,
-    Admin = 0xFFFFFFFF,
+#[repr(transparent)]
+pub struct UserPermissions(u32);
+
+impl UserPermissions {
+    pub const PRODUCT_READ: UserPermissions = UserPermissions(0b0001);
+    pub const PRODUCT_WRITE: UserPermissions = UserPermissions(0b0010);
+    pub const ORDER_READ: UserPermissions = UserPermissions(0b0100);
+    pub const ORDER_WRITE: UserPermissions = UserPermissions(0b1000);
+    pub const USER_READ: UserPermissions = UserPermissions(0b0001_0000);
+    pub const USER_WRITE: UserPermissions = UserPermissions(0b0010_0000);
+    pub const MANAGE_DB: UserPermissions = UserPermissions(0b0100_0000);
+    pub const ADMIN: UserPermissions = UserPermissions(0xFFFF_FFFF);
+}
+
+impl From<u32> for UserPermissions {
+    fn from(permissions: u32) -> Self {
+        Self(permissions)
+    }
 }
 
 impl BitOr for UserPermissions {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self {
-        unsafe { std::mem::transmute(self as u32 | rhs as u32) }
-    }
-}
-
-impl From<u32> for UserPermissions {
-    fn from(permissions: u32) -> Self {
-        match permissions {
-            0b00000001 => UserPermissions::ProductRead,
-            0b00000010 => UserPermissions::ProductWrite,
-            0b00000100 => UserPermissions::OrderRead,
-            0b00001000 => UserPermissions::OrderWrite,
-            0b00010000 => UserPermissions::UserRead,
-            0b00100000 => UserPermissions::UserWrite,
-            0xFFFFFFFF => UserPermissions::Admin,
-            _ => panic!("Invalid u32 -> permissions conversion"),
-        }
+        unsafe { std::mem::transmute(self.0 | rhs.0) }
     }
 }
 
 impl Into<u32> for UserPermissions {
     fn into(self) -> u32 {
-        self as u32
+        self.0
     }
 }
 
 impl UserPermissions {
     pub fn has_permission(&self, permission: &UserPermissions) -> bool {
-        let permission = *permission as u32;
+        let permission = permission.0;
 
-        (*self as u32 & permission) == permission
+        (self.0 & permission) == permission
     }
 }
 

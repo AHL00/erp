@@ -32,11 +32,15 @@
 				// Fetch results
 				api_call(`search/product?query=${search_bar.value}&count=10&distance=0.35`, 'GET').then(
 					(res) => {
-                        res?.json().then((data) => {                           
-                            //@ts-ignore
-                            results = [...data];
-                            results_loading = false;
-                        });
+                        if (res?.status == 200) {
+                            res?.json().then((data) => {
+                                results = [...data];
+                            });
+                        } else if (res?.status == 403) {
+                            alert('You are not authorized to search for products');
+                        } 
+                        
+                        results_loading = false;
 					}
 				);
 			}, 500);

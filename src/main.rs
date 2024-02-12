@@ -32,19 +32,22 @@ pub static mut DB: LazyLock<RwLock<rusqlite::Connection>> = LazyLock::new(|| {
         conn.execute_batch(include_str!("schema.sql"))
             .expect("Failed to create schema");
 
-        let admin_permissions = UserPermissions::ManageDB
-            | UserPermissions::OrderRead
-            | UserPermissions::OrderRead
-            | UserPermissions::OrderWrite
-            | UserPermissions::ProductRead
-            | UserPermissions::ProductWrite
-            | UserPermissions::UserRead
-            | UserPermissions::UserWrite;
+        let admin_permissions = UserPermissions::PRODUCT_READ
+            | UserPermissions::PRODUCT_WRITE
+            | UserPermissions::ORDER_READ
+            | UserPermissions::ORDER_WRITE
+            | UserPermissions::USER_READ
+            | UserPermissions::USER_WRITE
+            | UserPermissions::MANAGE_DB;
 
         // Default users
         conn.execute(
             "INSERT INTO users (username, password, permissions) VALUES (?, ?, ?)",
-            ["admin", "admin", &(admin_permissions as u32).to_string()],
+            [
+                "admin",
+                "admin",
+                &Into::<u32>::into(admin_permissions).to_string(),
+            ],
         )
         .unwrap();
 

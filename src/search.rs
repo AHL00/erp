@@ -1,6 +1,5 @@
 use crate::{auth::{verify_user_permissions, UserPermissions}, Product, DB};
 use rocket::{http::{CookieJar, Status}, serde::json::Json};
-use textdistance::str::{lcsseq, tversky, yujian_bo};
 
 #[rocket::get("/search/product?<query>&<count>&<distance>")]
 pub async fn product(query: Option<String>, count: Option<usize>, distance: Option<f32>, cookies: &CookieJar<'_>) -> Result<Json<Vec<Product>>, Status> {
@@ -21,7 +20,7 @@ pub async fn product(query: Option<String>, count: Option<usize>, distance: Opti
     };
 
     // Check if user has permissions and is logged in
-    verify_user_permissions(&UserPermissions::ProductRead, cookies)?;
+    verify_user_permissions(&UserPermissions::PRODUCT_READ, cookies)?;
 
     let db = unsafe {DB.read().expect("Failed to get DB")};
 
