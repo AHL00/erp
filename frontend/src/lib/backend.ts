@@ -14,8 +14,8 @@ export async function api_call(path: string, method: string, body?: any) {
             method: method,
             headers: {
                 Accept: "application/json",
-                credentials: "include",
             },
+            credentials: "include",
         });
     }
 
@@ -24,8 +24,8 @@ export async function api_call(path: string, method: string, body?: any) {
             method: method,
             headers: {
                 Accept: "application/json",
-                credentials: "include",
             },
+            credentials: "include",
         });
     }
 
@@ -34,8 +34,8 @@ export async function api_call(path: string, method: string, body?: any) {
         headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
-            credentials: "include",
         },
+        credentials: "include",
         body: JSON.stringify(body),
     });
 }
