@@ -110,8 +110,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         FileServer::from(Path::new(env::PUBLIC_DIR.as_str())).rank(3),
     );
 
+    let cors_options = rocket_cors::CorsOptions::default().allow_credentials(true);
+
     server
-        .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
+        .attach(
+            cors_options
+                .to_cors()
+                .expect("Failed to attach CORS middleware"),
+        )
         .launch()
         .await?;
 
