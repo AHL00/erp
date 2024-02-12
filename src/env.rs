@@ -16,6 +16,15 @@ pub static DATABASE_PATH: LazyLock<String> = LazyLock::new(|| {
         })
 });
 
+pub static PUBLIC_DIR: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("PUBLIC_DIR")
+        .unwrap_or_else(|_| {
+            log::warn!("No PUBLIC_DIR environment variable found, using default path frontend/dist");
+
+            "frontend/dist".to_string()
+        })
+});
+
 pub static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| {
     let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_|
         {

@@ -1,13 +1,11 @@
 use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::{uri::Origin, Cookie, CookieJar, SameSite, Status},
+    http::{Cookie, CookieJar, SameSite, Status},
     serde::json::Json,
-    Data,
 };
 use serde::{Deserialize, Serialize};
-use std::{cell::LazyCell, ops::BitOr, sync::LazyLock};
+use std::ops::BitOr;
 
-use crate::{env, DB};
+use crate::DB;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthInfo {
@@ -43,7 +41,7 @@ struct LoginInfo {
 pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::http::Status {
     let LoginInfo { username, password } = auth.into_inner();
 
-    let conn = unsafe { DB.write().await };
+    let conn = unsafe { DB.read().expect("Failed to aquire DB") };
 
     let mut stmt = conn
         .prepare("SELECT * FROM users WHERE username = ?")
@@ -59,8 +57,15 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
     }) {
         user_exists = true;
 
-        if row.get::<_, String>(2).expect("Failed to get string at row 1") == password {
-            let permissions: UserPermissions = row.get::<_, u32>(3).expect("Failed to get permissions at row 3").into();
+        if row
+            .get::<_, String>(2)
+            .expect("Failed to get string at row 1")
+            == password
+        {
+            let permissions: UserPermissions = row
+                .get::<_, u32>(3)
+                .expect("Failed to get permissions at row 3")
+                .into();
 
             let mut cookie = Cookie::new(
                 "auth_info",
@@ -131,6 +136,7 @@ pub enum UserPermissions {
     OrderWrite = 0b00001000,
     UserRead = 0b00010000,
     UserWrite = 0b00100000,
+    ManageDB = 0b01000000,
     Admin = 0xFFFFFFFF,
 }
 
@@ -169,4 +175,21 @@ impl UserPermissions {
 
         (*self as u32 & permission) == permission
     }
+}
+
+pub fn verify_user_permissions(
+    permissions: &UserPermissions,
+    cookies: &CookieJar<'_>,
+) -> Result<(), Status> {
+    if let Some(cookie) = cookies.get_private("auth_info") {
+        let auth_info: AuthInfo = serde_json::from_str(cookie.value()).unwrap();
+
+        if auth_info.permissions.has_permission(permissions) {
+            return Ok(());
+        } else {
+            return Err(Status::Forbidden);
+        }
+    }
+
+    Err(Status::Unauthorized)
 }
