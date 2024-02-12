@@ -89,6 +89,9 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
             #[cfg(not(debug_assertions))]
             cookie.set_secure(true);
 
+            #[cfg(debug_assertions)]
+            cookie.set_secure(false);
+
             cookies.add_private(cookie);
 
             return rocket::http::Status::Ok;
