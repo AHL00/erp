@@ -99,15 +99,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    rocket::custom(config)
-        .mount(
-            "/api",
-            routes![auth::login, auth::status, auth::logout, search::product],
-        )
-        .mount(
-            "/",
-            FileServer::from(Path::new(env::PUBLIC_DIR.as_str())).rank(3),
-        )
+    let server = rocket::custom(config).mount(
+        "/api",
+        routes![auth::login, auth::status, auth::logout, search::product],
+    );
+
+    #[cfg(debug_assertions)]
+    let server = server.mount(
+        "/",
+        FileServer::from(Path::new(env::PUBLIC_DIR.as_str())).rank(3),
+    );
+
+    server
         .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
         .launch()
         .await?;

@@ -1,20 +1,20 @@
-# Build frontend
-cd frontend
+# # Build frontend
+# cd frontend
 
-# Install dependencies
-npm install
+# # Install dependencies
+# npm install
 
-# Build
-npm run build
+# # Build
+# npm run build
 
-# Remove current dist in root
-rm -rf ../dist
+# # Remove current dist in root
+# rm -rf ../dist
 
-# Move dist to root
-mv dist ..
+# # Move dist to root
+# mv dist ..
 
-# Go back to root
-cd ..
+# # Go back to root
+# cd ..
 
 # Install nightly rust if not already installed
 if ! rustup toolchain list | grep -q 'nightly'; then
