@@ -1,4 +1,9 @@
-use rocket::{fairing::{Fairing, Info, Kind}, http::{uri::Origin, Cookie, CookieJar, SameSite, Status}, serde::json::Json, Data};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::{uri::Origin, Cookie, CookieJar, SameSite, Status},
+    serde::json::Json,
+    Data,
+};
 use serde::{Deserialize, Serialize};
 use std::{cell::LazyCell, ops::BitOr, sync::LazyLock};
 
@@ -46,41 +51,54 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
 
     let mut rows = stmt.query(rusqlite::params![username]).unwrap();
 
+    log::info!("User {} is logging in", username);
+    log::info!("Got database data");
+
     let mut user_exists = false;
 
-    while let Some(row) = rows.next().unwrap() {
+    while let Some(row) = rows.next().unwrap_or_else(|e| {
+        log::error!("Failed to get row: {}", e);
+        None
+    }) {
+        log::info!("Got row");
+
         user_exists = true;
 
         if row.get::<_, String>(1).unwrap() == password {
-            let permissions: u32 = row.get(3).unwrap();
+            let permissions: u32 = row.get(3).expect("Failed to get permissions at row 3");
             let permissions: UserPermissions = unsafe { std::mem::transmute(permissions) };
 
-            let mut cookie = Cookie::new("auth_info", serde_json::json!(
-                AuthInfo {
+            log::info!("User {} has permissions {:?}", username, permissions);
+
+            let mut cookie = Cookie::new(
+                "auth_info",
+                serde_json::json!(AuthInfo {
                     sub: username,
                     exp: time::OffsetDateTime::now_utc().unix_timestamp() as usize
                         + 60 * 60 * 24 * 7,
                     permissions,
-                }
-            ).to_string());
+                })
+                .to_string(),
+            );
 
             cookie.set_same_site(SameSite::Lax);
 
             cookies.add_private(cookie);
 
+            log::info!("Cookie added");
+
             return rocket::http::Status::Ok;
         } else {
-            return rocket::http::Status::Unauthorized;
+            return rocket::http::Status::Forbidden;
         }
     }
 
     if !user_exists {
-        return rocket::http::Status::Unauthorized;
+        return rocket::http::Status::Forbidden;
     }
 
     rocket::http::Status::InternalServerError
 }
-
 
 // POST /auth/logout
 // -> 200 OK
@@ -113,7 +131,6 @@ pub async fn status(cookies: &CookieJar<'_>) -> Result<Json<AuthInfo>, Status> {
         Err(rocket::http::Status::Unauthorized)
     }
 }
-
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 pub enum UserPermissions {
