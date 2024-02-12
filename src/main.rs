@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     rocket::custom(config)
         .mount("/api", routes![auth::login, auth::status, auth::logout])
-        .mount("/", FileServer::from("./frontend/dist").rank(3))
+        .mount("/", FileServer::from("./dist").rank(3))
         .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
         .launch()
         .await?;
