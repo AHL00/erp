@@ -82,10 +82,12 @@ pub async fn login(auth: Json<LoginInfo>, cookies: &CookieJar<'_>) -> rocket::ht
                 .to_string(),
             );
 
+            #[cfg(not(debug_assertions))]
             cookie.set_same_site(SameSite::None);
-            cookie.set_http_only(true);
-            
-            // Only in release mode
+
+            #[cfg(debug_assertions)]
+            cookie.set_same_site(SameSite::Lax);
+
             #[cfg(not(debug_assertions))]
             cookie.set_secure(true);
 

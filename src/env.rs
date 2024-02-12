@@ -56,8 +56,8 @@ pub static PORT: LazyLock<u16> = LazyLock::new(|| {
 pub static HOST: LazyLock<String> = LazyLock::new(|| {
     std::env::var("HOST")
         .unwrap_or_else(|_| {
-            log::warn!("No HOST environment variable found, using default host 0.0.0.0");
+            log::warn!("No HOST environment variable found, using default host localhost");
 
-            "0.0.0.0".to_string()
+            "127.0.0.1".to_string()
         })
 });

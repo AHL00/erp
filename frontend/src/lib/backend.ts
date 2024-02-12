@@ -1,7 +1,11 @@
 import { browser } from "$app/environment";
 
 // ENV
-export let api_base = import.meta.env.VITE_API_BASE? import.meta.env.VITE_API_BASE : `${window.location.origin}/api`;
+export let api_base = import.meta.env.VITE_API_BASE;
+
+if (!api_base) {
+    console.error('API_BASE not set in environment');
+}
 
 export async function api_call(path: string, method: string, body?: any) {
     if (!browser) {
