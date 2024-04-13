@@ -114,7 +114,8 @@ pub(super) async fn login(
         }
 
         cookie.set_same_site(SameSite::Lax);
-        cookie.set_secure(true);
+        // TODO: Change to secure when HTTPS is enabled and using same domain for API and frontend
+        cookie.set_secure(false);
 
         log::info!("Sending token cookie");
 
@@ -387,7 +388,7 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
         let cookies = request.cookies();
 
         if let Some(cookie) = cookies.get_private("auth_info") {
-            let auth_info: AuthCookieInfo = serde_json::from_str(cookie.value()).unwrap();
+            let auth_info: AuthCookieInfo = serde_json::from_str(cookie.value()).expect("Failed to parse auth_info cookie");
 
             let mut db = try_outcome!(request
                 .guard::<DB>()
@@ -443,7 +444,8 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             );
 
             refresh_cookie.set_same_site(SameSite::Lax);
-            refresh_cookie.set_secure(true);
+            // TODO: Change to secure when HTTPS is enabled and using same domain for API and frontend
+            refresh_cookie.set_secure(false);
 
             log::info!("Refreshing token cookie");
 
