@@ -1,6 +1,6 @@
 use crate::{
     db::DB,
-    types::{permissions::UserPermission, product::Product},
+    types::{permissions::UserPermissionEnum, product::Product},
 };
 
 use rocket::{
@@ -13,7 +13,7 @@ use super::auth::AuthGuard;
 #[rocket::get("/search/product?<query>&<count>&<distance>")]
 pub(super) async fn product(
     mut db: DB,
-    _auth: AuthGuard<{UserPermission::PRODUCT_READ as u32}>,
+    _auth: AuthGuard<{UserPermissionEnum::PRODUCT_READ as u32}>,
     query: Option<String>,
     count: Option<usize>,
     distance: Option<f32>,

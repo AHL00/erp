@@ -9,7 +9,7 @@ use ts_rs::TS;
 
 use crate::{
     db::DB,
-    types::permissions::{UserPermission, UserPermissionVec},
+    types::permissions::{UserPermissionEnum, UserPermissionVec, UserPermissions},
 };
 
 #[derive(Debug, Serialize, Deserialize, TS)]
@@ -25,7 +25,7 @@ pub(super) struct AuthInfo {
 pub(super) struct AuthCookieInfo {
     username: String,
     expiry_time: Option<i64>,
-    permissions: UserPermission,
+    permissions: UserPermissions,
 }
 
 // POST /auth/login
@@ -89,7 +89,7 @@ pub(super) async fn login(
     let salted_hashed_password = salt_hash_password(&password, &row.salt);
 
     if row.password == salted_hashed_password {
-        let permissions = UserPermission::from(row.permissions as u32);
+        let permissions = UserPermissions::from(row.permissions as u32);
 
         let expiry_timestamp = expires_in.map(|expires_in| {
             rocket::time::OffsetDateTime::now_utc() + rocket::time::Duration::seconds(expires_in)
@@ -162,7 +162,7 @@ pub(super) struct CreateUserData {
 #[rocket::post("/auth/create_user", data = "<create_user_data>")]
 pub(super) async fn create_user(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermission::ADMIN as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
     create_user_data: Json<CreateUserData>,
 ) -> Result<Status, Status> {
     let CreateUserData {
@@ -201,7 +201,7 @@ pub(super) struct ListUserData {
 #[rocket::get("/auth/list_users")]
 pub(super) async fn list_users(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermission::ADMIN as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
 ) -> Result<Json<Vec<ListUserData>>, Status> {
     #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
     pub struct ListUserRow {
@@ -220,7 +220,7 @@ pub(super) async fn list_users(
                 .iter()
                 .map(|row| ListUserData {
                     username: row.username.clone(),
-                    permissions: UserPermissionVec::split_from(UserPermission::from(
+                    permissions: UserPermissionVec::split_from(UserPermissions::from(
                         row.permissions as u32,
                     )),
                 })
@@ -240,9 +240,9 @@ pub(super) async fn list_users(
 // -> 500 Internal Server Error
 #[rocket::get("/auth/permissions")]
 pub(super) async fn permissions(
-    _auth: AuthGuard<{ UserPermission::ADMIN as u32 }>,
-) -> Result<Json<Vec<UserPermission>>, Status> {
-    Ok(Json(UserPermission::variants().to_vec()))
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<Json<Vec<UserPermissionEnum>>, Status> {
+    Ok(Json(UserPermissionEnum::variants().to_vec()))
 }
 
 // DELETE /auth/delete_user [Permissions: ADMIN]
@@ -260,7 +260,7 @@ pub(super) struct DeleteUserData {
 #[rocket::delete("/auth/delete_user", data = "<delete_user_data>")]
 pub(super) async fn delete_user(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermission::ADMIN as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
     delete_user_data: Json<DeleteUserData>,
 ) -> Result<Status, Status> {
     let DeleteUserData { username } = delete_user_data.into_inner();
@@ -332,7 +332,7 @@ pub fn salt_hash_password(password: &str, salt: &str) -> String {
 pub async fn add_user_to_db<'a, E>(
     username: &str,
     password: &str,
-    permissions: UserPermission,
+    permissions: UserPermissions,
     conn: E,
 ) -> Result<(), sqlx::Error>
 where
@@ -348,7 +348,7 @@ where
     .bind(&username)
     .bind(&salted_hashed_password)
     .bind(&salt)
-    .bind(permissions as i32)
+    .bind(permissions.0 as i32)
     .execute(conn)
     .await?;
 
@@ -415,7 +415,7 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             let new_auth_cookie_info = AuthCookieInfo {
                 username: user_row.username.clone(),
                 expiry_time: auth_cookie_info.expiry_time,
-                permissions: UserPermission::from(user_row.permissions as u32),
+                permissions: UserPermissions::from(user_row.permissions as u32),
             };
 
             // User exists, new permissions received.
@@ -440,8 +440,8 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             cookies.add_private(refresh_cookie);
 
             // Check for permissions
-            if UserPermission::from(user_row.permissions as u32)
-                .has_permission(&UserPermission::from(PERMISSIONS))
+            if UserPermissions::from(user_row.permissions as u32)
+                .has_permissions(UserPermissions::from(PERMISSIONS))
             {
                 return Outcome::Success(AuthGuard {
                     auth_info: new_auth_cookie_info,

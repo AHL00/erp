@@ -4,7 +4,7 @@ use std::ops::BitOr;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ts_rs::TS)]
 #[ts(export)]
 #[repr(u32)]
-pub enum UserPermission {
+pub enum UserPermissionEnum {
     PRODUCT_READ = 0b0001,
     PRODUCT_WRITE = 0b0010,
     ORDER_READ = 0b0100,
@@ -13,81 +13,102 @@ pub enum UserPermission {
     ADMIN = 0xFFFF_FFFF,
 }
 
+/// Update this array when adding new permissions.
+/// Used to split permissions into individual permissions.
+const PERMISSION_VARIANTS: &'static [UserPermissionEnum] = &[
+    UserPermissionEnum::PRODUCT_READ,
+    UserPermissionEnum::PRODUCT_WRITE,
+    UserPermissionEnum::ORDER_READ,
+    UserPermissionEnum::ORDER_WRITE,
+    UserPermissionEnum::MANAGE_DB,
+    UserPermissionEnum::ADMIN,
+];
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
+pub struct UserPermissions(pub u32);
+
+impl UserPermissions {
+    pub fn has_permissions(&self, permissions: UserPermissions) -> bool {
+        self.0 & permissions.0 == permissions.0
+    }
+
+    pub fn split_into_vec(&self) -> UserPermissionVec {
+        UserPermissionVec::split_from(*self)
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, ts_rs::TS)]
 #[serde(transparent)]
 #[ts(export)]
-pub struct UserPermissionVec(Vec<UserPermission>);
+pub struct UserPermissionVec(Vec<UserPermissionEnum>);
 
 impl UserPermissionVec {
     /// Create a new UserPermissionVec from a list of permissions.
     /// This will remove duplicates.
-    pub fn new(permissions: Vec<UserPermission>) -> Self {
+    pub fn new(permissions: Vec<UserPermissionEnum>) -> Self {
         // Flatten the permissions to remove duplicates
         UserPermissionVec::split_from(UserPermissionVec(permissions).flatten())
     }
 
-    pub fn split_from(permission: UserPermission) -> Self {
+    pub fn split_from(permission: UserPermissions) -> Self {
         UserPermissionVec(
-            UserPermission::variants()
+            UserPermissionEnum::variants()
                 .iter()
-                .filter(|p| permission.has_permission(p))
+                .filter(|p| permission.0 & **p as u32 == **p as u32)
                 .copied()
                 .collect(),
         )
     }
 
-    pub fn has_permission(&self, permission: &UserPermission) -> bool {
+    pub fn has_permission(&self, permission: &UserPermissionEnum) -> bool {
         self.0.iter().any(|p| p.has_permission(permission))
     }
 
-    pub fn flatten(&self) -> UserPermission {
-        self.0
-            .iter()
-            .fold(UserPermission::from(0), |acc, p| acc | *p)
+    pub fn flatten(&self) -> UserPermissions {
+        self.0.iter().fold(UserPermissions(0), |acc, p| {
+            UserPermissions(acc.0 | *p as u32)
+        })
     }
 }
 
-/// Update this array when adding new permissions.
-/// Used to split permissions into individual permissions.
-const PERMISSION_VARIANTS: &'static [UserPermission] = &[
-    UserPermission::PRODUCT_READ,
-    UserPermission::PRODUCT_WRITE,
-    UserPermission::ORDER_READ,
-    UserPermission::ORDER_WRITE,
-    UserPermission::MANAGE_DB,
-    UserPermission::ADMIN,
-];
-
-impl From<u32> for UserPermission {
-    fn from(value: u32) -> Self {
-        unsafe { std::mem::transmute(value) }
+impl From<UserPermissionVec> for UserPermissions {
+    fn from(permissions: UserPermissionVec) -> Self {
+        permissions.flatten()
     }
 }
 
-impl Into<u32> for UserPermission {
+impl From<u32> for UserPermissions {
+    fn from(permission: u32) -> Self {
+        UserPermissions(permission)
+    }
+}
+
+impl From<u32> for UserPermissionVec {
+    fn from(permission: u32) -> Self {
+        UserPermissionVec::split_from(UserPermissions(permission))
+    }
+}
+
+impl Into<u32> for UserPermissionEnum {
     fn into(self) -> u32 {
         self as u32
     }
 }
 
-impl BitOr for UserPermission {
+impl BitOr for UserPermissions {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self {
-        Self::from(self as u32 | rhs as u32)
+        Self(self.0 | rhs.0)
     }
 }
 
-impl UserPermission {
-    pub const fn has_permission(&self, permission: &UserPermission) -> bool {
+impl UserPermissionEnum {
+    pub const fn has_permission(&self, permission: &UserPermissionEnum) -> bool {
         (*self as u32 & *permission as u32) == *permission as u32
     }
 
-    pub const fn variants() -> &'static [UserPermission] {
+    pub const fn variants() -> &'static [UserPermissionEnum] {
         PERMISSION_VARIANTS
-    }
-
-    pub fn split_into_vec(&self) -> UserPermissionVec {
-        UserPermissionVec::split_from(*self)
     }
 }
