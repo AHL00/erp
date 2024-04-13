@@ -11,8 +11,8 @@ use crate::{db::DB, types::permissions::UserPermissions};
 pub(super) struct AuthInfo {
     /// Subject (whom the token refers to)
     sub: String,
-    /// Expiry, none means session cookie
-    expires_in: Option<i64>,
+    /// Expiry timestamp, none means session cookie
+    expiry_time: Option<i64>,
     /// User permissions
     permissions: UserPermissions,
 }
@@ -46,7 +46,6 @@ pub(super) async fn login(
         expires_in,
     } = login_data.into_inner();
 
-    
     #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
     pub struct UserRow {
         username: String,
@@ -72,7 +71,7 @@ pub(super) async fn login(
             }
         }
     }
-    
+
     let row = row.unwrap();
 
     let salted_hashed_password = salt_hash_password(&password, &row.salt);
@@ -88,7 +87,7 @@ pub(super) async fn login(
             "auth_info",
             serde_json::json!(AuthInfo {
                 sub: username,
-                expires_in,
+                expiry_time: expiry_timestamp.map(|t| t.unix_timestamp()),
                 permissions,
             })
             .to_string(),
@@ -102,6 +101,9 @@ pub(super) async fn login(
         }
 
         cookie.set_same_site(SameSite::Lax);
+        cookie.set_secure(true);
+
+        log::info!("Sending token cookie");
 
         cookies.add_private(cookie);
 
@@ -117,6 +119,8 @@ pub(super) async fn login(
 #[rocket::post("/auth/logout")]
 pub(super) async fn logout(cookies: &CookieJar<'_>) -> Status {
     if cookies.get_private("auth_info").is_some() {
+        log::info!("Removing token cookie");
+
         cookies.remove_private(Cookie::from("auth_info"));
 
         Status::Ok
@@ -135,31 +139,43 @@ pub(super) async fn logout(cookies: &CookieJar<'_>) -> Status {
 #[rocket::get("/auth/status")]
 pub(super) async fn status(cookies: &CookieJar<'_>) -> Result<Json<AuthInfo>, Status> {
     if let Some(cookie) = cookies.get_private("auth_info") {
-        let auth_info: AuthInfo = serde_json::from_str(cookie.value()).unwrap();
+        let old_info: AuthInfo = serde_json::from_str(cookie.value()).unwrap();
 
         // Refresh token
-        let mut cookie = Cookie::new(
-            "auth_info",
-            serde_json::json!(AuthInfo {
-                sub: auth_info.sub.clone(),
-                expires_in: auth_info.expires_in,
-                permissions: auth_info.permissions,
-            })
-            .to_string(),
-        );
+        let refresh_info = AuthInfo {
+            sub: old_info.sub.clone(),
+            expiry_time: old_info.expiry_time,
+            permissions: old_info.permissions,
+        };
 
-        // Set expiry if provided
-        if let Some(expiry_timestamp) = auth_info.expires_in {
-            let expiry_timestamp = rocket::time::OffsetDateTime::now_utc()
-                + rocket::time::Duration::seconds(expiry_timestamp);
-            cookie.set_expires(expiry_timestamp);
+        // Update expiry time if provided
+        if let Some(old_expiry_time) = old_info.expiry_time {
+            let mut refresh_cookie =
+                Cookie::new("auth_info", serde_json::to_string(&refresh_info).unwrap());
+            refresh_cookie.set_expires(
+                rocket::time::OffsetDateTime::from_unix_timestamp(old_expiry_time)
+                    .expect("Failed to parse expiry time"),
+            );
+            refresh_cookie.set_same_site(SameSite::Lax);
+            refresh_cookie.set_secure(true);
+
+            log::info!("Refreshing token cookie");
+
+            cookies.add_private(refresh_cookie);
         } else {
-            cookie.set_expires(None);
+            let mut refresh_cookie =
+                Cookie::new("auth_info", serde_json::to_string(&refresh_info).unwrap());
+            
+            refresh_cookie.set_expires(None);
+            refresh_cookie.set_same_site(SameSite::Lax);
+            refresh_cookie.set_secure(true);
+
+            log::info!("Refreshing token cookie, session cookie");
+
+            cookies.add_private(refresh_cookie);
         }
 
-        cookies.add_private(cookie);
-
-        Ok(Json(auth_info))
+        Ok(Json(old_info))
     } else {
         Err(rocket::http::Status::Unauthorized)
     }

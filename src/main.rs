@@ -1,7 +1,7 @@
 use std::{net::IpAddr, str::FromStr};
 
 use db::DatabaseConnection;
-use rocket::{fs::FileServer, Config};
+use rocket::Config;
 use rocket_db_pools::Database;
 
 pub mod db;
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .attach(DatabaseConnection::init());
 
     #[cfg(debug_assertions)]
-    let rocket = rocket.mount("/", FileServer::from(env::public_dir()));
+    let rocket = rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()));
 
     rocket.launch().await?;
 
