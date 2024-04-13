@@ -27,9 +27,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Note: To test a completely new DB, use the following: DROP SCHEMA public CASCADE;
 
+    let cors_options = rocket_cors::CorsOptions {
+        allow_credentials: true,
+        ..Default::default()
+    };
+
     let rocket = rocket::build()
         .mount("/api", routes::routes())
-        .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
+        .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 
     #[cfg(debug_assertions)]
