@@ -17,7 +17,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .format_timestamp(None)
         .init();
 
-    // env file
     dotenv::dotenv().ok();
 
     let mut config = Config::from(Config::figment());
@@ -32,13 +31,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
+    #[cfg(debug_assertions)]
+    log::info!("CORS options: {:#?}", cors_options);
+
     let rocket = rocket::build()
         .mount("/api", routes::routes())
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 
-    #[cfg(debug_assertions)]
+    // For now, before getting a domain,
+    // static hosting will be done through Rocket
+    // using the frontend/dist directory
+
+    // This is because cookies won't work if the frontend is hosted on a different domain
+    log::warn!("Frontend hosting is being done through Rocket for now before a domain is obtained");
+    log::info!("Public directory: {}", env::public_dir());
+
     let rocket = rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()));
+
 
     rocket.launch().await?;
 

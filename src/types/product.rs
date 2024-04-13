@@ -1,6 +1,7 @@
 use sqlx::types::BigDecimal;
 
-#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
 pub struct Product {
     pub id: i32,
     pub name: String,

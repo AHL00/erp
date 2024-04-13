@@ -1,0 +1,1 @@
+To regenerate the bindings, run `cargo test` in the project.

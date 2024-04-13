@@ -5,7 +5,7 @@ use sqlx::Row;
 
 pub use rocket_db_pools::sqlx;
 
-use crate::{types::permissions::UserPermissions, routes::auth::create_user}; 
+use crate::{types::permissions::UserPermission, routes::auth::add_user_to_db}; 
 
 pub type DB = Connection<DatabaseConnection>;
 
@@ -61,7 +61,7 @@ impl From<sqlx::PgPool> for DatabaseConnection {
         if users.is_empty() {
             log::warn!("No users found, creating default admin user (username: admin, password: admin)");
 
-            let create_user_res = create_user("admin", "admin", UserPermissions::ADMIN, &pool).block_on();
+            let create_user_res = add_user_to_db("admin", "admin", UserPermission::ADMIN, &pool).block_on();
 
             if let Err(e) = create_user_res {
                 log::error!("Error creating default admin user: {:?}", e);

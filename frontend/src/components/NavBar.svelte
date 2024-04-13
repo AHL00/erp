@@ -38,7 +38,7 @@
 	.sidebar {
 		width: 60px;
 		height: 100vh;
-		background-color: #ffffff;
+		background-color: var(--bulma-background-l);
 		transition: width 0.2s ease-in-out;
 		overflow: hidden;
 		align-self: start;
@@ -48,7 +48,8 @@
 		align-items: center;
 		padding-top: 10px;
 		padding-bottom: 10px;
-		box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+		box-shadow: 0 0 5px 0px
+			hsla(var(--bulma-shadow-h), var(--bulma-shadow-s), var(--bulma-shadow-l), 0.25);
 	}
 
 	.sidebar:hover {

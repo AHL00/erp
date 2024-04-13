@@ -13,12 +13,27 @@ rocket = { version = "0.5.0", features = ["secrets", "serde_json", "json"] }
 env_logger = "0.11.1"
 rocket_cors = "0.6.0"
 pollster = "0.3.0"
-rocket_db_pools = {version = "0.1.0", features = ["sqlx_postgres"]}
+rocket_db_pools = { version = "0.1.0", features = ["sqlx_postgres"] }
 # Needed because the sqlx in rocket_db_pools does not have the macros feature enabled
-sqlx = { version = "*", default-features = false, features = ["macros", "bigdecimal"] }
+sqlx = { version = "*", default-features = false, features = [
+    "macros",
+    "bigdecimal",
+] }
 # SQLx uses Bigdecimal for Postgres, but it doesn't have serde enabled
 bigdecimal = { version = "*", features = ["serde"] }
 ring = "0.17.8"
 rand = "0.8.5"
 dotenv = "0.15.0"
 strsim = "0.11.1"
+ts-rs = { version = "8.1.0", features = [
+    "bigdecimal",
+    "bigdecimal-impl",
+    "chrono",
+    "chrono-impl",
+    "uuid",
+    "uuid-impl",
+    "url",
+    "url-impl",
+    "serde_json",
+    "serde-json-impl",
+] }

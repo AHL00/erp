@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { api_call, type Product } from '$lib/backend';
+	import { api_call } from '$lib/backend';
+    import { type Product } from '$bindings/Product'
 	import Loader from './Loader.svelte';
 
 	let current_search = '';

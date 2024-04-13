@@ -5,8 +5,8 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	// Consult https://kit.svelte.dev/docs/integrations#preprocessors
 	// for more information about preprocessors
-	preprocess: vitePreprocess(),
-    
+	preprocess: [vitePreprocess({})],
+
 	kit: {
 		adapter: adapter({
 			// default options are shown. On some platforms
@@ -16,7 +16,11 @@ const config = {
 			fallback: undefined,
 			precompress: false,
 			strict: true
-		})
+		}),
+		alias: {
+			$bindings: '../bindings',
+
+		}
 	}
 };
 

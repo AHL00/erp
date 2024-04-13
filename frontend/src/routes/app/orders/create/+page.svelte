@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ProductSearch from '../../../../components/ProductSearch.svelte';
+	import ProductSearch from '$lib/../components/ProductSearch.svelte';
+    import PermissionGuard from '$lib/../components/PermissionGuard.svelte';
 
 	let items = [{ name: '', quantity: 0, price: 0 }];
 
@@ -38,7 +39,8 @@
 	let product_search: ProductSearch;
 </script>
 
-<!-- {#if  -->
+
+<PermissionGuard permissions={['ORDER_WRITE', 'PRODUCT_READ']}>
 <ProductSearch bind:this={product_search} />
 
 {#if !is_mobile}
@@ -98,3 +100,8 @@
 {:else}
 	<div class="notification is-warning">Invoice maker UI not available on mobile.</div>
 {/if}
+
+<div slot="denied">
+    <h1 class="title">You are not authorized to view this page</h1>
+</div>
+</PermissionGuard>

@@ -1,22 +1,22 @@
 use crate::{
     db::DB,
-    types::{permissions::UserPermissions, product::Product},
+    types::{permissions::UserPermission, product::Product},
 };
 
 use rocket::{
-    http::{CookieJar, Status},
+    http::Status,
     serde::json::Json,
 };
 
-use super::auth::verify_user_permissions;
+use super::auth::AuthGuard;
 
 #[rocket::get("/search/product?<query>&<count>&<distance>")]
-pub async fn product(
+pub(super) async fn product(
     mut db: DB,
+    _auth: AuthGuard<{UserPermission::PRODUCT_READ as u32}>,
     query: Option<String>,
     count: Option<usize>,
     distance: Option<f32>,
-    cookies: &CookieJar<'_>,
 ) -> Result<Json<Vec<Product>>, Status> {
     // If anything is none, return malformed request
     let query = match query {
@@ -35,7 +35,7 @@ pub async fn product(
     };
 
     // Check if user has permissions and is logged in
-    verify_user_permissions(&UserPermissions::PRODUCT_READ, cookies)?;
+    // verify_user_permissions(&UserPermissions::PRODUCT_READ, cookies)?;
 
     let products: Vec<Product> = sqlx::query_as("SELECT * FROM products")
         .fetch_all(&mut **db)
