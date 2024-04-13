@@ -39,6 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 
+    let rocket = rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()));
+
     rocket.launch().await?;
 
     Ok(())
