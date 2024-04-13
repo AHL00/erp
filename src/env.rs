@@ -64,6 +64,15 @@ pub static DATABASE_PASSWORD: LazyLock<String> = LazyLock::new(|| {
         })
 });
 
+pub static PUBLIC_DIR: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("PUBLIC_DIR")
+        .unwrap_or_else(|_| {
+            log::warn!("No PUBLIC_DIR environment variable found, using default path frontend/dist");
+
+            "frontend/dist".to_string()
+        })
+});
+
 pub static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| {
     let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_|
         {
@@ -95,8 +104,8 @@ pub static PORT: LazyLock<u16> = LazyLock::new(|| {
 pub static HOST: LazyLock<String> = LazyLock::new(|| {
     std::env::var("HOST")
         .unwrap_or_else(|_| {
-            log::warn!("No HOST environment variable found, using default host 0.0.0.0");
+            log::warn!("No HOST environment variable found, using default host localhost");
 
-            "0.0.0.0".to_string()
+            "127.0.0.1".to_string()
         })
 });

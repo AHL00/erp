@@ -1,30 +1,36 @@
 <script lang="ts">
-    import { redirect } from '$lib';
-import { logout, auth_info_store } from '$lib/auth';
+	import { redirect } from '$lib';
+	import { logout, auth_info_store } from '$lib/auth';
 </script>
 
 <div class="sidebar">
-	<div class="item" on:click={() => redirect('/app/orders')}>
-        <div class="icon">
-            <i class="fa fa-clipboard-list"></i>
-        </div>
-		<span class="label">Orders</span>
-    </div>
-	
-    <div class="separator"></div>
-    
-    <div class="item">
-        
-    </div>
+	<div class="item" on:click={() => redirect('/app')}>
+		<div class="icon">
+			<i class="fa fa-home"></i>
+		</div>
+		<span class="label">Home</span>
+	</div>
 
+	<div class="separator"></div>
+
+	<div class="item" on:click={() => redirect('/app/orders')}>
+		<div class="icon">
+			<i class="fa fa-clipboard-list"></i>
+		</div>
+		<span class="label">Orders</span>
+	</div>
+
+	<div class="separator"></div>
+
+	<div class="item"></div>
+
+	<div class="separator"></div>
 
 	<div class="item" style="margin-top: auto;" on:click={logout}>
-        <div class="icon">
-            <i class="fa fa-user"></i>
-        </div>
-		<span class="label">
-            Account
-        </span>
+		<div class="icon">
+			<i class="fa fa-user"></i>
+		</div>
+		<span class="label"> Account </span>
 	</div>
 </div>
 
@@ -49,38 +55,38 @@ import { logout, auth_info_store } from '$lib/auth';
 		width: 200px;
 	}
 
-    .sidebar:hover > .item > .label {
-        opacity: 1;
-        transition: all 0.35s;
-        width: 100%;
-    }
+	.sidebar:hover > .item > .label {
+		opacity: 1;
+		transition: all 0.35s;
+		width: 100%;
+	}
 
-    .sidebar > .item > .label {
-        color: #444;
+	.sidebar > .item > .label {
+		color: #444;
 		transition: all 0.2s;
 		opacity: 0;
 		font-size: 18px;
 		width: 0;
-        align-self: center;
-        text-align: center;
-    }
+		align-self: center;
+		text-align: center;
+	}
 
-    .sidebar:hover > .item > .icon {
-        opacity: 0;
-        transition: all 0.2s;
-        width: 0;
-    }
+	.sidebar:hover > .item > .icon {
+		opacity: 0;
+		transition: all 0.2s;
+		width: 0;
+	}
 
-    .sidebar > .item > .icon {
-        color: #333333b4;
-        opacity: 1;
-        transition: all 0.35s;
-        width: 100%;
-    }
+	.sidebar > .item > .icon {
+		color: #333333b4;
+		opacity: 1;
+		transition: all 0.35s;
+		width: 100%;
+	}
 
 	.item {
-        width: 100%;
-        height: 60px;
+		width: 100%;
+		height: 60px;
 		font-size: 28px;
 		cursor: pointer;
 		transition: all 0.15s;
@@ -89,11 +95,11 @@ import { logout, auth_info_store } from '$lib/auth';
 		align-items: center;
 	}
 
-    .separator {
-        height: 2px;
-        margin-top: 9px;
-        margin-bottom: 9px;
-    }
+	.separator {
+		/* height: 2px;
+		margin-top: 9px;
+		margin-bottom: 9px; */
+	}
 
 	.item:hover {
 		scale: 1.1;
