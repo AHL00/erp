@@ -5,4 +5,5 @@
 /target
 db.sqlite3
 dist
-server
+
+.env

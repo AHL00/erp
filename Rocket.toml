@@ -5,8 +5,8 @@ port = 8080
 [default]
 address = "0.0.0.0"
 
-# Set URL in env as ROCKET_DATABASES='{main_db={url="???"}}'
-
+# Set URL in env as ROCKET_DATABASES={main_db={url="???"}}
+# Set secret key for cookies in env as ROCKET_SECRET_KEY=???
 # [default.databases.main_db]
 # min_connections = 2
 # max_connections = 8
