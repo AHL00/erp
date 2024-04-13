@@ -1,13 +1,13 @@
 use std::{net::IpAddr, str::FromStr};
 
-use db::DbConn;
+use db::DatabaseConnection;
 use rocket::{fs::FileServer, Config};
 use rocket_db_pools::Database;
 
 pub mod db;
 pub mod env;
-pub mod permissions;
 pub mod routes;
+pub mod types;
 
 #[rocket::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rocket = rocket::build()
         .mount("/api", routes::routes())
         .attach(rocket_cors::CorsOptions::default().to_cors().unwrap())
-        .attach(DbConn::init());
+        .attach(DatabaseConnection::init());
 
     #[cfg(debug_assertions)]
     let rocket = rocket.mount("/", FileServer::from(env::public_dir()));

@@ -30,7 +30,7 @@
 				results_loading = true;
 
 				// Fetch results
-				api_call(`search/product?query=${search_bar.value}&count=10&distance=0.35`, 'GET').then(
+				api_call(`search/product?query=${search_bar.value}&count=10&distance=0.35`, 'GET', null).then(
 					(res) => {
                         if (res?.status == 200) {
                             res?.json().then((data) => {
@@ -68,6 +68,7 @@
 						class="input"
 						type="text"
 						id="search-bar"
+                        autocomplete="off"
 						placeholder="Search"
 						bind:value={current_search}
 					/>

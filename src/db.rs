@@ -1,19 +1,22 @@
 use pollster::FutureExt;
 use rocket::{Ignite, Rocket, Sentinel};
+use rocket_db_pools::Connection;
 use sqlx::Row;
 
 pub use rocket_db_pools::sqlx;
 
-use crate::{permissions::UserPermissions, routes::auth::create_user}; 
+use crate::{types::permissions::UserPermissions, routes::auth::create_user}; 
 
-pub struct DbConn(sqlx::PgPool);
+pub type DB = Connection<DatabaseConnection>;
 
-impl rocket_db_pools::Database for DbConn {
+pub struct DatabaseConnection(sqlx::PgPool);
+
+impl rocket_db_pools::Database for DatabaseConnection {
     const NAME: &'static str = "main_db";
     type Pool = sqlx::PgPool;
 }
 
-impl From<sqlx::PgPool> for DbConn {
+impl From<sqlx::PgPool> for DatabaseConnection {
     fn from(pool: sqlx::PgPool) -> Self {
         log::info!("Creating a new database connection pool");
 
@@ -70,7 +73,7 @@ impl From<sqlx::PgPool> for DbConn {
     }
 }
 
-impl std::ops::Deref for DbConn {
+impl std::ops::Deref for DatabaseConnection {
     type Target = sqlx::PgPool;
 
     fn deref(&self) -> &Self::Target {
@@ -78,26 +81,26 @@ impl std::ops::Deref for DbConn {
     }
 }
 
-impl std::ops::DerefMut for DbConn {
+impl std::ops::DerefMut for DatabaseConnection {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> rocket::request::FromRequest<'r> for DbConn {
+impl<'r> rocket::request::FromRequest<'r> for DatabaseConnection {
     type Error = ();
 
     async fn from_request(request: &'r rocket::Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<DbConn>().await.unwrap();
+        let pool = request.guard::<DatabaseConnection>().await.unwrap();
         rocket::request::Outcome::Success(pool)
     }
 }
 
 #[rocket::async_trait]
-impl Sentinel for DbConn {
+impl Sentinel for DatabaseConnection {
     fn abort(rocket: &Rocket<Ignite>) -> bool {
-        if rocket.state::<DbConn>().is_none() {
+        if rocket.state::<DatabaseConnection>().is_none() {
             return true;
         }
 

@@ -2,11 +2,10 @@ use rocket::{
     http::{Cookie, CookieJar, SameSite, Status},
     serde::json::Json,
 };
-use rocket_db_pools::Connection;
 use serde::{Deserialize, Serialize};
-use sqlx::{Executor, FromRow, Postgres};
+use sqlx::{Executor, Postgres};
 
-use crate::{db::DbConn, permissions::UserPermissions};
+use crate::{db::DB, types::permissions::UserPermissions};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct AuthInfo {
@@ -37,7 +36,7 @@ pub(super) struct LoginData {
 
 #[rocket::post("/auth/login", data = "<login_data>")]
 pub(super) async fn login(
-    mut conn: Connection<DbConn>,
+    mut db: DB,
     login_data: Json<LoginData>,
     cookies: &CookieJar<'_>,
 ) -> Result<Status, Status> {
@@ -47,12 +46,22 @@ pub(super) async fn login(
         expires_in,
     } = login_data.into_inner();
 
+    
+    #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+    pub struct UserRow {
+        username: String,
+        password: String,
+        salt: String,
+        permissions: i32,
+    }
+
     // NOTE: Assumes that usernames are unique
-    let row = crate::db::sqlx::query(
+    let row = sqlx::query_as!(
+        UserRow,
         "SELECT username, password, salt, permissions FROM users WHERE username = $1 LIMIT 1",
+        &username
     )
-    .bind(&username)
-    .fetch_one(&mut **conn)
+    .fetch_one(&mut **db)
     .await;
 
     if let Err(e) = row {
@@ -64,22 +73,7 @@ pub(super) async fn login(
             }
         }
     }
-
-    #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
-    pub struct UserRow {
-        username: String,
-        password: String,
-        salt: String,
-        permissions: i32,
-    }
-
-    let row = UserRow::from_row(&row.unwrap());
-
-    if let Err(e) = row {
-        log::error!("Error while parsing user row: {:?}", e);
-        return Err(Status::InternalServerError);
-    }
-
+    
     let row = row.unwrap();
 
     let salted_hashed_password = salt_hash_password(&password, &row.salt);
@@ -214,9 +208,26 @@ where
     .bind(&username)
     .bind(&salted_hashed_password)
     .bind(&salt)
-    .bind(permissions as i32)
+    .bind(permissions.into_u32() as i32)
     .execute(conn)
     .await?;
 
     Ok(())
+}
+
+pub fn verify_user_permissions(
+    permissions: &UserPermissions,
+    cookies: &CookieJar<'_>,
+) -> Result<(), Status> {
+    if let Some(cookie) = cookies.get_private("auth_info") {
+        let auth_info: AuthInfo = serde_json::from_str(cookie.value()).unwrap();
+
+        if auth_info.permissions.has_permission(permissions) {
+            return Ok(());
+        } else {
+            return Err(Status::Forbidden);
+        }
+    }
+
+    Err(Status::Unauthorized)
 }
