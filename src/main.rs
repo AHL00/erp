@@ -1,4 +1,4 @@
-#![feature(lazy_cell)]
+use std::{net::IpAddr, str::FromStr};
 
 use db::DbConn;
 use rocket::{fs::FileServer, Config};
@@ -22,8 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut config = Config::from(Config::figment());
 
-    config.port = *env::PORT;
-    config.address = env::HOST.as_str().parse().unwrap();
+    config.port = env::port();
+    config.address = IpAddr::from_str(&env::host()).expect("Failed to parse IP address");
 
     // Note: To test a completely new DB, use the following: DROP SCHEMA public CASCADE;
 
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .attach(DbConn::init());
 
     #[cfg(debug_assertions)]
-    let rocket = rocket.mount("/", FileServer::from(env::PUBLIC_DIR.as_str()));
+    let rocket = rocket.mount("/", FileServer::from(env::public_dir()));
 
     rocket.launch().await?;
 
