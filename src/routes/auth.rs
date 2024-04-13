@@ -52,7 +52,6 @@ pub(super) async fn login(
     cookies: &CookieJar<'_>,
 ) -> Result<Status, Status> {
     // No need to refresh cookie, so no AuthGuard needed
-
     let LoginData {
         username,
         password,
@@ -297,20 +296,14 @@ pub(super) async fn delete_user(
 #[rocket::get("/auth/status")]
 pub(super) async fn status(
     // Will refresh the token cookie
-    _auth: AuthGuard<0>,
-    cookies: &CookieJar<'_>,
+    auth: AuthGuard<0>,
 ) -> Result<Json<AuthInfo>, Status> {
-    if let Some(cookie) = cookies.get_private("auth_info") {
-        let cookie_info: AuthCookieInfo = serde_json::from_str(cookie.value()).unwrap();
+    let cookie_info: AuthCookieInfo = auth.auth_info;
 
-        Ok(Json(AuthInfo {
-            username: cookie_info.username,
-            permissions: cookie_info.permissions.split_into_vec(),
-        }))
-    } else {
-        // Cookie not found
-        Err(rocket::http::Status::Unauthorized)
-    }
+    Ok(Json(AuthInfo {
+        username: cookie_info.username,
+        permissions: cookie_info.permissions.split_into_vec(),
+    }))
 }
 
 pub fn generate_salt() -> String {
@@ -365,13 +358,7 @@ where
 /// Mandatory guard that refreshes the token cookie on every request and checks permissions.
 /// USE ON EVERY ROUTE TO KEEP PERMISSIONS UP TO DATE.
 pub(super) struct AuthGuard<const PERMISSIONS: u32> {
-    auth_info: AuthCookieInfo,
-}
-
-impl<const PERMISSIONS: u32> AuthGuard<PERMISSIONS> {
-    pub fn get_auth_info(&self) -> &AuthCookieInfo {
-        &self.auth_info
-    }
+    pub auth_info: AuthCookieInfo,
 }
 
 /// Guard that checks if the user has the required permissions.
@@ -387,7 +374,8 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
         let cookies = request.cookies();
 
         if let Some(cookie) = cookies.get_private("auth_info") {
-            let auth_info: AuthCookieInfo = serde_json::from_str(cookie.value()).expect("Failed to parse auth_info cookie");
+            let auth_cookie_info: AuthCookieInfo =
+                serde_json::from_str(cookie.value()).expect("Failed to parse auth_info cookie");
 
             let mut db = try_outcome!(request
                 .guard::<DB>()
@@ -403,7 +391,7 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             let user_row: Result<UserRow, sqlx::Error> = sqlx::query_as(
                 "SELECT username, permissions FROM users WHERE username = $1 LIMIT 1",
             )
-            .bind(&auth_info.username)
+            .bind(&auth_cookie_info.username)
             .fetch_one(&mut **db)
             .await;
 
@@ -424,20 +412,21 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
 
             let user_row = user_row.unwrap();
 
+            let new_auth_cookie_info = AuthCookieInfo {
+                username: user_row.username.clone(),
+                expiry_time: auth_cookie_info.expiry_time,
+                permissions: UserPermission::from(user_row.permissions as u32),
+            };
+
             // User exists, new permissions received.
             let mut refresh_cookie = Cookie::new(
                 "auth_info",
-                serde_json::to_string(&AuthCookieInfo {
-                    username: auth_info.username.clone(),
-                    expiry_time: auth_info.expiry_time,
-                    permissions: UserPermission::from(user_row.permissions as u32),
-                })
-                .unwrap(),
+                serde_json::to_string(&new_auth_cookie_info).unwrap(),
             );
 
             // Configure cookie
             refresh_cookie.set_expires(
-                auth_info
+                auth_cookie_info
                     .expiry_time
                     .map(|t| rocket::time::OffsetDateTime::from_unix_timestamp(t).unwrap()),
             );
@@ -454,7 +443,9 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             if UserPermission::from(user_row.permissions as u32)
                 .has_permission(&UserPermission::from(PERMISSIONS))
             {
-                return Outcome::Success(AuthGuard { auth_info });
+                return Outcome::Success(AuthGuard {
+                    auth_info: new_auth_cookie_info,
+                });
             } else {
                 return Outcome::Error((Status::Forbidden, ()));
             }
