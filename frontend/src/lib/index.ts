@@ -15,3 +15,12 @@ export function redirect(url: string) {
     console.log('Refreshing auth status');
     refreshAuthStatus();
 }
+
+export function middle_ellipsis(text: string, max_length: number) {
+    if (text.length <= max_length) {
+        return text;
+    }
+
+    let half = Math.floor(max_length / 2);
+    return text.slice(0, half) + '...' + text.slice(text.length - half);
+}

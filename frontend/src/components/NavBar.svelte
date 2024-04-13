@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { redirect } from '$lib';
+	import { middle_ellipsis, redirect } from '$lib';
 	import { logout, auth_info_store } from '$lib/auth';
 	import PermissionGuard from './PermissionGuard.svelte';
 </script>
@@ -42,7 +42,7 @@
 		<div class="icon">
 			<i class="fa fa-user"></i>
 		</div>
-		<span class="label"> Account </span>
+		<span class="label"> {middle_ellipsis($auth_info_store?.username, 10)} </span>
 	</div>
 </div>
 
