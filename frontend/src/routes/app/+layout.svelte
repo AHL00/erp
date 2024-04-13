@@ -5,14 +5,7 @@
 	import NavBar from '../../components/NavBar.svelte';
 	import Loader from '../../components/Loader.svelte';
 
-    onMount(async () => {
-        console.log('Checking auth status');
-		await refreshAuthStatus();
-		if ($auth_info_store === null) {
-			// Redirect to login page with a way to return to the current page
-			goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
-		}
-	});
+    onMount(refreshAuthStatus);
 </script>
 
 {#if $auth_info_store === null}

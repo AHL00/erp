@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { redirect } from '$lib';
 	import { logout, auth_info_store } from '$lib/auth';
+	import PermissionGuard from './PermissionGuard.svelte';
 </script>
 
 <div class="sidebar">
@@ -21,6 +22,17 @@
 	</div>
 
 	<div class="separator"></div>
+
+    <PermissionGuard permissions={['ADMIN']}>
+        <div class="item" on:click={() => redirect('/app/admin')}>
+            <div class="icon">
+                <i class="fa fa-user-cog"></i>
+            </div>
+            <span class="label">Admin</span>
+        </div>
+
+        <div class="separator"></div>
+    </PermissionGuard>
 
 	<div class="item"></div>
 
@@ -84,6 +96,10 @@
 		transition: all 0.35s;
 		width: 100%;
 	}
+
+    .sidebar > .item > .icon > i {
+        font-size: 70%;
+    }
 
 	.item {
 		width: 100%;

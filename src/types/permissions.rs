@@ -41,7 +41,7 @@ impl UserPermissionVec {
     }
 
     pub fn flatten(&self) -> UserPermission {
-        PERMISSION_VARIANTS
+        self.0
             .iter()
             .fold(UserPermission::from(0), |acc, p| acc | *p)
     }

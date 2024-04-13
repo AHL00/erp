@@ -1,6 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import { api_call } from './backend';
 import { type AuthInfo } from '$bindings/AuthInfo';
+import { goto } from '$app/navigation';
 
 /// This is a store that will hold the login information
 /// of the user.
@@ -44,10 +45,14 @@ export async function refreshAuthStatus(): Promise<boolean> {
         auth_info_store.set(auth_info);
         return true;
     } else if (response?.status === 401) {
+        // This means the user is not logged in
         auth_info_store.set(null);
+        goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
         return true;
     } else {
         console.error('Failed to fetch auth status');
+        // Redirect to login page
+        goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
         return false;
     }
 }
