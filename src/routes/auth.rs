@@ -114,8 +114,7 @@ pub(super) async fn login(
         }
 
         cookie.set_same_site(SameSite::Lax);
-        // TODO: Change to secure when HTTPS is enabled and using same domain for API and frontend
-        cookie.set_secure(None);
+        cookie.set_secure(true);
 
         log::info!("Sending token cookie");
 
@@ -444,8 +443,7 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             );
 
             refresh_cookie.set_same_site(SameSite::Lax);
-            // TODO: Change to secure when HTTPS is enabled and using same domain for API and frontend
-            refresh_cookie.set_secure(None);
+            refresh_cookie.set_secure(true);
 
             log::info!("Refreshing token cookie");
 
