@@ -37,7 +37,7 @@ pub async fn product(
     // Check if user has permissions and is logged in
     verify_user_permissions(&UserPermissions::PRODUCT_READ, cookies)?;
 
-    let products = sqlx::query_as!(Product, "SELECT * FROM products")
+    let products: Vec<Product> = sqlx::query_as("SELECT * FROM products")
         .fetch_all(&mut **db)
         .await
         .map_err(|e| {

@@ -56,11 +56,10 @@ pub(super) async fn login(
     }
 
     // NOTE: Assumes that usernames are unique
-    let row = sqlx::query_as!(
-        UserRow,
+    let row: Result<UserRow, sqlx::Error> = sqlx::query_as(
         "SELECT username, password, salt, permissions FROM users WHERE username = $1 LIMIT 1",
-        &username
     )
+    .bind(&username)
     .fetch_one(&mut **db)
     .await;
 
