@@ -39,17 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 
-    // For now, before getting a domain,
-    // static hosting will be done through Rocket
-    // using the frontend/dist directory
-
-    // This is because cookies won't work if the frontend is hosted on a different domain
-    log::warn!("Frontend hosting is being done through Rocket for now before a domain is obtained");
-    log::info!("Public directory: {}", env::public_dir());
-
-    let rocket = rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()));
-
-
     rocket.launch().await?;
 
     Ok(())
