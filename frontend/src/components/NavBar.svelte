@@ -5,7 +5,7 @@
 </script>
 
 <div
-	class="sidebar bg-inherit text-zinc-600 dark:text-zinc-200 !text-opacity-100 outline outline-1 outline-zinc-200 dark:outline-zinc-800"
+	class="sidebar bg-white dark:bg-custom-bg-dark !fixed shadow-md dark:shadow-custom-bg-dark-shadow shadow-custom-bg-light-shadow"
 >
 	<button class="sidebar-item" on:click={() => redirect('/app')}>
 		<div class="sidebar-icon">
@@ -25,7 +25,7 @@
 
 	<div class="separator"></div>
 
-    <button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
+	<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
 		<div class="sidebar-icon">
 			<i class="fa fa-warehouse"></i>
 		</div>
@@ -57,6 +57,8 @@
 	</button>
 </div>
 
+<div class="sidebar-spacer"></div>
+
 <style>
 	.sidebar {
 		width: 60px;
@@ -72,7 +74,17 @@
 		padding-bottom: 10px;
 	}
 
+	.sidebar-spacer {
+		width: 60px;
+		height: 100vh;
+		transition: width 0.2s ease-in-out;
+	}
+
 	.sidebar:hover {
+		width: 200px;
+	}
+
+	.sidebar:hover + .sidebar-spacer {
 		width: 200px;
 	}
 
@@ -117,21 +129,20 @@
 		align-items: center;
 	}
 
-    .sidebar-item-no-switch {
-        width: 100%;
-        height: 60px;
-        font-size: 28px;
-        cursor: pointer;
-        transition: all 0.15s;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        
-    }
+	.sidebar-item-no-switch {
+		width: 100%;
+		height: 60px;
+		font-size: 28px;
+		cursor: pointer;
+		transition: all 0.15s;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
 
-    .sidebar-item-no-switch > .sidebar-icon {
-        width: 100%;
-    }
+	.sidebar-item-no-switch > .sidebar-icon {
+		width: 100%;
+	}
 
 	.separator {
 		/* height: 2px;
