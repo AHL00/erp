@@ -13,7 +13,7 @@ use super::auth::AuthGuard;
 #[rocket::get("/search/product?<query>&<count>&<distance>")]
 pub(super) async fn product(
     mut db: DB,
-    _auth: AuthGuard<{UserPermissionEnum::PRODUCT_READ as u32}>,
+    _auth: AuthGuard<{UserPermissionEnum::INVENTORY_READ as u32}>,
     query: Option<String>,
     count: Option<usize>,
     distance: Option<f32>,
@@ -35,7 +35,7 @@ pub(super) async fn product(
     };
 
     // Check if user has permissions and is logged in
-    // verify_user_permissions(&UserPermissions::PRODUCT_READ, cookies)?;
+    // verify_user_permissions(&UserPermissions::INVENTORY_READ, cookies)?;
 
     let products: Vec<Product> = sqlx::query_as("SELECT * FROM products")
         .fetch_all(&mut **db)

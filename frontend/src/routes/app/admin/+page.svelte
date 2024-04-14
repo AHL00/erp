@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
-	import { type UserPermission } from '$bindings/UserPermission';
+	import { type UserPermissionEnum } from '$bindings/UserPermissionEnum';
 	import { api_call } from '$lib/backend';
 	import { type ListUserData } from '$bindings/ListUserData';
 
@@ -18,7 +18,7 @@
 		});
 	}
 
-	let permission_variants: UserPermission[] = [];
+	let permission_variants: UserPermissionEnum[] = [];
 
 	user_permission_variants().then((res) => {
 		if (res) {
@@ -26,7 +26,7 @@
 		}
 	});
 
-	async function user_permission_variants(): Promise<UserPermission[] | null> {
+	async function user_permission_variants(): Promise<UserPermissionEnum[] | null> {
 		let data = await api_call('auth/permissions', 'GET', null);
 
 		if (data?.status == 200) {
@@ -38,9 +38,9 @@
 
 	let username = '';
 	let password = '';
-	let permissions: UserPermission[] = [];
+	let permissions: UserPermissionEnum[] = [];
 
-	function create_user(username: string, password: string, permissions: UserPermission[]) {
+	function create_user(username: string, password: string, permissions: UserPermissionEnum[]) {
 		api_call('auth/create_user', 'POST', {
 			username,
 			password,

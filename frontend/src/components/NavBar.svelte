@@ -4,53 +4,63 @@
 	import PermissionGuard from './PermissionGuard.svelte';
 </script>
 
-<div class="sidebar">
-	<div class="item" on:click={() => redirect('/app')}>
-		<div class="icon">
+<div
+	class="sidebar bg-inherit text-zinc-600 dark:text-zinc-200 !text-opacity-100 outline outline-1 outline-zinc-200 dark:outline-zinc-800"
+>
+	<button class="sidebar-item" on:click={() => redirect('/app')}>
+		<div class="sidebar-icon">
 			<i class="fa fa-home"></i>
 		</div>
-		<span class="label">Home</span>
-	</div>
+		<span class="sidebar-label">Home</span>
+	</button>
 
 	<div class="separator"></div>
 
-	<div class="item" on:click={() => redirect('/app/orders')}>
-		<div class="icon">
+	<button class="sidebar-item" on:click={() => redirect('/app/orders')}>
+		<div class="sidebar-icon">
 			<i class="fa fa-clipboard-list"></i>
 		</div>
-		<span class="label">Orders</span>
-	</div>
+		<span class="sidebar-label">Orders</span>
+	</button>
 
 	<div class="separator"></div>
 
-    <PermissionGuard permissions={['ADMIN']}>
-        <div class="item" on:click={() => redirect('/app/admin')}>
-            <div class="icon">
-                <i class="fa fa-user-cog"></i>
-            </div>
-            <span class="label">Admin</span>
-        </div>
-
-        <div class="separator"></div>
-    </PermissionGuard>
-
-	<div class="item"></div>
+    <button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
+		<div class="sidebar-icon">
+			<i class="fa fa-warehouse"></i>
+		</div>
+		<span class="sidebar-label">Inventory</span>
+	</button>
 
 	<div class="separator"></div>
 
-	<div class="item" style="margin-top: auto;" on:click={logout}>
-		<div class="icon">
+	<PermissionGuard permissions={['ADMIN']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/admin')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-user-cog"></i>
+			</div>
+			<span class="sidebar-label">Admin</span>
+		</button>
+
+		<div class="separator"></div>
+	</PermissionGuard>
+
+	<div class="separator mt-auto"></div>
+
+	<button class="sidebar-item" on:click={logout}>
+		<div class="sidebar-icon">
 			<i class="fa fa-user"></i>
 		</div>
-		<span class="label"> {middle_ellipsis($auth_info_store?.username, 10)} </span>
-	</div>
+		<span class="sidebar-label">
+			{middle_ellipsis($auth_info_store ? $auth_info_store.username : '?', 10)}
+		</span>
+	</button>
 </div>
 
 <style>
 	.sidebar {
 		width: 60px;
 		height: 100vh;
-		background-color: var(--bulma-background-l);
 		transition: width 0.2s ease-in-out;
 		overflow: hidden;
 		align-self: start;
@@ -60,22 +70,19 @@
 		align-items: center;
 		padding-top: 10px;
 		padding-bottom: 10px;
-		box-shadow: 0 0 5px 0px
-			hsla(var(--bulma-shadow-h), var(--bulma-shadow-s), var(--bulma-shadow-l), 0.25);
 	}
 
 	.sidebar:hover {
 		width: 200px;
 	}
 
-	.sidebar:hover > .item > .label {
-		opacity: 1;
+	.sidebar:hover > .sidebar-item > .sidebar-label {
+		opacity: initial;
 		transition: all 0.35s;
 		width: 100%;
 	}
 
-	.sidebar > .item > .label {
-		color: #444;
+	.sidebar > .sidebar-item > .sidebar-label {
 		transition: all 0.2s;
 		opacity: 0;
 		font-size: 18px;
@@ -84,24 +91,22 @@
 		text-align: center;
 	}
 
-	.sidebar:hover > .item > .icon {
+	.sidebar:hover > .sidebar-item > .sidebar-icon {
 		opacity: 0;
 		transition: all 0.2s;
 		width: 0;
 	}
 
-	.sidebar > .item > .icon {
-		color: #333333b4;
-		opacity: 1;
+	.sidebar > .sidebar-item > .sidebar-icon {
 		transition: all 0.35s;
 		width: 100%;
 	}
 
-    .sidebar > .item > .icon > i {
-        font-size: 70%;
-    }
+	.sidebar i {
+		font-size: 60% !important;
+	}
 
-	.item {
+	.sidebar-item {
 		width: 100%;
 		height: 60px;
 		font-size: 28px;
@@ -112,13 +117,29 @@
 		align-items: center;
 	}
 
+    .sidebar-item-no-switch {
+        width: 100%;
+        height: 60px;
+        font-size: 28px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        
+    }
+
+    .sidebar-item-no-switch > .sidebar-icon {
+        width: 100%;
+    }
+
 	.separator {
 		/* height: 2px;
 		margin-top: 9px;
 		margin-bottom: 9px; */
 	}
 
-	.item:hover {
+	.sidebar-item:hover {
 		scale: 1.1;
 	}
 </style>

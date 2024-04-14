@@ -40,7 +40,7 @@
 </script>
 
 
-<PermissionGuard permissions={['ORDER_WRITE', 'PRODUCT_READ']}>
+<PermissionGuard permissions={['ORDER_WRITE', 'INVENTORY_READ']}>
 <ProductSearch bind:this={product_search} />
 
 {#if !is_mobile}

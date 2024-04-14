@@ -153,7 +153,7 @@ pub(super) struct CreateUserData {
 // {
 //     "username": "user",
 //     "password": "pass",
-//     "permissions": ["ORDER_WRITE", "PRODUCT_READ"]
+//     "permissions": ["ORDER_WRITE", "INVENTORY_READ"]
 // }
 // -> 200 OK
 // -> 400 Bad Request
@@ -194,7 +194,7 @@ pub(super) struct ListUserData {
 //     [
 //         {
 //             "username": "user",
-//             "permissions": ["ORDER_WRITE", "PRODUCT_READ"]
+//             "permissions": ["ORDER_WRITE", "INVENTORYREAD"]
 //         }
 //     ]
 // -> 500 Internal Server Error

@@ -5,8 +5,8 @@ use std::ops::BitOr;
 #[ts(export)]
 #[repr(u32)]
 pub enum UserPermissionEnum {
-    PRODUCT_READ = 0b0001,
-    PRODUCT_WRITE = 0b0010,
+    INVENTORY_READ = 0b0001,
+    INVENTORY_WRITE = 0b0010,
     ORDER_READ = 0b0100,
     ORDER_WRITE = 0b1000,
     MANAGE_DB = 0b0100_0000,
@@ -16,8 +16,8 @@ pub enum UserPermissionEnum {
 /// Update this array when adding new permissions.
 /// Used to split permissions into individual permissions.
 const PERMISSION_VARIANTS: &'static [UserPermissionEnum] = &[
-    UserPermissionEnum::PRODUCT_READ,
-    UserPermissionEnum::PRODUCT_WRITE,
+    UserPermissionEnum::INVENTORY_READ,
+    UserPermissionEnum::INVENTORY_WRITE,
     UserPermissionEnum::ORDER_READ,
     UserPermissionEnum::ORDER_WRITE,
     UserPermissionEnum::MANAGE_DB,
