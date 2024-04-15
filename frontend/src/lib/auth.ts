@@ -17,7 +17,7 @@ export function user_has_permission(permission: UserPermissionEnum): boolean {
         return false;
     }
 
-    return auth_info.permissions.includes(permission);
+    return auth_info.permissions.includes(permission) || auth_info.permissions.includes('ADMIN');
 }
 
 /// Attempt to login

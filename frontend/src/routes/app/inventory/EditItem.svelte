@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { InventoryItem } from '$bindings/InventoryItem';
+	import type { InventoryItemPutRequest } from '$bindings/InventoryItemPutRequest';
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
+	import { InventoryField } from './field';
+	import { type InventoryItemPatchRequest } from '$bindings/InventoryItemPatchRequest';
 
 	// The item that is currently being edited
 	let current_item_id: number | null = null;
@@ -94,24 +97,45 @@
 		if (quantity_per_box == null) return;
 
 		// Submit the form
-		let item_data: InventoryItem = {
-			id: current_editing_item!.id,
-			name: name,
-			stock: stock,
-			price: price.toString(),
-			quantity_per_box: quantity_per_box
+		let item_data: InventoryItemPatchRequest = {
+			name: null,
+			price: null,
+			stock: null,
+			quantity_per_box: null
 		};
+
+		let edited_columns: InventoryField[] = [];
+
+		if (name != current_editing_item!.name) {
+			item_data.name = name;
+			edited_columns.push(InventoryField.Name);
+		}
+
+		if (price.toString() != current_editing_item!.price) {
+			item_data.price = price.toString();
+			edited_columns.push(InventoryField.Price);
+		}
+
+		if (stock != current_editing_item!.stock) {
+			item_data.stock = stock;
+			edited_columns.push(InventoryField.Stock);
+		}
+
+		if (quantity_per_box != current_editing_item!.quantity_per_box) {
+			item_data.quantity_per_box = quantity_per_box;
+			edited_columns.push(InventoryField.QuantityPerBox);
+		}
 
 		// For when the item is closed before the API call is finished
 		let cached_id = current_editing_item!.id;
 
-		api_call(`inventory/${current_editing_item!.id}`, 'PUT', item_data).then((res) => {
+		api_call(`inventory/${current_editing_item!.id}`, 'PATCH', item_data).then((res) => {
 			if (res?.status == 200) {
 				toast.push('Edited item successfully...', {
 					duration: 2000
 				});
 
-				edit_callback(cached_id);
+				edit_callback(cached_id, edited_columns);
 			} else {
 				toast.push(`Error editing item ${cached_id} (${res!.statusText})`, {
 					duration: 5000,
@@ -130,9 +154,9 @@
 	let quantity_per_box_field: HTMLInputElement;
 
 	/// This is used to update the table in the parent component.
-    /// Only gives the id as a last line of defense in case the value on the database
-    /// doesn't actually change.
-	export let edit_callback: (item_id: number) => void;
+	/// Only gives the id as a last line of defense in case the value on the database
+	/// doesn't actually change.
+	export let edit_callback: (item_id: number, edited_columns: InventoryField[]) => void;
 
 	let end = () => {
 		close_callback();
@@ -228,7 +252,7 @@
 		<div class="self-end mt-auto">
 			<button on:click={end}>Cancel</button>
 			{#if !(loading_counter > 0 || current_editing_item == null)}
-				<button type="submit" on:click={submit_form}> Save</button>
+				<button type="submit" on:click={submit_form}>Save</button>
 			{/if}
 		</div>
 	</form>

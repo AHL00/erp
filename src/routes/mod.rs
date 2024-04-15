@@ -1,5 +1,7 @@
 pub mod auth;
 pub mod inventory;
+pub mod orders;
+pub mod customers;
 pub mod search;
 
 use bigdecimal::BigDecimal;
@@ -31,6 +33,8 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::list,
         inventory::get,
         inventory::put,
+        inventory::patch,
+        inventory::post,
     ]
 }
 
@@ -49,7 +53,7 @@ impl<'r> Responder<'r, 'static> for ApiError {
         })
         .unwrap();
 
-        let json_bytes = self.1.into_boxed_str().into_boxed_bytes();
+        let json_bytes = json.into_boxed_str().into_boxed_bytes();
 
         response::Response::build()
             .status(self.0)
@@ -62,6 +66,21 @@ impl From<sqlx::Error> for ApiError {
     fn from(error: sqlx::Error) -> Self {
         // Handle all generic database errors here
         ApiError(Status::InternalServerError, error.to_string())
+    }
+}
+
+struct ApiReturn<T: Serialize>(pub Status, pub T);
+
+impl<'r, T: Serialize> Responder<'r, 'static> for ApiReturn<T> {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+        let json = json::to_string(&self.1).unwrap();
+
+        let json_bytes = json.into_boxed_str().into_boxed_bytes();
+
+        response::Response::build()
+            .status(self.0)
+            .sized_body(json_bytes.len(), std::io::Cursor::new(json_bytes))
+            .ok()
     }
 }
 

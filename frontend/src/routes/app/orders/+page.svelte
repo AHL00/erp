@@ -10,17 +10,7 @@
 		class="tile is-ancestor"
 		style="justify-content: center; align-items: center; height: 100vh; max-width: 1000px;"
 	>
-		<div class="tile is-parent" on:click={() => redirect('/app/orders/create')}>
-			<article class="tile is-child notification m-5 button-box" style="height: 40vh">
-				<span>New Order</span>
-			</article>
-		</div>
-
-		<div class="tile is-parent" on:click={() => redirect('/app/orders/view')}>
-			<article class="tile is-child notification m-5 button-box" style="height: 40vh">
-				<span>View Orders</span>
-			</article>
-		</div>
+		
 	</div>
 </div>
 

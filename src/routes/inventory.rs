@@ -2,9 +2,9 @@ use crate::db::DB;
 use bigdecimal::BigDecimal;
 use rocket::{http::Status, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, query, Execute};
+use sqlx::prelude::FromRow;
 
-use super::{ApiError, FilterOperator, SortOrder, SqlType};
+use super::{ApiError, ApiReturn, FilterOperator, SortOrder, SqlType};
 
 // GET /inventory/count
 // Response: i32
@@ -22,6 +22,36 @@ pub(super) async fn count(mut db: DB) -> Result<Json<i32>, Status> {
 #[ts(export)]
 pub(super) struct InventoryItem {
     pub id: i32,
+    pub name: String,
+    /// A decimal number with a precision of 2 decimal places
+    pub price: BigDecimal,
+    pub stock: i32,
+    pub quantity_per_box: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
+#[ts(export)]
+pub(super) struct InventoryItemPatchRequest {
+    pub name: Option<String>,
+    /// A decimal number with a precision of 2 decimal places
+    pub price: Option<BigDecimal>,
+    pub stock: Option<i32>,
+    pub quantity_per_box: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
+#[ts(export)]
+pub(super) struct InventoryItemPutRequest {
+    pub name: String,
+    /// A decimal number with a precision of 2 decimal places
+    pub price: BigDecimal,
+    pub stock: i32,
+    pub quantity_per_box: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
+#[ts(export)]
+pub(super) struct InventoryItemPostRequest {
     pub name: String,
     /// A decimal number with a precision of 2 decimal places
     pub price: BigDecimal,
@@ -189,24 +219,40 @@ pub(super) async fn get(id: i32, mut db: DB) -> Result<Json<InventoryItem>, ApiE
     Ok(Json(item))
 }
 
-// PUT /inventory
-// Request: InventoryItem
-// Response: Status
-// TODO: Maybe take in an array of items? What would the use case be?
+/// POST /inventory
+/// Request: InventoryItem
+/// Response: id or Status
+#[rocket::post("/inventory", data = "<item>")]
+pub(super) async fn post(item: Json<InventoryItemPutRequest>, mut db: DB) -> Result<ApiReturn<i32>, ApiError> {
+    let item = item.into_inner();
+
+    let id: (i32, ) = sqlx::query_as(
+        r#"
+        INSERT INTO inventory (name, price, stock, quantity_per_box)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        "#,
+    )
+    .bind(&item.name)
+    .bind(&item.price)
+    .bind(item.stock)
+    .bind(item.quantity_per_box)
+    .fetch_one(&mut **db)
+    .await?;
+
+    Ok(ApiReturn(Status::Created, id.0))
+}
+
+/// PUT /inventory/<id>
+/// Request: InventoryItem
+/// Response: ApiError or Status
 #[rocket::put("/inventory/<id>", data = "<item>")]
 pub(super) async fn put(
-    item: Json<InventoryItem>,
+    item: Json<InventoryItemPutRequest>,
     id: i32,
     mut db: DB,
 ) -> Result<Status, ApiError> {
     let item = item.into_inner();
-
-    if item.id != id {
-        return Err(ApiError(
-            Status::BadRequest,
-            "ID in data does not match ID in URL".to_string(),
-        ));
-    }
 
     sqlx::query(
         r#"
@@ -220,14 +266,76 @@ pub(super) async fn put(
     .bind(&item.price)
     .bind(item.stock)
     .bind(item.quantity_per_box)
-    .bind(item.id)
+    .bind(id)
     .fetch_one(&mut **db)
     .await
     .map_err(|e| match e {
-        sqlx::Error::RowNotFound => ApiError(
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::BadRequest, format!("Item with id {} not found", id))
+        }
+        _ => e.into(),
+    })?;
+
+    Ok(Status::Ok)
+}
+
+/// PATCH /inventory
+/// Request: InventoryItem
+/// Response: ApiError or Status
+// TODO: Maybe take in an array of items? What would the use case be?
+#[rocket::patch("/inventory/<id>", data = "<item>")]
+pub(super) async fn patch(
+    item: Json<InventoryItemPatchRequest>,
+    id: i32,
+    mut db: DB,
+) -> Result<Status, ApiError> {
+    let item = item.into_inner();
+
+    let sets_string = vec![
+        item.name.as_ref().map(|_| "name = $1"),
+        item.price.as_ref().map(|_| "price = $2"),
+        item.stock.as_ref().map(|_| "stock = $3"),
+        item.quantity_per_box
+            .as_ref()
+            .map(|_| "quantity_per_box = $4"),
+    ];
+
+    let sets_string = sets_string
+        .into_iter()
+        .filter_map(|x| x)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    if sets_string.is_empty() {
+        return Err(ApiError(
             Status::BadRequest,
-            format!("Item with id {} not found", item.id),
-        ),
+            "No fields to update".to_string(),
+        ));
+    }
+
+    sqlx::query(
+        format!(
+            "
+        UPDATE inventory \
+        SET {} \
+        WHERE id = $5 \
+        RETURNING id \
+        ",
+            sets_string.as_str()
+        )
+        .as_str(),
+    )
+    .bind(&item.name)
+    .bind(&item.price)
+    .bind(item.stock)
+    .bind(item.quantity_per_box)
+    .bind(id)
+    .fetch_one(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::BadRequest, format!("Item with id {} not found", id))
+        }
         _ => e.into(),
     })?;
 
