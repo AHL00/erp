@@ -1,13 +1,24 @@
-import { writable, type Writable } from 'svelte/store';
+import { get, writable, type Writable } from 'svelte/store';
 import { api_call } from './backend';
 import { type AuthInfo } from '$bindings/AuthInfo';
 import { goto } from '$app/navigation';
+import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
 
 /// This is a store that will hold the login information
 /// of the user.
 /// If null, the user is not logged in.
 /// For type info, check Rust code for the AuthInfo struct.
 export const auth_info_store: Writable<AuthInfo | null> = writable(null);
+
+export function user_has_permission(permission: UserPermissionEnum): boolean {
+    const auth_info = get(auth_info_store);
+    
+    if (auth_info === null) {
+        return false;
+    }
+
+    return auth_info.permissions.includes(permission);
+}
 
 /// Attempt to login
 export async function login(username: string, password: string) {

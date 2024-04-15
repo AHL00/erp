@@ -2,9 +2,9 @@ use crate::db::DB;
 use bigdecimal::BigDecimal;
 use rocket::{http::Status, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, query};
+use sqlx::{prelude::FromRow, query, Execute};
 
-use super::{FilterOperator, SortOrder, SqlType};
+use super::{ApiError, FilterOperator, SortOrder, SqlType};
 
 // GET /inventory/count
 // Response: i32
@@ -23,6 +23,7 @@ pub(super) async fn count(mut db: DB) -> Result<Json<i32>, Status> {
 pub(super) struct InventoryItem {
     pub id: i32,
     pub name: String,
+    /// A decimal number with a precision of 2 decimal places
     pub price: BigDecimal,
     pub stock: i32,
     pub quantity_per_box: i32,
@@ -163,4 +164,72 @@ pub(super) async fn list(
     })?;
 
     Ok(Json(data))
+}
+
+/// GET /inventory/<id>
+/// Response: InventoryItem
+#[rocket::get("/inventory/<id>")]
+pub(super) async fn get(id: i32, mut db: DB) -> Result<Json<InventoryItem>, ApiError> {
+    let item = sqlx::query_as(
+        r#"
+        SELECT * FROM inventory
+        WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_one(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::BadRequest, format!("Item with id {} not found", id))
+        }
+        _ => e.into(),
+    })?;
+
+    Ok(Json(item))
+}
+
+// PUT /inventory
+// Request: InventoryItem
+// Response: Status
+// TODO: Maybe take in an array of items? What would the use case be?
+#[rocket::put("/inventory/<id>", data = "<item>")]
+pub(super) async fn put(
+    item: Json<InventoryItem>,
+    id: i32,
+    mut db: DB,
+) -> Result<Status, ApiError> {
+    let item = item.into_inner();
+
+    if item.id != id {
+        return Err(ApiError(
+            Status::BadRequest,
+            "ID in data does not match ID in URL".to_string(),
+        ));
+    }
+
+    sqlx::query(
+        r#"
+        UPDATE inventory
+        SET name = $1, price = $2, stock = $3, quantity_per_box = $4
+        WHERE id = $5
+        RETURNING id
+        "#,
+    )
+    .bind(&item.name)
+    .bind(&item.price)
+    .bind(item.stock)
+    .bind(item.quantity_per_box)
+    .bind(item.id)
+    .fetch_one(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => ApiError(
+            Status::BadRequest,
+            format!("Item with id {} not found", item.id),
+        ),
+        _ => e.into(),
+    })?;
+
+    Ok(Status::Ok)
 }
