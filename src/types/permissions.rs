@@ -1,5 +1,6 @@
 use std::ops::BitOr;
 
+// TODO: Split for more granularity such as CREATE, DELETE
 #[allow(non_camel_case_types)]
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ts_rs::TS)]
 #[ts(export)]
@@ -9,7 +10,11 @@ pub enum UserPermissionEnum {
     INVENTORY_WRITE = 0b0010,
     ORDER_READ = 0b0100,
     ORDER_WRITE = 0b1000,
-    MANAGE_DB = 0b0100_0000,
+    CUSTOMERS_READ = 0b0001_0000,
+    CUSTOMERS_WRITE = 0b0010_0000,
+    SUPPLIERS_READ = 0b0100_0000,
+    SUPPLIERS_WRITE = 0b1000_0000,
+    MANAGE_DB = 0b0001_0000_0000,
     ADMIN = 0xFFFF_FFFF,
 }
 
@@ -20,6 +25,10 @@ const PERMISSION_VARIANTS: &'static [UserPermissionEnum] = &[
     UserPermissionEnum::INVENTORY_WRITE,
     UserPermissionEnum::ORDER_READ,
     UserPermissionEnum::ORDER_WRITE,
+    UserPermissionEnum::CUSTOMERS_READ,
+    UserPermissionEnum::CUSTOMERS_WRITE,
+    UserPermissionEnum::SUPPLIERS_READ,
+    UserPermissionEnum::SUPPLIERS_WRITE,
     UserPermissionEnum::MANAGE_DB,
     UserPermissionEnum::ADMIN,
 ];

@@ -1,3 +1,4 @@
+
 pub mod auth;
 pub mod inventory;
 pub mod orders;
@@ -36,8 +37,38 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::patch,
         inventory::post,
         orders::get,
+        orders::get_meta,
+        orders::get_items,
+        customers::get,
+        // customers::list,
+        customers::post,
+        customers::patch,
+        // customers::delete,
+
     ]
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+struct ListRange {
+    /// Number of items to send
+    count: i32,
+    /// First item's index
+    offset: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+struct ListSort {
+    column: String,
+    order: SortOrder,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+struct ListFilter {
+    column: String,
+    operator: FilterOperator,
+    value: SqlType,
+}
+
 
 // TODO: Overhaul all routes to use this error type
 struct ApiError(pub Status, pub String);
@@ -162,4 +193,22 @@ impl SqlType {
             // SqlType::DateTime(d) => query.bind(d),
         }
     }
+}
+
+
+fn generate_sets_string(
+    columns: &[&'static str],
+    current_param: &mut i32,
+) -> String {
+    let mut sets = String::new();
+    for column in columns.iter() {
+        sets.push_str(column);
+        sets.push_str(" = $");
+        sets.push_str(&(current_param).to_string());
+        sets.push_str(", ");
+        *current_param += 1;
+    }
+    sets.pop();
+    sets.pop();
+    sets
 }

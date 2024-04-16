@@ -4,7 +4,7 @@ use rocket::{
     serde::json::Json,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Executor, Postgres};
+use sqlx::{Executor, Postgres};
 use ts_rs::TS;
 
 use crate::{
@@ -251,6 +251,11 @@ pub(super) async fn permissions(
 ) -> Result<Json<Vec<UserPermissionEnum>>, Status> {
     Ok(Json(UserPermissionEnum::variants().to_vec()))
 }
+
+// TODO: Think of another way to delete because things like orders
+// have a foreign key to users. Maybe have a deleted column instead.
+// Deleting inventory also messes up orders, so maybe have a deleted column
+// on everything. 
 
 // DELETE /auth/delete_user [Permissions: ADMIN]
 // {

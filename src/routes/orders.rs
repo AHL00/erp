@@ -55,6 +55,8 @@ pub(super) async fn get(
         |e| ApiError(Status::InternalServerError, e.to_string())
     )?;
 
+    log::error!("json: {}", json);
+
     let order = serde_json::from_str::<Order>(json)
         .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
     
@@ -63,4 +65,62 @@ pub(super) async fn get(
     // It also makes sure that the json layout is correct before sending it to the client.
     // If not perfomant enough, we can always just send the json variable directly.
     Ok(rocket::serde::json::Json(order))
+}
+
+#[rocket::get("/orders/<id>/items")]
+pub(super) async fn get_items(
+    id: i32,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<rocket::serde::json::Json<Vec<OrderItem>>, ApiError> {
+    let rows = sqlx::query(
+        r#"
+        SELECT get_order_items($1)
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut **db)
+    .await
+    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+
+    let mut order_items = Vec::with_capacity(rows.len());
+
+    for row in rows {
+        let json = row.try_get_raw(0)?.as_str().map_err(
+            |e| ApiError(Status::InternalServerError, e.to_string())
+        )?;
+
+        let order_item = serde_json::from_str::<OrderItem>(json)
+            .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+
+        order_items.push(order_item);
+    }
+
+    Ok(rocket::serde::json::Json(order_items))
+}
+
+#[rocket::get("/orders/<id>/meta")]
+pub(super) async fn get_meta(
+    id: i32,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<rocket::serde::json::Json<OrderMeta>, ApiError> {
+    let row = sqlx::query(
+        r#"
+        SELECT get_order_meta($1)
+        "#,
+    )
+    .bind(id)
+    .fetch_one(&mut **db)
+    .await
+    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+
+    let json = row.try_get_raw(0)?.as_str().map_err(
+        |e| ApiError(Status::InternalServerError, e.to_string())
+    )?;
+
+    let order_meta = serde_json::from_str::<OrderMeta>(json)
+        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+    
+    Ok(rocket::serde::json::Json(order_meta))
 }

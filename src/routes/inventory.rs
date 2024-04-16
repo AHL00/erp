@@ -1,22 +1,11 @@
-use crate::db::DB;
+use crate::routes::auth::AuthGuard;
+use crate::{db::DB, types::permissions::UserPermissionEnum};
 use bigdecimal::BigDecimal;
 use rocket::{http::Status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 use super::{ApiError, ApiReturn, FilterOperator, SortOrder, SqlType};
-
-// GET /inventory/count
-// Response: i32
-#[rocket::get("/inventory/count")]
-pub(super) async fn count(mut db: DB) -> Result<Json<i32>, Status> {
-    let count = sqlx::query_scalar("SELECT COUNT(*) FROM inventory")
-        .fetch_one(&mut **db)
-        .await
-        .map_err(|_| Status::InternalServerError)?;
-
-    Ok(Json(count))
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
 #[ts(export)]
@@ -59,36 +48,31 @@ pub(super) struct InventoryItemPostRequest {
     pub quantity_per_box: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-struct InventoryItemListSort {
-    column: String,
-    order: SortOrder,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-struct InventoryItemListFilter {
-    column: String,
-    operator: FilterOperator,
-    value: SqlType,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-struct InventoryItemListRange {
-    /// Number of items to send
-    count: i32,
-    /// First item's index
-    offset: i32,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct InventoryItemListRequest {
     #[ts(inline)]
-    range: InventoryItemListRange,
+    range: super::ListRange,
     #[ts(inline)]
-    sorts: Vec<InventoryItemListSort>,
+    sorts: Vec<super::ListSort>,
     #[ts(inline)]
-    filters: Vec<InventoryItemListFilter>,
+    filters: Vec<super::ListFilter>,
+}
+
+// GET /inventory/count
+// Response: i32
+#[rocket::get("/inventory/count")]
+pub(super) async fn count(
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
+) -> Result<Json<i32>, Status> {
+    let count = sqlx::query_scalar("SELECT COUNT(*) FROM inventory")
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|_| Status::InternalServerError)?;
+
+    Ok(Json(count))
 }
 
 /// POST /inventory/list
@@ -113,6 +97,7 @@ pub(super) struct InventoryItemListRequest {
 #[rocket::post("/inventory/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
     req: Json<InventoryItemListRequest>,
 ) -> Result<Json<Vec<InventoryItem>>, (Status, String)> {
     let req = req.into_inner();
@@ -196,10 +181,12 @@ pub(super) async fn list(
     Ok(Json(data))
 }
 
-/// GET /inventory/<id>
-/// Response: InventoryItem
 #[rocket::get("/inventory/<id>")]
-pub(super) async fn get(id: i32, mut db: DB) -> Result<Json<InventoryItem>, ApiError> {
+pub(super) async fn get(
+    id: i32,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
+) -> Result<Json<InventoryItem>, ApiError> {
     let item = sqlx::query_as(
         r#"
         SELECT * FROM inventory
@@ -211,7 +198,7 @@ pub(super) async fn get(id: i32, mut db: DB) -> Result<Json<InventoryItem>, ApiE
     .await
     .map_err(|e| match e {
         sqlx::Error::RowNotFound => {
-            ApiError(Status::BadRequest, format!("Item with id {} not found", id))
+            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
         }
         _ => e.into(),
     })?;
@@ -223,10 +210,14 @@ pub(super) async fn get(id: i32, mut db: DB) -> Result<Json<InventoryItem>, ApiE
 /// Request: InventoryItem
 /// Response: id or Status
 #[rocket::post("/inventory", data = "<item>")]
-pub(super) async fn post(item: Json<InventoryItemPutRequest>, mut db: DB) -> Result<ApiReturn<i32>, ApiError> {
+pub(super) async fn post(
+    item: Json<InventoryItemPutRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
 
-    let id: (i32, ) = sqlx::query_as(
+    let id: (i32,) = sqlx::query_as(
         r#"
         INSERT INTO inventory (name, price, stock, quantity_per_box)
         VALUES ($1, $2, $3, $4)
@@ -251,6 +242,7 @@ pub(super) async fn put(
     item: Json<InventoryItemPutRequest>,
     id: i32,
     mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let item = item.into_inner();
 
@@ -288,43 +280,30 @@ pub(super) async fn patch(
     item: Json<InventoryItemPatchRequest>,
     id: i32,
     mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let item = item.into_inner();
 
-    let sets_string = vec![
-        item.name.as_ref().map(|_| "name = $1"),
-        item.price.as_ref().map(|_| "price = $2"),
-        item.stock.as_ref().map(|_| "stock = $3"),
-        item.quantity_per_box
-            .as_ref()
-            .map(|_| "quantity_per_box = $4"),
-    ];
+    let mut current_param = 1;
 
-    let sets_string = sets_string
-        .into_iter()
-        .filter_map(|x| x)
-        .collect::<Vec<_>>()
-        .join(", ");
+    let columns = &["name", "price", "stock", "quantity_per_box"];
+
+    let sets_string = super::generate_sets_string(columns, &mut current_param);
 
     if sets_string.is_empty() {
-        return Err(ApiError(
-            Status::BadRequest,
-            "No fields to update".to_string(),
-        ));
+        return Ok(Status::Ok);
     }
 
-    sqlx::query(
-        format!(
-            "
-        UPDATE inventory \
-        SET {} \
-        WHERE id = $5 \
-        RETURNING id \
-        ",
-            sets_string.as_str()
-        )
-        .as_str(),
-    )
+    let query_str = format!(
+        r#"
+        UPDATE inventory
+        SET {}
+        WHERE id = ${}
+        "#,
+        sets_string, current_param
+    );
+
+    sqlx::query(&query_str)
     .bind(&item.name)
     .bind(&item.price)
     .bind(item.stock)
@@ -334,7 +313,7 @@ pub(super) async fn patch(
     .await
     .map_err(|e| match e {
         sqlx::Error::RowNotFound => {
-            ApiError(Status::BadRequest, format!("Item with id {} not found", id))
+            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
         }
         _ => e.into(),
     })?;

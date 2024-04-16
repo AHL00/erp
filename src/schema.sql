@@ -115,18 +115,12 @@ CREATE TABLE IF NOT EXISTS expenses (
 --     pub items: Vec<OrderItem>,
 -- }
 
--- This eliminates the need for multiple queries to get the order details
--- from multiple tables. The function will return a JSON object with the
--- order details and the items in the order. This reduces the number of
--- round trips to the database.
-CREATE OR REPLACE FUNCTION get_order(order_id_input INT) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION get_order_meta(order_id_input INT) RETURNS JSON AS $$
 DECLARE
   order_record RECORD;
-  order_items RECORD;
-    created_by_user RECORD;
-    customer RECORD;
-  order_items_array JSONB[];
-    order_json JSONB;
+  created_by_user RECORD;
+  customer RECORD;
+  order_json JSON;
 BEGIN
     SELECT * INTO order_record FROM orders WHERE id = order_id_input;
 
@@ -137,11 +131,45 @@ BEGIN
 
     SELECT * INTO created_by_user FROM users WHERE id = order_record.created_by_user_id;
     SELECT * INTO customer FROM customers WHERE id = order_record.customer_id;
+
+    order_json := json_build_object(
+        'id', order_record.id,
+        'date_time', order_record.date_time,
+        'customer', CASE WHEN customer IS NULL THEN NULL ELSE json_build_object(
+            'id', customer.id,
+            'name', customer.name,
+            'phone', customer.phone,
+            'address', customer.address,
+            'notes', customer.notes
+        ) END,
+        'created_by_user', json_build_object(
+            'id', created_by_user.id,
+            'username', created_by_user.username
+        ),
+        'amount_paid', order_record.amount_paid,
+        'retail', order_record.retail,
+        'notes', order_record.notes
+    );
+
+    RETURN order_json;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_order_items(order_id_input INT) RETURNS JSON AS $$
+DECLARE
+  order_items_array JSON[];
+  order_items RECORD;
+BEGIN
+    -- if the order does not exist, raise an exception
+    IF NOT EXISTS (SELECT 1 FROM orders WHERE id = order_id_input) THEN
+        RAISE EXCEPTION 'Order with id % not found', order_id_input;
+    END IF;
+
     FOR order_items IN SELECT * FROM order_items WHERE order_id = order_id_input
     LOOP
-        order_items_array := array_append(order_items_array, jsonb_build_object(
+        order_items_array := array_append(order_items_array, json_build_object(
         'id', order_items.id,
-        'inventory_item', (SELECT jsonb_build_object(
+        'inventory_item', (SELECT json_build_object(
             'id', inventory.id,
             'name', inventory.name,
             'price', inventory.price,
@@ -152,27 +180,38 @@ BEGIN
         'price', order_items.price
         ));
     END LOOP;
-    order_json := jsonb_build_object(
-        'meta', jsonb_build_object(
-            'id', order_record.id,
-            'date_time', order_record.date_time,
-            'customer', CASE WHEN customer IS NULL THEN NULL ELSE jsonb_build_object(
-                'id', customer.id,
-                'name', customer.name,
-                'phone', customer.phone,
-                'address', customer.address,
-                'notes', customer.notes
-            ) END,
-            'created_by_user', jsonb_build_object(
-                'id', created_by_user.id,
-                'username', created_by_user.username
-            ),
-            'amount_paid', order_record.amount_paid,
-            'retail', order_record.retail,
-            'notes', order_record.notes
-        ),
-        'items', order_items_array
+    RETURN array_to_json(order_items_array);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- This eliminates the need for multiple queries to get the order details
+-- from multiple tables. The function will return a JSON object with the
+-- order details and the items in the order. This reduces the number of
+-- round trips to the database.
+CREATE OR REPLACE FUNCTION get_order(order_id_input INT) RETURNS JSON AS $$
+DECLARE
+  order_record RECORD;
+  order_items RECORD;
+    created_by_user RECORD;
+    customer RECORD;
+    order_json JSON;
+BEGIN
+    SELECT * INTO order_record FROM orders WHERE id = order_id_input;
+
+    -- if the order does not exist, raise an exception
+    IF order_record IS NULL THEN
+        RAISE EXCEPTION 'Order with id % not found', order_id_input;
+    END IF;
+
+    SELECT * INTO created_by_user FROM users WHERE id = order_record.created_by_user_id;
+    SELECT * INTO customer FROM customers WHERE id = order_record.customer_id;
+
+    order_json := json_build_object(
+        'meta', get_order_meta(order_id_input),
+        'items', get_order_items(order_id_input)
     );
+
     RETURN order_json;
     END;
 $$ LANGUAGE plpgsql;
