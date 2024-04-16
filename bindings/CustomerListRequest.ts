@@ -3,4 +3,4 @@ import type { ListFilter } from "./ListFilter";
 import type { ListRange } from "./ListRange";
 import type { ListSort } from "./ListSort";
 
-export type InventoryItemListRequest = { range: ListRange, sorts: Array<ListSort>, filters: Array<ListFilter>, };
+export type CustomerListRequest = { range: ListRange, sorts: Array<ListSort>, filters: Array<ListFilter>, };

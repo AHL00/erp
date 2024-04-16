@@ -2,7 +2,9 @@ import { browser } from "$app/environment";
 
 export const api_base = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL : window.location.origin + '/api';
 
-export async function api_call(path: string, method: string, body: any) {
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH';
+
+export async function api_call(path: string, method: Method, body: any) {
     if (!browser) return;
 
     if (method === 'GET') {

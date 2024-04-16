@@ -198,3 +198,11 @@ pub(super) async fn patch(
 
     Ok(Status::Ok)
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct CustomerListRequest {
+    pub range: super::ListRange,
+    pub sorts: Vec<super::ListSort>,
+    pub filters: Vec<super::ListFilter>,
+}

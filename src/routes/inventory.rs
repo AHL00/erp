@@ -1,11 +1,12 @@
 use crate::routes::auth::AuthGuard;
+use crate::routes::ListRequest;
 use crate::{db::DB, types::permissions::UserPermissionEnum};
 use bigdecimal::BigDecimal;
 use rocket::{http::Status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
-use super::{ApiError, ApiReturn, FilterOperator, SortOrder, SqlType};
+use super::{ApiError, ApiReturn, SortOrder};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
 #[ts(export)]
@@ -48,18 +49,6 @@ pub(super) struct InventoryItemPostRequest {
     pub quantity_per_box: i32,
 }
 
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-#[ts(export)]
-pub(super) struct InventoryItemListRequest {
-    #[ts(inline)]
-    range: super::ListRange,
-    #[ts(inline)]
-    sorts: Vec<super::ListSort>,
-    #[ts(inline)]
-    filters: Vec<super::ListFilter>,
-}
-
 // GET /inventory/count
 // Response: i32
 #[rocket::get("/inventory/count")]
@@ -98,7 +87,7 @@ pub(super) async fn count(
 pub(super) async fn list(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
-    req: Json<InventoryItemListRequest>,
+    req: Json<ListRequest>,
 ) -> Result<Json<Vec<InventoryItem>>, (Status, String)> {
     let req = req.into_inner();
 
@@ -156,6 +145,8 @@ pub(super) async fn list(
         sql_arg_index,
         sql_arg_index + 1
     );
+
+    log::info!("Query: {}", query_string);
 
     let query = sqlx::query_as(&query_string);
 

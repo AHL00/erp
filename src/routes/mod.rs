@@ -48,6 +48,15 @@ pub fn routes() -> Vec<rocket::Route> {
     ]
 }
 
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
+struct ListRequest {
+    range: ListRange,
+    sorts: Vec<ListSort>,
+    filters: Vec<ListFilter>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 struct ListRange {
     /// Number of items to send
