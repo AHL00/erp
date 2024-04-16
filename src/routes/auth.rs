@@ -4,13 +4,20 @@ use rocket::{
     serde::json::Json,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{Executor, Postgres};
+use sqlx::{prelude::FromRow, Executor, Postgres};
 use ts_rs::TS;
 
 use crate::{
     db::DB,
-    types::permissions::{UserPermissionEnum, UserPermissionVec, UserPermissions},
+    types::permissions::{UserPermissionEnum, UserPermissionsVec, UserPermissions},
 };
+
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(export)]
+pub(super) struct User {
+    id: i32,
+    username: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -18,7 +25,7 @@ pub(super) struct AuthInfo {
     /// Subject (whom the token refers to)
     username: String,
     /// User permissions
-    permissions: UserPermissionVec,
+    permissions: UserPermissionsVec,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -146,7 +153,7 @@ pub(super) async fn logout(cookies: &CookieJar<'_>) -> Status {
 pub(super) struct CreateUserData {
     username: String,
     password: String,
-    permissions: UserPermissionVec,
+    permissions: UserPermissionsVec,
 }
 
 // POST /auth/create_user [Permissions: ADMIN]
@@ -186,7 +193,7 @@ pub(super) async fn create_user(
 #[ts(export)]
 pub(super) struct ListUserData {
     username: String,
-    permissions: UserPermissionVec,
+    permissions: UserPermissionsVec,
 }
 
 // GET /auth/list_users [Permissions: ADMIN]
@@ -220,7 +227,7 @@ pub(super) async fn list_users(
                 .iter()
                 .map(|row| ListUserData {
                     username: row.username.clone(),
-                    permissions: UserPermissionVec::split_from(UserPermissions::from(
+                    permissions: UserPermissionsVec::split_from(UserPermissions::from(
                         row.permissions as u32,
                     )),
                 })

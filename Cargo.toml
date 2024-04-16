@@ -20,6 +20,7 @@ sqlx = { version = "*", default-features = false, features = [
     "bigdecimal",
     "chrono",
     "any",
+    "json"
 ] }
 # SQLx uses Bigdecimal for Postgres, but it doesn't have serde enabled
 bigdecimal = { version = "*", features = ["serde"] }
@@ -40,3 +41,4 @@ ts-rs = { version = "8.1.0", features = [
     "serde-json-impl",
 ] }
 sqlx-core = {version = "0.7.4", features = ["any"]}
+chrono = {version="*", features = ["serde"]}

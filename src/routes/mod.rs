@@ -9,8 +9,8 @@ use rocket::{
     http::Status,
     response::{self, Responder},
     routes,
-    serde::json::{self, Json},
     Request,
+    serde::json
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{
@@ -35,6 +35,7 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::put,
         inventory::patch,
         inventory::post,
+        orders::get,
     ]
 }
 

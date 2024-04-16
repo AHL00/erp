@@ -32,26 +32,32 @@ impl UserPermissions {
         self.0 & permissions.0 == permissions.0
     }
 
-    pub fn split_into_vec(&self) -> UserPermissionVec {
-        UserPermissionVec::split_from(*self)
+    pub fn split_into_vec(&self) -> UserPermissionsVec {
+        UserPermissionsVec::split_from(*self)
     }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, ts_rs::TS)]
 #[serde(transparent)]
 #[ts(export)]
-pub struct UserPermissionVec(Vec<UserPermissionEnum>);
+pub struct UserPermissionsVec(Vec<UserPermissionEnum>);
 
-impl UserPermissionVec {
-    /// Create a new UserPermissionVec from a list of permissions.
+impl From<i32> for UserPermissionsVec {
+    fn from(permission: i32) -> Self {
+        UserPermissionsVec::from(permission as u32)
+    }
+}
+
+impl UserPermissionsVec {
+    /// Create a new UserPermissionsVec from a list of permissions.
     /// This will remove duplicates.
     pub fn new(permissions: Vec<UserPermissionEnum>) -> Self {
         // Flatten the permissions to remove duplicates
-        UserPermissionVec::split_from(UserPermissionVec(permissions).flatten())
+        UserPermissionsVec::split_from(UserPermissionsVec(permissions).flatten())
     }
 
     pub fn split_from(permission: UserPermissions) -> Self {
-        UserPermissionVec(
+        UserPermissionsVec(
             UserPermissionEnum::variants()
                 .iter()
                 .filter(|p| permission.0 & **p as u32 == **p as u32)
@@ -71,8 +77,8 @@ impl UserPermissionVec {
     }
 }
 
-impl From<UserPermissionVec> for UserPermissions {
-    fn from(permissions: UserPermissionVec) -> Self {
+impl From<UserPermissionsVec> for UserPermissions {
+    fn from(permissions: UserPermissionsVec) -> Self {
         permissions.flatten()
     }
 }
@@ -83,9 +89,9 @@ impl From<u32> for UserPermissions {
     }
 }
 
-impl From<u32> for UserPermissionVec {
+impl From<u32> for UserPermissionsVec {
     fn from(permission: u32) -> Self {
-        UserPermissionVec::split_from(UserPermissions(permission))
+        UserPermissionsVec::split_from(UserPermissions(permission))
     }
 }
 
