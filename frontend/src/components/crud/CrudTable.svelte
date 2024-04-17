@@ -168,6 +168,7 @@
                 api_endpoint="inventory"
                 bind:this={edit_panel}
                 current_editing_item={edit_item}
+                columns={columns}
 				close_callback={() => {
 					sidebar.close_sidebar();
 				}}

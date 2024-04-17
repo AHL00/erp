@@ -1,6 +1,5 @@
 <script>
 	import { auth_info_store, refreshAuthStatus } from '$lib/auth';
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import NavBar from '../../components/NavBar.svelte';
 	import Loader from '../../components/Loader.svelte';

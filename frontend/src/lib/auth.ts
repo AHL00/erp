@@ -42,6 +42,7 @@ export async function login(username: string, password: string) {
 /// Refresh the auth status from the server.
 /// This will update the auth_info_store.
 /// Returns true if call was successful.
+/// TODO: refresh automatically constantly, maybe every 5 seconds?
 export async function refreshAuthStatus(): Promise<boolean> {
     const response = await api_call('auth/status', 'GET', {});
 

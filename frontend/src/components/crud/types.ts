@@ -6,8 +6,8 @@ export interface CrudEditTypeSelect<T> {
 
 export interface CrudEditTypeString {
     regex: string | null;
-    /// Inclusive
-    length_range: [number | null, number | null];
+    /// Inclusive, set 0 to make field optional
+    length_range: [number, number | null];
     text_area: boolean;
 }
 
@@ -16,24 +16,21 @@ export interface CrudEditTypeNumber {
     range: [number | null, number | null];
     /// This overrides decimal_places
     integer: boolean;
-    /// Null means no limit
-    decimal_places: number | null;
+    step: number;
 }
 
-
 export type CrudEditType =
-	| CrudEditTypeString
-    | CrudEditTypeNumber
-	| CrudEditTypeSelect<any>
-	| 'checkbox'
-	| 'date'
-	| 'time'
-	| 'datetime'
-	| 'file'
-	| 'image'
-	| 'password'
-	| 'hidden'
-	| 'readonly';
+	| {type: 'string', data: CrudEditTypeString}
+    | {type: 'number', data: CrudEditTypeNumber}
+	| {type: 'select', data: CrudEditTypeSelect<any>}
+	| {type: 'checkbox'}
+	| {type: 'date'}
+	| {type: 'time'}
+	| {type: 'datetime'}
+	| {type: 'file'}
+	| {type: 'image'}
+	| {type: 'password'}
+	| {type: 'hidden'};
 
 export interface CrudColumn {
 	api_name: string;
