@@ -87,9 +87,6 @@
 
 		// Refresh the list
 		refresh_list();
-
-		console.log('Request: ', list_request);
-		// console.table(objects_list);
 	}
 
 	$: {
@@ -104,7 +101,7 @@
 		// If sort or filter includes the edit column, we need to refresh the list
 		let refresh_needed = false;
 
-		for (let column of columns) {
+		for (let column of edited_columns) {
 			if (list_request.sorts.findIndex((sort: ListSort) => sort.column == column.api_name) != -1) {
 				refresh_needed = true;
 				break;
@@ -236,7 +233,7 @@
 												<button
 													class="font-bold"
 													on:click={() => {
-														edit_panel.edit_item(item.id);
+														edit_panel.edit(item.id);
 														sidebar.open_sidebar();
 													}}
 												>

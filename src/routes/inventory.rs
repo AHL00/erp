@@ -290,6 +290,7 @@ pub(super) async fn patch(
         UPDATE inventory
         SET {}
         WHERE id = ${}
+        RETURNING id
         "#,
         sets_string, current_param
     );
