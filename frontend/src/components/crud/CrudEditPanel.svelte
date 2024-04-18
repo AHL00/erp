@@ -70,14 +70,14 @@
 		let malformed = false;
 
 		for (let column of columns) {
-            if (column.edit_readonly) continue;
+			if (column.edit_readonly) continue;
 			if (column.edit_type.type == 'hidden') continue;
 
 			let value = data[column.api_name];
 
-            // If values are the same, this is not part of the edited columns
-            // @ts-ignore
-            if (value == current_editing_item[column.api_name]) continue;
+			// If values are the same, this is not part of the edited columns
+			// @ts-ignore
+			if (value == current_editing_item[column.api_name]) continue;
 
 			if (column.edit_type.type == 'number') {
 				let num = column.edit_type.data.integer
@@ -232,6 +232,8 @@
 								class="flex-grow"
 								type="number"
 								name={column.api_name}
+								readonly={column.edit_readonly}
+                                disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								min={column.edit_type.data.range[0]}
@@ -246,6 +248,8 @@
 								type="text"
 								autocomplete="off"
 								name={column.api_name}
+								readonly={column.edit_readonly}
+                                disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								minlength={column.edit_type.data.length_range[0]}
@@ -259,6 +263,8 @@
 								form="edit-{api_endpoint}-form"
 								class="flex-grow"
 								name={column.api_name}
+								readonly={column.edit_readonly}
+                                disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								minlength={column.edit_type.data.length_range[0]}
@@ -269,23 +275,15 @@
 							<input
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
+								readonly={column.edit_readonly}
+                                disabled={column.edit_readonly}
 								type="checkbox"
 								name={column.api_name}
 								checked={// @ts-ignore
 								get_column_value(column.api_name)}
 							/>
-						{:else if column.edit_type.type == 'select'}
-							<!-- TODO: Make this work??? Is it even needed -->
-							<select>
-								{#each column.edit_type.data.options as option}
-									<option
-										value={option.value}
-										selected={option.value == get_column_value(column.api_name)}
-										>{option.display}</option
-									>
-								{/each}
-							</select>
 						{/if}
+                        {#if !column.edit_readonly}
 						<button
 							on:click={() =>
 								// @ts-ignore
@@ -294,6 +292,7 @@
 						>
 							<i class="fa-solid fa-rotate-left"></i>
 						</button>
+                        {/if}
 					</div>
 				{/if}
 			{/each}
