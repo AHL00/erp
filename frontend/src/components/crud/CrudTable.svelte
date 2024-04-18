@@ -11,6 +11,7 @@
 	import CrudEditPanel from './CrudEditPanel.svelte';
 	import type { InventoryItem } from '$bindings/InventoryItem';
 	import type { ListRequest } from '$bindings/ListRequest';
+	import Loader from '$lib/../components/Loader.svelte';
 
 	export let page_title: string;
 
@@ -23,27 +24,48 @@
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
 
-	let refresh_loading_count = 0;
+	let loading_count = 0;
+
+	let error = false;
 
 	function refresh_list() {
-		refresh_loading_count++;
+		loading_count++;
 
-		api_call(`${crud_endpoint}/list`, 'POST', list_request).then((res) => {
-			if (res?.status == 200) {
-				res.json().then((data) => {
-					objects_list = data;
-				});
-			} else {
+        //TODO: Implement catch for every api_call
+		api_call(`${crud_endpoint}/list`, 'POST', list_request)
+			.then((res) => {
+				if (res?.status == 200) {
+					res.json().then((data) => {
+						objects_list = data;
+					});
+					loading_count--;
+
+					if (error) {
+						error = false;
+					}
+				} else {
+					console.error('Error fetching list');
+
+					toast.push('Error fetching data');
+
+					// Clear the list
+					objects_list = [];
+
+					loading_count--;
+					error = true;
+				}
+			})
+			.catch((e) => {
 				console.error('Error fetching list');
 
-				// TODO: Proper error display
-				toast.push('Error fetching data', {});
+				toast.push('Error fetching data');
 
-				// Clear the list, which will show a loading element
+				// Clear the list
 				objects_list = [];
-			}
-			refresh_loading_count--;
-		});
+
+				loading_count--;
+				error = true;
+			});
 	}
 
 	// Refresh the list when the page is loaded
@@ -89,14 +111,6 @@
 		refresh_list();
 	}
 
-	$: {
-		if (refresh_loading_count > 0) {
-			document.getElementById(`${crud_endpoint}_table_body`)?.classList.add('blur-md');
-		} else {
-			document.getElementById(`${crud_endpoint}_table_body`)?.classList.remove('blur-md');
-		}
-	}
-
 	let edited_callback = (item_id: number, edited_columns: CrudColumn[]) => {
 		// If sort or filter includes the edit column, we need to refresh the list
 		let refresh_needed = false;
@@ -122,24 +136,36 @@
 		}
 
 		// Update the item in the list
-		api_call(`inventory/${item_id}`, 'GET', null).then((res) => {
-			if (res?.status == 200) {
-				res?.json().then((data) => {
-					let index = objects_list.findIndex((item: any) => item.id == item_id);
-					objects_list[index] = data;
+		api_call(`${crud_endpoint}/${item_id}`, 'GET', null)
+			.then((res) => {
+				if (res?.status == 200) {
+					res?.json().then((data) => {
+						let index = objects_list.findIndex((item: any) => item.id == item_id);
+						objects_list[index] = data;
 
-					// Hack for svelte reactivity
-					objects_list = objects_list;
-				});
-			}
-		});
+						// Hack for svelte reactivity
+						objects_list = objects_list;
+					});
+				} else {
+					console.error('Error fetching item, refreshing whole list as fallback');
+
+					// Refresh the list
+					refresh_list();
+				}
+			})
+			.catch((e) => {
+				console.error('Error fetching item, refreshing whole list as fallback');
+
+				// Refresh the list
+				refresh_list();
+			});
 	};
 
 	let edit_all_mode = false;
 
 	let sidebar: SideBar;
 	let edit_panel: CrudEditPanel<InventoryItem>;
-    let edit_item: InventoryItem | null = null;
+	let edit_item: InventoryItem | null = null;
 
 	function find_sort_index(column_api_name: string): number {
 		return list_request.sorts.findIndex((sort: ListSort) => sort.column == column_api_name);
@@ -148,6 +174,55 @@
 	function get_item_field(item: ListObject, field: string): string {
 		return (item as any)[field];
 	}
+
+	async function get_total_count(): Promise<number | null> {
+		loading_count++;
+		let res;
+
+		try {
+			res = await api_call(`${crud_endpoint}/count`, 'GET', null);
+		} catch (e) {
+			console.error('Error fetching count');
+
+			toast.push('Error fetching data');
+
+			// Clear the list, which will show a loading element
+			objects_list = [];
+
+			loading_count--;
+			return null;
+		}
+
+		if (res?.status == 200) {
+			let data = await res.json();
+
+			loading_count--;
+			return data.count;
+		} else {
+			console.error('Error fetching count');
+
+			toast.push('Error fetching data');
+
+			// Clear the list, which will show a loading element
+			objects_list = [];
+
+			loading_count--;
+			return null;
+		}
+	}
+
+	let current_page = 1;
+	let items_per_page = list_request.range.count;
+
+	// TODO: Should be edited if an item is added or removed
+	let page_count = 0;
+
+	get_total_count().then((count) => {
+		if (count != null) {
+			page_count = Math.ceil(count / items_per_page);
+			console.log(page_count);
+		}
+	});
 </script>
 
 <PermissionGuard permissions={read_perms}>
@@ -160,12 +235,12 @@
 	>
 		<!-- Sidebar -->
 		<div slot="sidebar" class="h-full w-full">
-            <!-- bind:this={edit_panel} -->
+			<!-- bind:this={edit_panel} -->
 			<CrudEditPanel
-                api_endpoint="inventory"
-                bind:this={edit_panel}
-                current_editing_item={edit_item}
-                columns={columns}
+				api_endpoint={crud_endpoint}
+				bind:this={edit_panel}
+				current_editing_item={edit_item}
+				{columns}
 				close_callback={() => {
 					sidebar.close_sidebar();
 				}}
@@ -179,8 +254,18 @@
 			</div>
 
 			<div
-				class="flex flex-col flex-grow self-center w-fit min-w-[50%] h-0 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-2xl shadow-sm shadow-custom-bg-light-shadow dark:shadow-custom-bg-dark-shadow my-4"
+				class="relative flex flex-col flex-grow self-center w-fit min-w-[50%] h-0 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-2xl shadow-sm shadow-custom-bg-light-shadow dark:shadow-custom-bg-dark-shadow my-4"
 			>
+				{#if loading_count > 0}
+					<div class="absolute h-full w-full flex">
+						<Loader blur_background={true} custom_classes="rounded-2xl" />
+					</div>
+				{/if}
+                {#if error}
+                <div class="absolute h-full w-full flex">
+                    <Loader blur_background={true} custom_classes="rounded-2xl" icon='error' text='Error fetching data.' ellipsis={false} />
+                </div>
+                {/if}
 				<div class="overflow-auto h-full flex flex-col mt-3 mx-3">
 					<table class="w-full">
 						<thead>
@@ -233,7 +318,8 @@
 												<button
 													class="font-bold"
 													on:click={() => {
-														edit_panel.edit(item.id);
+														// @ts-ignore
+														edit_panel.edit(item.id, item);
 														sidebar.open_sidebar();
 													}}
 												>
@@ -295,9 +381,14 @@
 							>
 								<i class="fas fa-chevron-left text-sm"></i>
 							</button>
-							<button type="button" class="px-5 dark:bg-custom-bg-dark inline-flex items-center">
-								<span class="text-lg">1</span>
-							</button>
+							<input
+								class="px-5 dark:bg-custom-bg-dark inline-flex items-center"
+								value={current_page}
+								max={page_count}
+								min="0"
+							/>
+							<!-- <span class="text-lg">1</span>
+							</input > -->
 							<button
 								type="button"
 								class="rounded-r-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center

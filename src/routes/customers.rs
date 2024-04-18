@@ -3,10 +3,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 use crate::{
-    db::DB, routes::auth::AuthGuard, types::permissions::UserPermissionEnum,
+    db::DB,
+    routes::{auth::AuthGuard, ListRequest},
+    types::permissions::UserPermissionEnum,
 };
 
-use super::{ApiError, ApiReturn};
+use super::{ApiError, ApiReturn, SqlType};
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
 #[ts(export)]
@@ -34,13 +36,62 @@ pub(super) struct Customer {
 pub(super) async fn count(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
-) -> Result<Json<i32>, Status> {
+) -> Result<Json<i64>, ApiError> {
     let count = sqlx::query_scalar("SELECT COUNT(*) FROM customers")
         .fetch_one(&mut **db)
-        .await
-        .map_err(|_| Status::InternalServerError)?;
+        .await?;
 
     Ok(Json(count))
+}
+
+#[rocket::post("/customers/list", data = "<req>")]
+pub(super) async fn list(
+    req: Json<ListRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
+) -> Result<Json<Vec<Customer>>, ApiError> {
+    let req = req.into_inner();
+
+    let mut current_param = 1;
+
+    let sorts_string = super::generate_sorts_string(&req.sorts);
+
+    let (filters_string, filter_binds) =
+        super::generate_filters_string(&req.filters, &mut current_param);
+
+    let query_str = format!(
+        r#"
+        SELECT * FROM customers
+        {}
+        {}
+        LIMIT ${}
+        OFFSET ${}
+        "#,
+        filters_string,
+        sorts_string,
+        current_param,
+        current_param + 1
+    );
+
+    let query = sqlx::query_as(&query_str);
+
+    let query = filter_binds
+        .into_iter()
+        .fold(query, |query, value| value.bind_to_query_as(query));
+
+    let data = query
+        .bind(req.range.count)
+        .bind(req.range.offset)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::ColumnNotFound(column) => {
+                ApiError(Status::BadRequest, format!("Column not found: {}", column))
+            }
+            _ => e.into(),
+        })?;
+
+    Ok(Json(data))
 }
 
 #[rocket::get("/customers/<id>")]
@@ -51,7 +102,7 @@ pub(super) async fn get(
 ) -> Result<Json<Customer>, ApiError> {
     let item = sqlx::query_as(
         r#"
-        SELECT * FROM inventory
+        SELECT * FROM customers
         WHERE id = $1
         "#,
     )
@@ -104,48 +155,6 @@ pub(super) async fn post(
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
-pub(super) struct CustomerPutRequest {
-    pub name: String,
-    pub phone: String,
-    pub address: String,
-    pub notes: String,
-}
-
-#[rocket::put("/customers/<id>", data = "<item>")]
-pub(super) async fn put(
-    item: Json<CustomerPutRequest>,
-    id: i32,
-    mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
-) -> Result<Status, ApiError> {
-    let item = item.into_inner();
-
-    sqlx::query(
-        r#"
-        UPDATE customers
-        SET name = $1, phone = $2, address = $3, notes = $4
-        WHERE id = $5
-        "#,
-    )
-    .bind(&item.name)
-    .bind(&item.phone)
-    .bind(&item.address)
-    .bind(&item.notes)
-    .bind(id)
-    .execute(&mut **db)
-    .await
-    .map_err(|e| match e {
-        sqlx::Error::RowNotFound => {
-            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
-        }
-        _ => e.into(),
-    })?;
-
-    Ok(Status::Ok)
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-#[ts(export)]
 pub(super) struct CustomerPatchRequest {
     pub name: Option<String>,
     pub phone: Option<String>,
@@ -160,17 +169,34 @@ pub(super) async fn patch(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
-    let item = item.into_inner();
+    let req = item.into_inner();
 
     let mut current_param = 1;
 
-    let columns = &["name", "phone", "address", "notes"];
+    let columns = vec![
+        req.name.as_ref().map(|_| "name"),
+        req.phone.as_ref().map(|_| "phone"),
+        req.address.as_ref().map(|_| "address"),
+        req.notes.as_ref().map(|_| "notes"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<&str>>();
 
-    let sets_string = super::generate_sets_string(columns, &mut current_param);
+    let sets_string = super::generate_sets_string(&columns, &mut current_param);
 
     if sets_string.is_empty() {
         return Ok(Status::Ok);
     }
+
+    let set_binds = vec![
+        req.name.as_ref().map(|v| SqlType::String(v.clone())),
+        req.phone.as_ref().map(|v| SqlType::String(v.clone())),
+        req.address.as_ref().map(|v| SqlType::String(v.clone())),
+        req.notes.as_ref().map(|v| SqlType::String(v.clone())),
+    ]
+    .into_iter()
+    .flatten();
 
     let query_str = format!(
         r#"
@@ -181,11 +207,12 @@ pub(super) async fn patch(
         sets_string, current_param
     );
 
-    let data = sqlx::query(&query_str)
-        .bind(&item.name)
-        .bind(&item.phone)
-        .bind(&item.address)
-        .bind(&item.notes)
+    let query = sqlx::query(&query_str);
+
+    let query = set_binds
+        .fold(query, |query, value| value.bind_to_query(query));
+
+    query
         .bind(id)
         .execute(&mut **db)
         .await
@@ -197,12 +224,4 @@ pub(super) async fn patch(
         })?;
 
     Ok(Status::Ok)
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-#[ts(export)]
-pub(super) struct CustomerListRequest {
-    pub range: super::ListRange,
-    pub sorts: Vec<super::ListSort>,
-    pub filters: Vec<super::ListFilter>,
 }

@@ -1,28 +1,32 @@
 <script lang="ts">
-	import { type InventoryItemListRequest } from '$bindings/InventoryItemListRequest';
+	import { type ListRequest } from '$bindings/ListRequest';
 	import { type InventoryItem } from '$bindings/InventoryItem';
 	import CrudTable from '../../../components/crud/CrudTable.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
-	import type { CrudEditType } from '../../../components/crud/types';
-	import Loader from '../../../components/Loader.svelte';
 
-	let current_item_list_req: InventoryItemListRequest = {
+	let inventory_list_req: ListRequest = {
 		range: {
 			count: 100,
 			offset: 0
 		},
 		filters: [],
-		sorts: []
+		sorts: [
+            {
+                column: 'id',
+                order: 'ASC'
+            }
+        ]
 	};
 
-	let current_item_list: InventoryItem[] = [];
+	let inventory_list: InventoryItem[] = [];
 
 	let columns: CrudColumn[] = [
 		{
 			api_name: 'id',
 			display_name: 'ID',
-			current_sort: null,
-			edit_type: { type: 'hidden' }
+			current_sort: 'ASC',
+			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
+            edit_readonly: true
 		},
 		{
 			api_name: 'name',
@@ -32,10 +36,10 @@
 				type: 'string',
 				data: {
 					length_range: [1, 255],
-					text_area: false,
 					regex: null
 				}
-			}
+			},
+            edit_readonly: false
 		},
 		{
 			api_name: 'price',
@@ -48,7 +52,8 @@
 					range: [0, null],
 					step: 1
 				}
-			}
+			},
+            edit_readonly: false
 		},
 		{
 			api_name: 'stock',
@@ -61,7 +66,8 @@
 					range: [0, null],
 					step: 1
 				}
-			}
+			},
+            edit_readonly: false
 		},
 		{
 			api_name: 'quantity_per_box',
@@ -74,15 +80,16 @@
 					range: [0, null],
 					step: 1
 				}
-			}
+			},
+            edit_readonly: false
 		}
 	];
 </script>
 
 <CrudTable
 	page_title="Inventory"
-	list_request={current_item_list_req}
-	objects_list={current_item_list}
+	list_request={inventory_list_req}
+	objects_list={inventory_list}
 	crud_endpoint="inventory"
 	read_perms={['INVENTORY_READ']}
 	write_perms={['INVENTORY_WRITE']}

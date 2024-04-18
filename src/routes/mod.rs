@@ -1,8 +1,7 @@
-
 pub mod auth;
+pub mod customers;
 pub mod inventory;
 pub mod orders;
-pub mod customers;
 pub mod search;
 
 use bigdecimal::BigDecimal;
@@ -10,8 +9,8 @@ use rocket::{
     http::Status,
     response::{self, Responder},
     routes,
+    serde::json,
     Request,
-    serde::json
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{
@@ -33,21 +32,19 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::count,
         inventory::list,
         inventory::get,
-        inventory::put,
         inventory::patch,
         inventory::post,
         orders::get,
         orders::get_meta,
         orders::get_items,
         customers::get,
-        // customers::list,
+        customers::count,
+        customers::list,
         customers::post,
         customers::patch,
         // customers::delete,
-
     ]
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
@@ -77,7 +74,6 @@ struct ListFilter {
     operator: FilterOperator,
     value: SqlType,
 }
-
 
 // TODO: Overhaul all routes to use this error type
 struct ApiError(pub Status, pub String);
@@ -178,7 +174,7 @@ enum SqlType {
 
 impl SqlType {
     fn bind_to_query_as<'a, T>(
-        &'a self,
+        self,
         query: QueryAs<'a, Postgres, T, PgArguments>,
     ) -> QueryAs<'a, Postgres, T, PgArguments> {
         match self {
@@ -191,7 +187,7 @@ impl SqlType {
     }
 
     fn bind_to_query<'a>(
-        &'a self,
+        self,
         query: Query<'a, Postgres, PgArguments>,
     ) -> Query<'a, Postgres, PgArguments> {
         match self {
@@ -204,11 +200,7 @@ impl SqlType {
     }
 }
 
-
-fn generate_sets_string(
-    columns: &[&'static str],
-    current_param: &mut i32,
-) -> String {
+fn generate_sets_string(columns: &[&'static str], current_param: &mut i32) -> String {
     let mut sets = String::new();
     for column in columns.iter() {
         sets.push_str(column);
@@ -220,4 +212,54 @@ fn generate_sets_string(
     sets.pop();
     sets.pop();
     sets
+}
+
+fn generate_sorts_string(sorts: &[ListSort]) -> String {
+    let mut sorts_string = String::new();
+    for (i, sort) in sorts.iter().enumerate() {
+        if i == 0 {
+            sorts_string.push_str("ORDER BY ");
+        }
+
+        sorts_string.push_str(&sort.column);
+        sorts_string.push(' ');
+        sorts_string.push_str(match &sort.order {
+            SortOrder::Asc => "ASC",
+            SortOrder::Desc => "DESC",
+        });
+        sorts_string.push_str(", ");
+    }
+    sorts_string.pop();
+    sorts_string.pop();
+    sorts_string
+}
+
+fn generate_filters_string(
+    filters: &[ListFilter],
+    current_arg: &mut i32,
+) -> (String, Vec<SqlType>) {
+    let mut filter_binds = vec![];
+
+    let filter_string = filters
+        .iter()
+        .enumerate()
+        .map(|(i, filter)| {
+            let str = format!(
+                "{} {} {} ${}",
+                if i == 0 { "WHERE" } else { "AND" },
+                filter.column,
+                filter.operator.to_sql(),
+                current_arg
+            );
+
+            filter_binds.push(filter.value.clone());
+
+            *current_arg += 1;
+
+            str
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    (filter_string, filter_binds)
 }

@@ -25,19 +25,32 @@
 
 	<div class="separator"></div>
 
+    <PermissionGuard permissions={['INVENTORY_READ']}>
 	<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
 		<div class="sidebar-icon">
 			<i class="fa fa-warehouse"></i>
 		</div>
 		<span class="sidebar-label">Inventory</span>
 	</button>
+    </PermissionGuard>
+
+    <div class="separator"></div>
+
+    <PermissionGuard permissions={['CUSTOMERS_READ']}>
+	<button class="sidebar-item" on:click={() => redirect('/app/customers')}>
+		<div class="sidebar-icon">
+			<i class="fa fa-users-gear"></i>
+		</div>
+		<span class="sidebar-label">Customers</span>
+	</button>
+    </PermissionGuard>
 
 	<div class="separator"></div>
 
 	<PermissionGuard permissions={['ADMIN']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/admin')}>
 			<div class="sidebar-icon">
-				<i class="fa fa-user-cog"></i>
+				<i class="fa fa-lock"></i>
 			</div>
 			<span class="sidebar-label">Admin</span>
 		</button>

@@ -1,0 +1,94 @@
+<script lang="ts">
+	import { type ListRequest } from '$bindings/ListRequest';
+    import { type Customer } from '$bindings/Customer';
+	import CrudTable from '../../../components/crud/CrudTable.svelte';
+	import type { CrudColumn } from '../../../components/crud/types';
+
+	let customers_list_req: ListRequest = {
+		range: {
+			count: 100,
+			offset: 0
+		},
+		filters: [],
+		sorts: [
+            {
+                column: 'id',
+                order: 'ASC'
+            }
+        ]
+	};
+
+	let customers_list: Customer[] = [];
+
+	let columns: CrudColumn[] = [
+		{
+			api_name: 'id',
+			display_name: 'ID',
+			current_sort: 'ASC',
+			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
+            edit_readonly: true
+		},
+		{
+			api_name: 'name',
+			display_name: 'Name',
+			current_sort: null,
+			edit_type: {
+				type: 'string',
+				data: {
+					length_range: [1, 255],
+					regex: null
+				}
+			},
+            edit_readonly: false
+		},
+		{
+			api_name: 'phone',
+            display_name: 'Phone',
+            current_sort: null,
+            edit_type: {
+                type: 'string',
+                data: {
+                    length_range: [1, 255],
+                    regex: null
+                }
+            },
+            edit_readonly: false
+        },
+        {
+            api_name: 'address',
+            display_name: 'Address',
+            current_sort: null,
+            edit_type: {
+                type: 'string',
+                data: {
+                    length_range: [1, null],
+                    regex: null
+                }
+            },
+            edit_readonly: false
+        },
+        {
+            api_name: 'notes',
+            display_name: 'Notes',
+            current_sort: null,
+            edit_type: {
+                type: 'string',
+                data: {
+                    length_range: [1, null],
+                    regex: null
+                }
+            },
+            edit_readonly: false
+        }
+	];
+</script>
+
+<CrudTable
+	page_title="Customers"
+	list_request={customers_list_req}
+	objects_list={customers_list}
+	crud_endpoint="customers"
+	read_perms={['CUSTOMERS_READ']}
+	write_perms={['CUSTOMERS_WRITE']}
+	{columns}
+></CrudTable>
