@@ -9,8 +9,10 @@ use ts_rs::TS;
 
 use crate::{
     db::DB,
-    types::permissions::{UserPermissionEnum, UserPermissionsVec, UserPermissions},
+    types::permissions::{UserPermissionEnum, UserPermissions, UserPermissionsVec},
 };
+
+use super::ApiError;
 
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(export)]
@@ -171,22 +173,29 @@ pub(super) async fn create_user(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
     create_user_data: Json<CreateUserData>,
-) -> Result<Status, Status> {
+) -> Result<Status, ApiError> {
     let CreateUserData {
         username,
         password,
         permissions,
     } = create_user_data.into_inner();
 
-    let result = add_user_to_db(&username, &password, permissions.flatten(), &mut **db).await;
+    add_user_to_db(&username, &password, permissions.flatten(), &mut **db)
+        .await
+        .map_err(|e| {
+            if e.to_string()
+                .contains("duplicate key value violates unique constraint")
+            {
+                ApiError(Status::BadRequest, "Username already exists".to_string())
+            } else {
+                e.into()
+            }
+        })?;
+    // .map_err(|e| match e {
+    //     e => e.into(),
+    // })?;
 
-    match result {
-        Ok(_) => Ok(Status::Ok),
-        Err(e) => {
-            log::error!("Failed to add user to DB: {:?}", e);
-            Err(Status::InternalServerError)
-        }
-    }
+    Ok(Status::Created)
 }
 
 #[derive(serde::Serialize, TS)]
@@ -255,7 +264,7 @@ pub(super) async fn permissions(
 // TODO: Think of another way to delete because things like orders
 // have a foreign key to users. Maybe have a deleted column instead.
 // Deleting inventory also messes up orders, so maybe have a deleted column
-// on everything. 
+// on everything.
 
 // DELETE /auth/delete_user [Permissions: ADMIN]
 // {
@@ -274,21 +283,53 @@ pub(super) async fn delete_user(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
     delete_user_data: Json<DeleteUserData>,
-) -> Result<Status, Status> {
+) -> Result<Status, ApiError> {
     let DeleteUserData { username } = delete_user_data.into_inner();
 
-    let result = sqlx::query("DELETE FROM users WHERE username = $1")
+    // Check if at least 2 admins exist
+    let admin_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE permissions = $1")
+        .bind(UserPermissionEnum::ADMIN as i32)
+        .fetch_one(&mut **db)
+        .await?;
+
+    #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+    struct UserRow {
+        id: i32,
+        username: String,
+        password: String,
+        salt: String,
+        permissions: i32,
+    }
+
+    let deleting_user: UserRow = sqlx::query_as("SELECT * FROM users WHERE username = $1")
+        .bind(&username)
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ApiError(Status::NotFound, "User not found".to_string()),
+            e => e.into(),
+        })?;
+
+    if deleting_user.permissions == UserPermissionEnum::ADMIN as i32 && admin_count < 2 {
+        return Err(ApiError(
+            Status::BadRequest,
+            "At least 1 admin must exist to delete an admin".to_string(),
+        ));
+    }
+
+    if admin_count < 2 {
+        return Err(ApiError(
+            Status::BadRequest,
+            "At least 1 admin must exist".to_string(),
+        ));
+    }
+
+    sqlx::query("DELETE FROM users WHERE username = $1")
         .bind(&username)
         .execute(&mut **db)
-        .await;
+        .await?;
 
-    match result {
-        Ok(_) => Ok(Status::Ok),
-        Err(e) => {
-            log::error!("Failed to delete user: {:?}", e);
-            Err(Status::InternalServerError)
-        }
-    }
+    Ok(Status::Ok)
 }
 
 // GET /auth/status
