@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     config.port = env::port();
     config.address = IpAddr::from_str(&env::host()).expect("Failed to parse IP address");
 
-    // Note: To test a completely new DB, use the following: DROP SCHEMA public CASCADE;
+    // Note: To reset the DB for testing, use the following SQL code: DROP SCHEMA public CASCADE;
 
     let cors_options = rocket_cors::CorsOptions {
         allow_credentials: true,

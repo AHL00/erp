@@ -5,7 +5,10 @@ use sqlx::Row;
 
 pub use rocket_db_pools::sqlx;
 
-use crate::{routes::auth::add_user_to_db, types::permissions::{UserPermissionEnum, UserPermissions}}; 
+use crate::{
+    routes::auth::add_user_to_db,
+    types::permissions::{UserPermissionEnum, UserPermissions},
+};
 
 pub type DB = Connection<DatabaseConnection>;
 
@@ -31,21 +34,24 @@ impl From<sqlx::PgPool> for DatabaseConnection {
 
         let schema_exists: bool = schema_exists.unwrap().get(0);
 
-        if !schema_exists {
-            log::warn!("Schema does not exist, creating schema");
-            let create_schema = sqlx::raw_sql(include_str!("schema.sql"))
-                .execute(&pool)
-                .block_on();
+        let schema_str = include_str!("schema.sql");
 
-            if let Err(e) = create_schema {
-                log::error!("Error creating schema: {:?}", e);
-                std::process::exit(1);
-            }
+        if !schema_exists {
+            log::warn!("Schema does not exist");
         }
-        
+
+        log::info!("Running schema creation in case a table is missing");
+
+        let create_schema = sqlx::raw_sql(schema_str).execute(&pool).block_on();
+
+        if let Err(e) = create_schema {
+            log::error!("Error creating schema: {:?}", e);
+            std::process::exit(1);
+        }
+
         // If no users with admin rights exist, create a default admin user
         // This will ensure that the first user can always log in
-        // TODO: In the future, when implementing user deletion, make sure that there is always at 
+        // TODO: In the future, when implementing user deletion, make sure that there is always at
         // least one admin user in order to not trigger this
         let users = sqlx::query("SELECT * FROM users")
             .fetch_all(&pool)
@@ -57,11 +63,19 @@ impl From<sqlx::PgPool> for DatabaseConnection {
         }
 
         let users = users.unwrap();
-        
-        if users.is_empty() {
-            log::warn!("No users found, creating default admin user (username: admin, password: admin)");
 
-            let create_user_res = add_user_to_db("admin", "admin", UserPermissions(UserPermissionEnum::ADMIN as u32), &pool).block_on();
+        if users.is_empty() {
+            log::warn!(
+                "No users found, creating default admin user (username: admin, password: admin)"
+            );
+
+            let create_user_res = add_user_to_db(
+                "admin",
+                "admin",
+                UserPermissions(UserPermissionEnum::ADMIN as u32),
+                &pool,
+            )
+            .block_on();
 
             if let Err(e) = create_user_res {
                 log::error!("Error creating default admin user: {:?}", e);
@@ -91,7 +105,9 @@ impl std::ops::DerefMut for DatabaseConnection {
 impl<'r> rocket::request::FromRequest<'r> for DatabaseConnection {
     type Error = ();
 
-    async fn from_request(request: &'r rocket::Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+    async fn from_request(
+        request: &'r rocket::Request<'_>,
+    ) -> rocket::request::Outcome<Self, Self::Error> {
         let pool = request.guard::<DatabaseConnection>().await.unwrap();
         rocket::request::Outcome::Success(pool)
     }
@@ -105,7 +121,10 @@ impl Sentinel for DatabaseConnection {
         }
 
         // TODO: What does this do?
-        if !rocket.catchers().any(|c| c.code == Some(400) && c.base == "/") {
+        if !rocket
+            .catchers()
+            .any(|c| c.code == Some(400) && c.base == "/")
+        {
             return true;
         }
 
