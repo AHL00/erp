@@ -19,14 +19,24 @@
 	// Try authenticating user, if not working, set error in loader and retry in set amount with count down in loader.text
 	let loader: Loader;
 
-	function try_auth() {
+	export function try_auth() {
+        console.log("Trying to authenticate user")
 		refreshAuthStatus()
-			.then(() => {
-				loader.change_text('Authenticated. Loading data');
-				loader.icon = 'dots';
-				loader.enable_ellipsis();
+			.then((status: boolean) => {
+				console.log(`Auth info store: ${JSON.stringify($auth_info_store)}`);
+
+				if (status === true) {
+					loader.change_text('Authenticated. Loading data');
+					loader.icon = 'dots';
+					loader.enable_ellipsis();
+				} else {
+                    // Should have redirected to login page
+                    console.error('User not authenticated and auth_info_store is null, should have redirected to login page');
+				}
 			})
 			.catch(() => {
+				console.log(`Auth info store: ${JSON.stringify($auth_info_store)}`);
+
 				loader.change_text('Error authenticating user. Retrying in 5 seconds.');
 				loader.icon = 'error';
 				loader.disable_ellipsis();
@@ -37,8 +47,8 @@
 					timeout -= 1000;
 					if (timeout <= 0) {
 						clearInterval(interval);
-                        loader.change_text('Error authenticating user. Retrying');
-                        loader.enable_ellipsis();
+						loader.change_text('Error authenticating user. Retrying');
+						loader.enable_ellipsis();
 						try_auth();
 					} else {
 						loader.change_text(`Error authenticating user. Retrying in ${timeout / 1000} seconds.`);
@@ -48,8 +58,8 @@
 	}
 
 	onMount(() => {
-        try_auth();
-    });
+		try_auth();
+	});
 </script>
 
 {#if $auth_info_store === null}

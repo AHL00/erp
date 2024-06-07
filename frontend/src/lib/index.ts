@@ -12,7 +12,6 @@ export function redirect(url: string) {
     goto(url);
 
     // Refresh authenticatation
-    console.log('Refreshing auth status');
     refreshAuthStatus();
 }
 
