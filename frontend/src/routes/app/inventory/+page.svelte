@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
 	import { type InventoryItem } from '$bindings/InventoryItem';
-	import CrudTable from '../../../components/crud/CrudTable.svelte';
+	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
 	let inventory_list_req: ListRequest = {
@@ -86,12 +86,14 @@
 	];
 </script>
 
-<CrudTable
-	page_title="Inventory"
+<div class="h-full w-full flex flex-col justify-start overflow-hidden">
+<!-- <h1 class="text-2xl text-center my-4">Inventory</h1> -->
+<CrudPanel
 	list_request={inventory_list_req}
 	objects_list={inventory_list}
 	crud_endpoint="inventory"
 	read_perms={['INVENTORY_READ']}
 	write_perms={['INVENTORY_WRITE']}
 	{columns}
-></CrudTable>
+></CrudPanel>
+</div>

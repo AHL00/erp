@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
     import { type Customer } from '$bindings/Customer';
-	import CrudTable from '../../../components/crud/CrudTable.svelte';
+	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
 	let customers_list_req: ListRequest = {
@@ -83,12 +83,11 @@
 	];
 </script>
 
-<CrudTable
-	page_title="Customers"
+<CrudPanel
 	list_request={customers_list_req}
 	objects_list={customers_list}
 	crud_endpoint="customers"
 	read_perms={['CUSTOMERS_READ']}
 	write_perms={['CUSTOMERS_WRITE']}
 	{columns}
-></CrudTable>
+></CrudPanel>

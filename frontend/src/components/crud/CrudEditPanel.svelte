@@ -1,7 +1,7 @@
 <script lang="ts" generics="EditObject extends { id: number }">
 	import { match } from 'ts-pattern';
 
-	import type { CrudColumn, CrudEditTypeNumber } from './types';
+	import type { CrudColumn } from './types';
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import Loader from '../Loader.svelte';

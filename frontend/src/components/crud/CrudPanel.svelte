@@ -13,8 +13,6 @@
 	import type { ListRequest } from '$bindings/ListRequest';
 	import Loader from '$lib/../components/Loader.svelte';
 
-	export let page_title: string;
-
 	// List request type, e.g. InventoryItemListRequest
 	export let list_request: ListRequest;
 	// Returned type from list, e.g. InventoryItem
@@ -23,6 +21,9 @@
 
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
+
+    /// Allows the parent to override the default edit function. It will send the item that was edited as an argument.
+    export let edit_function: ((item_id: number) => void ) | null = null;
 
 	let loading_count = 0;
 
@@ -165,7 +166,7 @@
 
 	let sidebar: SideBar;
 	let edit_panel: CrudEditPanel<InventoryItem>;
-	let edit_item: InventoryItem | null = null;
+	let edit_item: InventoryItem;
 
 	function find_sort_index(column_api_name: string): number {
 		return list_request.sorts.findIndex((sort: ListSort) => sort.column == column_api_name);
@@ -225,6 +226,8 @@
 	});
 </script>
 
+<!-- TODO: Allow custom edit panel, make it fit in any space with flex-grow -->
+
 <PermissionGuard permissions={read_perms}>
 	<SideBar
 		bind:this={sidebar}
@@ -248,13 +251,9 @@
 			/>
 		</div>
 		<!-- Content Wrapper -->
-		<div class="h-full w-full flex flex-col justify-start overflow-hidden" slot="content">
-			<div class="flex-none">
-				<span class="text-2xl">{page_title}</span>
-			</div>
-
 			<div
-				class="relative flex flex-col flex-grow self-center w-fit min-w-[50%] h-0 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-2xl shadow-sm shadow-custom-bg-light-shadow dark:shadow-custom-bg-dark-shadow my-4"
+            slot="content"
+				class="relative flex flex-col flex-grow self-center w-full h-full bg-custom-bg-lighter dark:bg-custom-bg-dark"
 			>
 				{#if loading_count > 0}
 					<div class="absolute h-full w-full flex">
@@ -318,6 +317,12 @@
 												<button
 													class="font-bold"
 													on:click={() => {
+                                                        // If the parent has specified an edit function, use that instead of the default edit panel
+                                                        if (edit_function != null) {
+                                                            edit_function(item.id);
+                                                            return;
+                                                        }
+
 														// @ts-ignore
 														edit_panel.edit(item.id, item);
 														sidebar.open_sidebar();
@@ -400,7 +405,6 @@
 					</div>
 				</div>
 			</div>
-		</div>
 	</SideBar>
 </PermissionGuard>
 
