@@ -65,7 +65,11 @@
 			<i class="fa fa-user"></i>
 		</div>
 		<span class="sidebar-label">
-			{middle_ellipsis($auth_info_store ? $auth_info_store.username : '?', 10)}
+            {#if $auth_info_store === null}
+                ?
+            {:else}
+                {middle_ellipsis($auth_info_store.username, 10)}
+            {/if}
 		</span>
 	</button>
 </div>

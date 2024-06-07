@@ -11,33 +11,42 @@ import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
 export const auth_info_store: Writable<AuthInfo | null> = writable(null);
 
 export function user_has_permission(permission: UserPermissionEnum): boolean {
-	const auth_info = get(auth_info_store);
-
+    const auth_info = get(auth_info_store);
+    
 	if (auth_info === null) {
-		return false;
+        return false;
 	}
-
+    
 	return auth_info.permissions.includes(permission) || auth_info.permissions.includes('ADMIN');
 }
 
 /// Attempt to login
 export async function login(username: string, password: string) {
-	const response = await api_call('auth/login', 'POST', { username, password });
-
+    const response = await api_call('auth/login', 'POST', { username, password });
+    
 	if (response === null) {
-		console.error('Failed to call login API');
+        console.error('Failed to call login API');
 		return;
 	}
-
+    
 	if (response?.ok) {
-		let refresh_success = await refreshAuthStatus();
+        let refresh_success = await refreshAuthStatus();
 		if (!refresh_success) {
-			console.error('Failed to refresh auth status after login');
+            console.error('Failed to refresh auth status after login');
 		}
 	} else {
-		console.error('Login failed');
+        console.error('Login failed');
 	}
 }
+
+export enum auth_status {
+    AUTHENTICATED,
+    FETCH_ERROR,
+    NOT_AUTHENTICATED,
+    LOADING,
+}
+
+export const auth_status_store: Writable<auth_status> = writable(auth_status.NOT_AUTHENTICATED);
 
 /// Refresh the auth status from the server.
 /// This will update the auth_info_store.
@@ -45,39 +54,39 @@ export async function login(username: string, password: string) {
 /// Rejected promise if failed to call the API.
 /// TODO: refresh automatically constantly, maybe every 5 seconds?
 export async function refreshAuthStatus(): Promise<boolean> {
-	const response = await api_call('auth/status', 'GET', {});
-
-	let promise: Promise<boolean> = new Promise((resolve, reject) => {
-		if (response === null) {
+    auth_status_store.set(auth_status.LOADING);
+    
+	return new Promise((resolve, reject) => {
+        api_call('auth/status', 'GET', {}).then((response) => {
+            if (response?.ok) {
+                response.json().then((data) => {
+                    auth_info_store.set(data);
+                    auth_status_store.set(auth_status.AUTHENTICATED);
+                    resolve(true);
+                });
+            } else if (response?.status === 401) {
+                // This means the user is not logged in
+                auth_info_store.set(null);
+                auth_status_store.set(auth_status.NOT_AUTHENTICATED);
+                goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                resolve(false);
+            } else {
+                // If there's an error, it's probably safe to log out. This still leaves the cookie.
+                auth_info_store.set(null);
+                auth_status_store.set(auth_status.FETCH_ERROR);
+                console.error('Failed to fetch auth status for unknown reason: HTTP code ' + response?.status);
+                // Redirect to login page
+                goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                resolve(false);
+            }
+        }).catch((error) => {
             // If failed to call, revoke the auth status
             auth_info_store.set(null);
-			console.error('Failed to call refreshAuthStatus API');
+            auth_status_store.set(auth_status.FETCH_ERROR);
+            console.error('Failed to call refreshAuthStatus API');
             reject();
-		}
-
-		if (response?.ok) {
-			response.json().then((data) => {
-                auth_info_store.set(data);
-                resolve(true);
-            });
-		} else if (response?.status === 401) {
-			// This means the user is not logged in
-			auth_info_store.set(null);
-
-			goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
-			resolve(false);
-		} else {
-            // If there's an error, it's probably safe to log out. This still leaves the cookie.
-            auth_info_store.set(null);
-
-			console.error('Failed to fetch auth status for unknown reason: HTTP code ' + response?.status);
-			// Redirect to login page
-			goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
-			resolve(false);
-		}
+        });
 	});
-
-    return promise;
 }
 
 export async function logout() {
