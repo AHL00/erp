@@ -12,6 +12,7 @@
 	import type { InventoryItem } from '$bindings/InventoryItem';
 	import type { ListRequest } from '$bindings/ListRequest';
 	import Loader from '$lib/../components/Loader.svelte';
+	import { onMount } from 'svelte';
 
 	// List request type, e.g. InventoryItemListRequest
 	export let list_request: ListRequest;
@@ -25,9 +26,9 @@
 	/// Allows the parent to override the default edit function. It will send the item that was edited as an argument.
 	export let edit_override: ((item_id: number) => void) | null = null;
 
-    /// The default item to create when the create button is pressed.
+	/// The default item to create when the create button is pressed.
 	/// The ID field will be ignored, and the rest of the fields will be used to create the item.
-    /// If null, the create button will be disabled.
+	/// If null, the create button will be disabled.
 	export let create_default: EntryType | null;
 
 	let loading_count = 0;
@@ -181,7 +182,8 @@
 		return (item as any)[field];
 	}
 
-	async function get_total_count(): Promise<number | null> {
+	/// NOTE: Also handles errors
+	async function get_total_count(): Promise<number> {
 		loading_count++;
 		let res;
 
@@ -196,14 +198,14 @@
 			objects_list = [];
 
 			loading_count--;
-			return null;
+			return Promise.reject('Error fetching count: ' + e);
 		}
 
 		if (res?.status == 200) {
 			let data = await res.json();
 
 			loading_count--;
-			return data.count;
+			return Promise.resolve(data);
 		} else {
 			console.error('Error fetching count');
 
@@ -213,7 +215,7 @@
 			objects_list = [];
 
 			loading_count--;
-			return null;
+			return Promise.reject('Error fetching count: HTTP code ' + res?.status);
 		}
 	}
 
@@ -232,20 +234,27 @@
 			try {
 				api_call(`${crud_endpoint}`, 'POST', create_default).then((res) => {
 					if (res?.status == 201) {
-                        // The server should return an id of the created item
-                        res?.json().then((id) => {
-                            console.log("Created an item with the id: ", id);
+						// The server should return an id of the created item
+						res?.json().then((id) => {
+							console.log('Created an item with the id: ', id);
 
-                            // Refresh the list
-                            refresh_list();
-                           
-                            get_item_from_api(id).then((item) => {
-                                edit_item_handler(item);
-                            }).catch((e) => {
-                                console.error('Error fetching created item: ', e);
-                                toast.push('Error fetching created item');
-                            });
-                        });
+							// Refresh the list
+							refresh_list();
+
+							// Update page count
+							get_page_count().then((n) => {
+								page_count = n;
+							});
+
+							get_item_from_api(id)
+								.then((item) => {
+									edit_item_handler(item);
+								})
+								.catch((e) => {
+									console.error('Error fetching created item: ', e);
+									toast.push('Error fetching created item');
+								});
+						});
 					} else {
 						console.error('Error creating item: HTTP code ', res?.status);
 						toast.push(`Error creating item: HTTP code ${res?.status}`);
@@ -260,23 +269,25 @@
 				'No default item provided for creation, create should be disabled or a default item should be provided'
 			);
 		}
-    }
+	}
 
-    function get_item_in_list(id: number): EntryType | undefined {
-        return objects_list.find((item) => item.id == id);
-    }
+	function get_item_in_list(id: number): EntryType | undefined {
+		return objects_list.find((item) => item.id == id);
+	}
 
-    function get_item_from_api(id: number): Promise<EntryType> {
-        return api_call(`${crud_endpoint}/${id}`, 'GET', null).then((res) => {
-            if (res?.status == 200) {
-                return Promise.resolve(res.json());
-            } else {
-                return Promise.reject('Error fetching item, HTTP code ' + res?.status);
-            }
-        }).catch((e) => {
-            return Promise.reject('Error fetching item: ' + e);
-        });
-    }
+	function get_item_from_api(id: number): Promise<EntryType> {
+		return api_call(`${crud_endpoint}/${id}`, 'GET', null)
+			.then((res) => {
+				if (res?.status == 200) {
+					return Promise.resolve(res.json());
+				} else {
+					return Promise.reject('Error fetching item, HTTP code ' + res?.status);
+				}
+			})
+			.catch((e) => {
+				return Promise.reject('Error fetching item: ' + e);
+			});
+	}
 
 	function edit_item_handler(item: EntryType) {
 		// If the parent has specified an edit function, use that instead of the default edit panel
@@ -293,15 +304,43 @@
 	let current_page = 1;
 	let items_per_page = list_request.range.count;
 
-	// TODO: Should be edited if an item is added or removed
-	let page_count = 0;
+	// Update this whenever item is added or removed
+	let page_count: number = 0;
 
-	get_total_count().then((count) => {
-		if (count != null) {
-			page_count = Math.ceil(count / items_per_page);
-			console.log(page_count);
-		}
+	get_page_count().then((n) => {
+		page_count = n;
 	});
+
+	/// Reloads data even if the page is the same
+	function change_page(page: number) {
+		if (page < 1 || page > page_count) {
+			return;
+		}
+
+		list_request.range.offset = (page - 1) * items_per_page;
+		list_request.range.count = items_per_page;
+		refresh_list();
+		current_page = page;
+	}
+
+	async function get_page_count(): Promise<number> {
+		// Send request for total count
+		let count: number;
+
+		// No need to catch, get_total_count will handle it
+		count = await get_total_count();
+
+		if (count !== undefined || count !== null) {
+			// Calculate the page count
+			let page_count = Math.ceil(count / items_per_page);
+
+			return page_count;
+		} else {
+			return 0;
+		}
+	}
+
+	let page_select_input: HTMLInputElement;
 </script>
 
 <!-- TODO: Allow custom edit panel, make it fit in any space with flex-grow -->
@@ -481,19 +520,57 @@
 							type="button"
 							class="rounded-l-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
                             outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+							on:click={() => {
+								page_select_input.value = (parseInt(page_select_input.value) - 1).toString();
+								page_select_input.dispatchEvent(new Event('change'));
+							}}
 						>
 							<i class="fas fa-chevron-left text-sm"></i>
 						</button>
-						<input
-							class="px-5 dark:bg-custom-bg-dark inline-flex items-center"
-							value={current_page}
-							max={page_count}
-							min="0"
-						/>
+						<div class="px-5 inline-flex align-middle">
+							<input
+								class=" dark:bg-custom-bg-dark inline-flex items-center w-6"
+								value={current_page}
+                                type="text"
+								inputmode="numeric"
+								bind:this={page_select_input}
+								on:keypress={(e) => {
+									// If non-numeric key is pressed, prevent it
+									if (!/^\d+$/.test(e.key) && e.key !== 'Enter') {
+										e.preventDefault();
+									}
+								}}
+								on:change={(e) => {
+									// @ts-ignore
+									let new_page = parseInt(e.target.value);
+
+									// Make sure the value is still in bounds
+									if (new_page >= 1 && new_page <= page_count) {
+										change_page(new_page);
+									} else {
+										// Move it to the nearest bound
+										if (new_page < 1) {
+											change_page(1);
+											// @ts-ignore
+											e.target.value = 1;
+										} else {
+											change_page(page_count);
+											// @ts-ignore
+											e.target.value = page_count;
+										}
+									}
+								}}
+							/>
+							<span class="text-sm flex place-self-center"> of {page_count}</span>
+						</div>
 						<button
 							type="button"
 							class="rounded-r-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
                             outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+							on:click={() => {
+								page_select_input.value = (parseInt(page_select_input.value) + 1).toString();
+								page_select_input.dispatchEvent(new Event('change'));
+							}}
 						>
 							<i class="fas fa-chevron-right text-sm"></i>
 						</button>
