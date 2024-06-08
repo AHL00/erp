@@ -84,6 +84,14 @@
             edit_readonly: false
 		}
 	];
+
+    let default_item: InventoryItem = {
+        id: -1,
+        name: 'New Item',
+        price: "0.00",
+        stock: 0,
+        quantity_per_box: 1,
+    };
 </script>
 
 <div class="h-full w-full flex flex-col justify-start overflow-hidden">
@@ -94,6 +102,7 @@
 	crud_endpoint="inventory"
 	read_perms={['INVENTORY_READ']}
 	write_perms={['INVENTORY_WRITE']}
+    create_default={default_item}
 	{columns}
 ></CrudPanel>
 </div>

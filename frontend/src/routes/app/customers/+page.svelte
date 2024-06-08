@@ -81,6 +81,14 @@
             edit_readonly: false
         }
 	];
+
+    let create_default: Customer = {
+        id: -1,
+        name: 'New Customer',
+        phone: '09 ',
+        address: '',
+        notes: ''
+    };
 </script>
 
 <CrudPanel
@@ -89,5 +97,6 @@
 	crud_endpoint="customers"
 	read_perms={['CUSTOMERS_READ']}
 	write_perms={['CUSTOMERS_WRITE']}
+    create_default={create_default}
 	{columns}
 ></CrudPanel>

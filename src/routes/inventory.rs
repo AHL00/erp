@@ -147,6 +147,7 @@ pub(super) async fn get(
 
 /// POST /inventory
 /// Request: InventoryItem
+/// Note: id is ignored
 /// Response: id or Status
 #[rocket::post("/inventory", data = "<item>")]
 pub(super) async fn post(
@@ -155,6 +156,8 @@ pub(super) async fn post(
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
+
+    log::info!("POST /inventory");
 
     let id: (i32,) = sqlx::query_as(
         r#"

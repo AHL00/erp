@@ -1,5 +1,5 @@
 <!-- A generic CRUD page that can edit any specified object on the API. -->
-<script lang="ts" generics="ListObject extends { id: number }">
+<script lang="ts" generics="EntryType extends { id: number }">
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
@@ -16,14 +16,19 @@
 	// List request type, e.g. InventoryItemListRequest
 	export let list_request: ListRequest;
 	// Returned type from list, e.g. InventoryItem
-	export let objects_list: ListObject[];
+	export let objects_list: EntryType[];
 	export let crud_endpoint: string;
 
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
 
-    /// Allows the parent to override the default edit function. It will send the item that was edited as an argument.
-    export let edit_function: ((item_id: number) => void ) | null = null;
+	/// Allows the parent to override the default edit function. It will send the item that was edited as an argument.
+	export let edit_override: ((item_id: number) => void) | null = null;
+
+    /// The default item to create when the create button is pressed.
+	/// The ID field will be ignored, and the rest of the fields will be used to create the item.
+    /// If null, the create button will be disabled.
+	export let create_default: EntryType | null;
 
 	let loading_count = 0;
 
@@ -32,7 +37,7 @@
 	function refresh_list() {
 		loading_count++;
 
-        //TODO: Implement catch for every api_call
+		//TODO: Implement catch for every api_call
 		api_call(`${crud_endpoint}/list`, 'POST', list_request)
 			.then((res) => {
 				if (res?.status == 200) {
@@ -172,7 +177,7 @@
 		return list_request.sorts.findIndex((sort: ListSort) => sort.column == column_api_name);
 	}
 
-	function get_item_field(item: ListObject, field: string): string {
+	function get_item_field(item: EntryType, field: string): string {
 		return (item as any)[field];
 	}
 
@@ -210,6 +215,79 @@
 			loading_count--;
 			return null;
 		}
+	}
+
+	function create_new_handler() {
+		// This should not be called if the create button is disabled, but just in case
+		if (create_default == null) {
+			return;
+		}
+
+		if (create_default != null) {
+			// Set the ID to -1, although it should be ignored by the backend.
+			// In case anything goes very wrong, this will keep existing items from being overwritten.
+			create_default.id = -1;
+
+			// Try to send an API call to create the item
+			try {
+				api_call(`${crud_endpoint}`, 'POST', create_default).then((res) => {
+					if (res?.status == 201) {
+                        // The server should return an id of the created item
+                        res?.json().then((id) => {
+                            console.log("Created an item with the id: ", id);
+
+                            // Refresh the list
+                            refresh_list();
+                           
+                            get_item_from_api(id).then((item) => {
+                                edit_item_handler(item);
+                            }).catch((e) => {
+                                console.error('Error fetching created item: ', e);
+                                toast.push('Error fetching created item');
+                            });
+                        });
+					} else {
+						console.error('Error creating item: HTTP code ', res?.status);
+						toast.push(`Error creating item: HTTP code ${res?.status}`);
+					}
+				});
+			} catch (e) {
+				console.error('Error creating item: ', e);
+				toast.push('Error creating item');
+			}
+		} else {
+			console.error(
+				'No default item provided for creation, create should be disabled or a default item should be provided'
+			);
+		}
+    }
+
+    function get_item_in_list(id: number): EntryType | undefined {
+        return objects_list.find((item) => item.id == id);
+    }
+
+    function get_item_from_api(id: number): Promise<EntryType> {
+        return api_call(`${crud_endpoint}/${id}`, 'GET', null).then((res) => {
+            if (res?.status == 200) {
+                return Promise.resolve(res.json());
+            } else {
+                return Promise.reject('Error fetching item, HTTP code ' + res?.status);
+            }
+        }).catch((e) => {
+            return Promise.reject('Error fetching item: ' + e);
+        });
+    }
+
+	function edit_item_handler(item: EntryType) {
+		// If the parent has specified an edit function, use that instead of the default edit panel
+		if (edit_override != null) {
+			edit_override(item.id);
+			return;
+		}
+
+		// @ts-ignore
+		edit_panel.edit(item.id, item);
+		sidebar.open_sidebar();
 	}
 
 	let current_page = 1;
@@ -251,160 +329,178 @@
 			/>
 		</div>
 		<!-- Content Wrapper -->
-			<div
-            slot="content"
-				class="relative flex flex-col flex-grow self-center w-full h-full bg-custom-bg-lighter dark:bg-custom-bg-dark"
-			>
-				{#if loading_count > 0}
-					<div class="absolute h-full w-full flex">
-						<Loader blur_background={true} custom_classes="rounded-2xl" />
-					</div>
-				{/if}
-                {#if error}
-                <div class="absolute h-full w-full flex">
-                    <Loader blur_background={true} custom_classes="rounded-2xl" icon='error' text='Error fetching data.' ellipsis={false} />
-                </div>
-                {/if}
-				<div class="overflow-auto h-full flex flex-col mt-3 mx-3">
-					<table class="w-full">
-						<thead>
-							<tr>
-								<!-- NOTE: This background color will have to be changed if the body's background color is changed.  
-                            Inheriting is a mess so I'm just going to hardcode it. -->
-								<PermissionGuard permissions={write_perms}>
-									{#if !edit_all_mode}
-										<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
-											Edit
-										</th>
-									{/if}
-								</PermissionGuard>
-								{#each columns as column, index}
-									<th
-										class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl"
-										on:click={() => {
-											sort_toggle(index);
-										}}
-									>
-										{column.display_name}
-										{#if column.current_sort == 'ASC'}
-											<span>▲</span>
-										{/if}
-										{#if column.current_sort == 'DESC'}
-											<span>▼</span>
-										{/if}
-
-										{#if column.current_sort != null}
-											<span>
-												{find_sort_index(column.api_name) + 1}
-											</span>
-										{/if}
-									</th>
-								{/each}
-								<PermissionGuard permissions={write_perms}>
-									{#if edit_all_mode}
-										<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
-										</th>
-									{/if}
-								</PermissionGuard>
-							</tr>
-						</thead>
-						<tbody id="{crud_endpoint}_table_body">
-							{#if !edit_all_mode}
-								{#each objects_list as item}
-									<tr class="text-center">
-										<PermissionGuard permissions={write_perms}>
-											<td class="p-2">
-												<button
-													class="font-bold"
-													on:click={() => {
-                                                        // If the parent has specified an edit function, use that instead of the default edit panel
-                                                        if (edit_function != null) {
-                                                            edit_function(item.id);
-                                                            return;
-                                                        }
-
-														// @ts-ignore
-														edit_panel.edit(item.id, item);
-														sidebar.open_sidebar();
-													}}
-												>
-													<i class="fa-solid fa-pen-to-square ml-2 opacity-80"></i>
-												</button>
-											</td>
-										</PermissionGuard>
-										{#each columns as column}
-											<td class="p-2">
-												{get_item_field(item, column.api_name)}
-											</td>
-										{/each}
-									</tr>
-								{/each}
-							{:else}
-								<PermissionGuard permissions={write_perms}>
-									{#each objects_list as item}
-										<!-- <EditItemInline {item} /> -->
-									{/each}
-								</PermissionGuard>
-							{/if}
-						</tbody>
-					</table>
+		<div
+			slot="content"
+			class="relative flex flex-col flex-grow self-center w-full h-full bg-custom-bg-lighter dark:bg-custom-bg-dark"
+		>
+			{#if loading_count > 0}
+				<div class="absolute h-full w-full flex">
+					<Loader blur_background={true} custom_classes="rounded-2xl" />
 				</div>
+			{/if}
+			{#if error}
+				<div class="absolute h-full w-full flex">
+					<Loader
+						blur_background={true}
+						custom_classes="rounded-2xl"
+						icon="error"
+						text="Error fetching data."
+						ellipsis={false}
+					/>
+				</div>
+			{/if}
+			<div class="overflow-auto h-full flex flex-col mt-3 mx-3">
+				<table class="w-full">
+					<thead>
+						<tr>
+							<!-- NOTE: This background color will have to be changed if the body's background color is changed.  
+                            Inheriting is a mess so I'm just going to hardcode it. -->
+							<PermissionGuard permissions={write_perms}>
+								{#if !edit_all_mode}
+									<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
+										Edit
+									</th>
+								{/if}
+							</PermissionGuard>
+							{#each columns as column, index}
+								<th
+									class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl"
+									on:click={() => {
+										sort_toggle(index);
+									}}
+								>
+									{column.display_name}
+									{#if column.current_sort == 'ASC'}
+										<span>▲</span>
+									{/if}
+									{#if column.current_sort == 'DESC'}
+										<span>▼</span>
+									{/if}
 
-				<!-- Table controls -->
-				<div class="inline-flex px-2 pt-3 pb-2">
-					<PermissionGuard permissions={write_perms}>
-						<div class="flex-none self-start">
-							<button
-								type="button"
-								class="rounded-lg outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
+									{#if column.current_sort != null}
+										<span>
+											{find_sort_index(column.api_name) + 1}
+										</span>
+									{/if}
+								</th>
+							{/each}
+							<PermissionGuard permissions={write_perms}>
+								{#if edit_all_mode}
+									<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
+									</th>
+								{/if}
+							</PermissionGuard>
+						</tr>
+					</thead>
+					<tbody id="{crud_endpoint}_table_body">
+						{#if !edit_all_mode}
+							{#each objects_list as item}
+								<tr class="text-center">
+									<PermissionGuard permissions={write_perms}>
+										<td class="p-2">
+											<button
+												class="font-bold"
+												on:click={() => {
+													edit_item_handler(item);
+												}}
+											>
+												<i class="fa-solid fa-pen-to-square ml-2 opacity-80"></i>
+											</button>
+										</td>
+									</PermissionGuard>
+									{#each columns as column}
+										<td class="p-2">
+											{get_item_field(item, column.api_name)}
+										</td>
+									{/each}
+								</tr>
+							{/each}
+						{:else}
+							<PermissionGuard permissions={write_perms}>
+								{#each objects_list as item}
+									<!-- <EditItemInline {item} /> -->
+								{/each}
+							</PermissionGuard>
+						{/if}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- Table controls -->
+			<div class="inline-flex px-2 pt-3 pb-2 justify-start">
+				<PermissionGuard permissions={write_perms}>
+					<div class="mx-1">
+						<button
+							type="button"
+							class="rounded-lg outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
                             text-custom-text-light-lighter dark:text-custom-text-dark-lighter px-2 dark:bg-custom-bg-dark hover:brightness-90
                             inline-flex items-center h-7"
-								on:click={() => {
-									edit_all_mode = !edit_all_mode;
-								}}
-							>
-								{#if edit_all_mode}
-									<span class="text-md"> Done </span>
-									<i class="fa-solid fa-check ml-2"></i>
-								{:else}
-									<span class="text-md"> Edit all </span>
-									<i class="fa-solid fa-pen-to-square ml-2"></i>
-								{/if}
-							</button>
-						</div>
-					</PermissionGuard>
-					<div class="flex-none self-end ml-auto">
-						<div
-							class="inline-flex rounded-md outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
-                        text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
-							role="group"
+							on:click={() => {
+								edit_all_mode = !edit_all_mode;
+							}}
 						>
-							<button
-								type="button"
-								class="rounded-l-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
-                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+							{#if edit_all_mode}
+								<span class="text-md"> Done </span>
+								<i class="fa-solid fa-check ml-2"></i>
+							{:else}
+								<span class="text-md"> Edit all </span>
+								<i class="fa-solid fa-pen-to-square ml-2"></i>
+							{/if}
+						</button>
+					</div>
+					{#if create_default != null}
+						<div class="mx-1">
+							<div
+								class="inline-flex rounded-md outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
+                        text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
+								role="group"
 							>
-								<i class="fas fa-chevron-left text-sm"></i>
-							</button>
-							<input
-								class="px-5 dark:bg-custom-bg-dark inline-flex items-center"
-								value={current_page}
-								max={page_count}
-								min="0"
-							/>
-							<!-- <span class="text-lg">1</span>
-							</input > -->
-							<button
-								type="button"
-								class="rounded-r-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
+								<button
+									type="button"
+									class="rounded-lg h-7 px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
                             outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
-							>
-								<i class="fas fa-chevron-right text-sm"></i>
-							</button>
+									on:click={() => {
+										create_new_handler();
+									}}
+								>
+									<i class="fas text-sm mr-2 fa-plus"></i>
+									<span class="text-sm">New</span>
+								</button>
+							</div>
 						</div>
+					{/if}
+				</PermissionGuard>
+
+				<div class="justify-self-end ml-auto mx-1">
+					<div
+						class="inline-flex rounded-md outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
+                        text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
+						role="group"
+					>
+						<button
+							type="button"
+							class="rounded-l-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
+                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+						>
+							<i class="fas fa-chevron-left text-sm"></i>
+						</button>
+						<input
+							class="px-5 dark:bg-custom-bg-dark inline-flex items-center"
+							value={current_page}
+							max={page_count}
+							min="0"
+						/>
+						<button
+							type="button"
+							class="rounded-r-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
+                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+						>
+							<i class="fas fa-chevron-right text-sm"></i>
+						</button>
 					</div>
 				</div>
 			</div>
+		</div>
 	</SideBar>
 </PermissionGuard>
 
