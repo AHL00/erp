@@ -1,12 +1,14 @@
+use std::future::Future;
+
 use pollster::FutureExt;
 use rocket::{Ignite, Rocket, Sentinel};
 use rocket_db_pools::Connection;
-use sqlx::Row;
+use sqlx::{PgConnection, Row};
 
 pub use rocket_db_pools::sqlx;
 
 use crate::{
-    routes::auth::add_user_to_db,
+    routes::{auth::add_user_to_db, ApiError},
     types::permissions::{UserPermissionEnum, UserPermissions},
 };
 
@@ -130,4 +132,9 @@ impl Sentinel for DatabaseConnection {
 
         false
     }
+}
+
+/// Trait which allows structs to be retrieved from the database by id.
+pub trait FromDB: Sized {
+    fn from_db(id: i32, db: &mut crate::db::DB) -> impl Future<Output = Result<Self, ApiError>>;
 }

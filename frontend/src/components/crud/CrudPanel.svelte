@@ -370,8 +370,10 @@
 		<!-- Content Wrapper -->
 		<div
 			slot="content"
-			class="relative flex flex-col flex-grow self-center w-full h-full bg-custom-bg-lighter dark:bg-custom-bg-dark"
-		>
+			class="relative flex flex-col flex-grow self-center w-full h-full 
+            bg-custom-bg-lighter dark:bg-custom-bg-dark
+            "
+            >
 			{#if loading_count > 0}
 				<div class="absolute h-full w-full flex">
 					<Loader blur_background={true} custom_classes="rounded-2xl" />

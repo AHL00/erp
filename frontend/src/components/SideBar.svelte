@@ -9,7 +9,7 @@
 	export function toggle_sidebar() {
 		if (currently_open) close_sidebar();
 		else open_sidebar();
-        
+
 		currently_open = !currently_open;
 
 		// Force repaint/reflow to trigger transition
@@ -43,7 +43,8 @@
 	export let close_callback: () => void = () => {};
 </script>
 
-<div style="display: flex; flex-direction: row; height: 100vh;">
+<!-- min-h-0 prevents the flex-grow from overflowing the parent container -->
+<div class="flex flex-row flex-grow min-h-0">
 	<div
 		bind:this={content_div}
 		style="--width: {width}"

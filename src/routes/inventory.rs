@@ -19,7 +19,7 @@ pub(super) struct InventoryItem {
     pub quantity_per_box: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct InventoryItemPatchRequest {
     pub name: Option<String>,
@@ -29,7 +29,7 @@ pub(super) struct InventoryItemPatchRequest {
     pub quantity_per_box: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS, FromRow)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct InventoryItemPostRequest {
     pub name: String,
@@ -156,8 +156,6 @@ pub(super) async fn post(
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
-
-    log::info!("POST /inventory");
 
     let id: (i32,) = sqlx::query_as(
         r#"

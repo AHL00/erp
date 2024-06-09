@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 use crate::{
-    db::DB,
+    db::{FromDB, DB},
     routes::{auth::AuthGuard, ListRequest},
     types::permissions::UserPermissionEnum,
 };
@@ -18,6 +18,26 @@ pub(super) struct Customer {
     phone: String,
     address: String,
     notes: String,
+}
+
+impl FromDB for Customer {
+    async fn from_db(id: i32, db: &mut crate::db::DB) -> Result<Self, ApiError> {
+        sqlx::query_as(
+            r#"
+                SELECT * FROM customers
+                WHERE id = $1
+                "#,
+        )
+        .bind(id)
+        .fetch_one(&mut ***db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => {
+                ApiError(Status::BadRequest, format!("Row with id {} not found", id))
+            }
+            _ => e.into(),
+        })
+    }
 }
 
 // #[rocket::get("/customers/count")]
@@ -100,23 +120,7 @@ pub(super) async fn get(
     mut db: crate::db::DB,
     _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
 ) -> Result<Json<Customer>, ApiError> {
-    let item = sqlx::query_as(
-        r#"
-        SELECT * FROM customers
-        WHERE id = $1
-        "#,
-    )
-    .bind(id)
-    .fetch_one(&mut **db)
-    .await
-    .map_err(|e| match e {
-        sqlx::Error::RowNotFound => {
-            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
-        }
-        _ => e.into(),
-    })?;
-
-    Ok(Json(item))
+    Ok(Json(Customer::from_db(id, &mut db).await?))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
@@ -209,8 +213,7 @@ pub(super) async fn patch(
 
     let query = sqlx::query(&query_str);
 
-    let query = set_binds
-        .fold(query, |query, value| value.bind_to_query(query));
+    let query = set_binds.fold(query, |query, value| value.bind_to_query(query));
 
     query
         .bind(id)

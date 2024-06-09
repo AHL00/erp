@@ -71,7 +71,7 @@
 
 		for (let column of columns) {
 			if (column.edit_readonly) continue;
-			if (column.edit_type.type == 'hidden') continue;
+			if (column.edit_type.type == 'none') continue;
 
 			let value = data[column.api_name];
 
@@ -222,7 +222,7 @@
 			<!-- TODO: Reset buttons beside each field -->
 
 			{#each columns as column, j}
-				{#if column.edit_type.type != 'hidden'}
+				{#if column.edit_type.type != 'none'}
 					<div class="flex flex-row space-x-2">
 						<label for={column.api_name}>{column.display_name}</label>
 						{#if column.edit_type.type == 'number'}

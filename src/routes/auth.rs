@@ -8,7 +8,7 @@ use sqlx::{Executor, Postgres};
 use ts_rs::TS;
 
 use crate::{
-    db::DB,
+    db::{FromDB, DB},
     types::permissions::{UserPermissionEnum, UserPermissions, UserPermissionsVec},
 };
 
@@ -17,24 +17,64 @@ use super::ApiError;
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(export)]
 pub(super) struct User {
-    id: i32,
-    username: String,
+    pub id: i32,
+    pub username: String,
+    pub permissions: UserPermissionsVec,
 }
 
-#[derive(Debug, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub(super) struct AuthInfo {
-    /// Subject (whom the token refers to)
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+struct UserRow {
+    id: i32,
     username: String,
-    /// User permissions
-    permissions: UserPermissionsVec,
+    password: String,
+    salt: String,
+    permissions: i32,
+}
+
+impl From<UserRow> for User {
+    fn from(row: UserRow) -> Self {
+        User {
+            id: row.id,
+            username: row.username,
+            permissions: UserPermissionsVec::split_from(UserPermissions::from(
+                row.permissions as u32,
+            )),
+        }
+    }
+}
+
+impl FromDB for User {
+    async fn from_db(id: i32, db: &mut crate::db::DB) -> Result<Self, ApiError> {
+        let row: UserRow = sqlx::query_as(
+            r#"
+                SELECT * FROM users
+                WHERE id = $1
+                "#,
+        )
+        .bind(id)
+        .fetch_one(&mut ***db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => {
+                ApiError(Status::BadRequest, format!("Row with id {} not found", id))
+            }
+            _ => e.into(),
+        })?;
+
+        Ok(User {
+            id: row.id,
+            username: row.username,
+            permissions: UserPermissionsVec::split_from(UserPermissions::from(
+                row.permissions as u32,
+            )),
+        })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct AuthCookieInfo {
-    username: String,
-    expiry_time: Option<i64>,
-    permissions: UserPermissions,
+pub(super) struct AuthCookie {
+    pub user: User,
+    pub expiry_time: Option<i64>,
 }
 
 // POST /auth/login
@@ -67,21 +107,12 @@ pub(super) async fn login(
         expires_in,
     } = login_data.into_inner();
 
-    #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
-    struct UserRow {
-        username: String,
-        password: String,
-        salt: String,
-        permissions: i32,
-    }
-
     // NOTE: Assumes that usernames are unique
-    let row: Result<UserRow, sqlx::Error> = sqlx::query_as(
-        "SELECT username, password, salt, permissions FROM users WHERE username = $1 LIMIT 1",
-    )
-    .bind(&username)
-    .fetch_one(&mut **db)
-    .await;
+    let row: Result<UserRow, sqlx::Error> =
+        sqlx::query_as("SELECT * FROM users WHERE username = $1 LIMIT 1")
+            .bind(&username)
+            .fetch_one(&mut **db)
+            .await;
 
     if let Err(e) = row {
         match e {
@@ -93,23 +124,20 @@ pub(super) async fn login(
         }
     }
 
-    let row = row.unwrap();
+    let user_row = row.unwrap();
 
-    let salted_hashed_password = salt_hash_password(&password, &row.salt);
+    let salted_hashed_password = salt_hash_password(&password, &user_row.salt);
 
-    if row.password == salted_hashed_password {
-        let permissions = UserPermissions::from(row.permissions as u32);
-
+    if user_row.password == salted_hashed_password {
         let expiry_timestamp = expires_in.map(|expires_in| {
             rocket::time::OffsetDateTime::now_utc() + rocket::time::Duration::seconds(expires_in)
         });
 
         let mut cookie = Cookie::new(
             "auth_info",
-            serde_json::json!(AuthCookieInfo {
-                username: username,
+            serde_json::json!(AuthCookie {
+                user: User::from(user_row),
                 expiry_time: expiry_timestamp.map(|t| t.unix_timestamp()),
-                permissions,
             })
             .to_string(),
         );
@@ -292,15 +320,6 @@ pub(super) async fn delete_user(
         .fetch_one(&mut **db)
         .await?;
 
-    #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
-    struct UserRow {
-        id: i32,
-        username: String,
-        password: String,
-        salt: String,
-        permissions: i32,
-    }
-
     let deleting_user: UserRow = sqlx::query_as("SELECT * FROM users WHERE username = $1")
         .bind(&username)
         .fetch_one(&mut **db)
@@ -350,13 +369,10 @@ pub(super) async fn delete_user(
 pub(super) async fn status(
     // Will refresh the token cookie
     auth: AuthGuard<0>,
-) -> Result<Json<AuthInfo>, Status> {
-    let cookie_info: AuthCookieInfo = auth.auth_info;
+) -> Result<Json<User>, Status> {
+    let cookie_info: AuthCookie = auth.auth_info;
 
-    Ok(Json(AuthInfo {
-        username: cookie_info.username,
-        permissions: cookie_info.permissions.split_into_vec(),
-    }))
+    Ok(Json(cookie_info.user))
 }
 
 pub fn generate_salt() -> String {
@@ -411,7 +427,7 @@ where
 /// Mandatory guard that refreshes the token cookie on every request and checks permissions.
 /// USE ON EVERY ROUTE TO KEEP PERMISSIONS UP TO DATE.
 pub(super) struct AuthGuard<const PERMISSIONS: u32> {
-    pub auth_info: AuthCookieInfo,
+    pub auth_info: AuthCookie,
 }
 
 /// Guard that checks if the user has the required permissions.
@@ -427,7 +443,7 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
         let cookies = request.cookies();
 
         if let Some(cookie) = cookies.get_private("auth_info") {
-            let auth_cookie_info: AuthCookieInfo =
+            let auth_cookie: AuthCookie =
                 serde_json::from_str(cookie.value()).expect("Failed to parse auth_info cookie");
 
             let mut db = try_outcome!(request
@@ -435,18 +451,11 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
                 .await
                 .map_error(|_| (Status::InternalServerError, ())));
 
-            #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
-            struct UserRow {
-                username: String,
-                permissions: i32,
-            }
-
-            let user_row: Result<UserRow, sqlx::Error> = sqlx::query_as(
-                "SELECT username, permissions FROM users WHERE username = $1 LIMIT 1",
-            )
-            .bind(&auth_cookie_info.username)
-            .fetch_one(&mut **db)
-            .await;
+            let user_row: Result<UserRow, sqlx::Error> =
+                sqlx::query_as("SELECT * FROM users WHERE id = $1 LIMIT 1")
+                    .bind(&auth_cookie.user.id)
+                    .fetch_one(&mut **db)
+                    .await;
 
             if let Err(e) = user_row {
                 match e {
@@ -465,21 +474,20 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
 
             let user_row = user_row.unwrap();
 
-            let new_auth_cookie_info = AuthCookieInfo {
-                username: user_row.username.clone(),
-                expiry_time: auth_cookie_info.expiry_time,
-                permissions: UserPermissions::from(user_row.permissions as u32),
+            let new_auth_cookie = AuthCookie {
+                user: User::from(user_row),
+                expiry_time: auth_cookie.expiry_time,
             };
 
             // User exists, new permissions received.
             let mut refresh_cookie = Cookie::new(
                 "auth_info",
-                serde_json::to_string(&new_auth_cookie_info).unwrap(),
+                serde_json::to_string(&new_auth_cookie).unwrap(),
             );
 
             // Configure cookie
             refresh_cookie.set_expires(
-                auth_cookie_info
+                auth_cookie
                     .expiry_time
                     .map(|t| rocket::time::OffsetDateTime::from_unix_timestamp(t).unwrap()),
             );
@@ -493,11 +501,14 @@ impl<'r, const PERMISSIONS: u32> rocket::request::FromRequest<'r> for AuthGuard<
             cookies.add_private(refresh_cookie);
 
             // Check for permissions
-            if UserPermissions::from(user_row.permissions as u32)
+            if new_auth_cookie
+                .user
+                .permissions
+                .flatten()
                 .has_permissions(UserPermissions::from(PERMISSIONS))
             {
                 return Outcome::Success(AuthGuard {
-                    auth_info: new_auth_cookie_info,
+                    auth_info: new_auth_cookie,
                 });
             } else {
                 return Outcome::Error((Status::Forbidden, ()));

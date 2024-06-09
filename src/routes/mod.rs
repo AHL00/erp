@@ -35,8 +35,11 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::patch,
         inventory::post,
         orders::get,
-        orders::get_meta,
         orders::get_items,
+        orders::count,
+        orders::list,
+        orders::post,
+        // orders::patch,
         customers::get,
         customers::count,
         customers::list,
@@ -76,7 +79,7 @@ struct ListFilter {
 }
 
 // TODO: Overhaul all routes to use this error type
-struct ApiError(pub Status, pub String);
+pub struct ApiError(pub Status, pub String);
 
 impl<'r> Responder<'r, 'static> for ApiError {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {

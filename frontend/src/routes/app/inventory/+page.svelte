@@ -24,6 +24,7 @@
 		{
 			api_name: 'id',
 			display_name: 'ID',
+            display_map_fn: null,
 			current_sort: 'ASC',
 			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
             edit_readonly: true
@@ -31,6 +32,7 @@
 		{
 			api_name: 'name',
 			display_name: 'Name',
+            display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'string',
@@ -44,6 +46,7 @@
 		{
 			api_name: 'price',
 			display_name: 'Price',
+            display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -58,6 +61,7 @@
 		{
 			api_name: 'stock',
 			display_name: 'Stock',
+            display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -72,6 +76,7 @@
 		{
 			api_name: 'quantity_per_box',
 			display_name: 'Qty/Box',
+            display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -94,8 +99,9 @@
     };
 </script>
 
-<div class="h-full w-full flex flex-col justify-start overflow-hidden">
-<!-- <h1 class="text-2xl text-center my-4">Inventory</h1> -->
+<div
+	class="flex flex-col h-full"
+>
 <CrudPanel
 	list_request={inventory_list_req}
 	objects_list={inventory_list}

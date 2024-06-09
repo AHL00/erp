@@ -38,12 +38,14 @@ export type CrudEditType =
 	| { type: 'file' }
 	| { type: 'image' }
 	| { type: 'password' }
-	| { type: 'hidden' }
-	| { type: 'textarea'; data: CrudEditTypeTextarea };
-
+	| { type: 'none' }
+	| { type: 'textarea'; data: CrudEditTypeTextarea }
 export interface CrudColumn {
 	api_name: string;
-	display_name: string;
+    /// If null, the column will not be displayed
+	display_name: string | null;
+    /// Allows custom formatting and processing of the data before displaying it
+    display_map_fn: ((value: any) => any) | null;
 	current_sort: SortOrder | null;
 	edit_type: CrudEditType;
     edit_readonly: boolean;
