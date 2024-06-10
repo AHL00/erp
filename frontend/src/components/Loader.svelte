@@ -48,7 +48,7 @@
 </script>
 
 <div
-	class="flex-grow flex flex-col place-self-center space-y-3 w-full h-full z-50 justify-center items-center bg-custom-bg-lighter dark:bg-custom-bg-dark {custom_classes}"
+	class="flex-grow flex flex-col place-self-center space-y-3 w-full h-full z-30 justify-center items-center bg-custom-lighter dark:bg-custom-dark {custom_classes}"
 	class:backdrop-blur-md={blur_background}
 	class:!bg-opacity-35={blur_background}
 >

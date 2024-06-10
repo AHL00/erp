@@ -67,7 +67,7 @@
 
 <div
 	class="absolute top-0 left-0 w-full h-full z-50 flex-grow flex flex-col
-    justify-center items-center bg-custom-bg-lighter dark:bg-custom-bg-dark {custom_classes}"
+    justify-center items-center bg-custom-lighter dark:bg-custom-dark {custom_classes}"
 	class:backdrop-blur-md={blur_background}
 	class:!bg-opacity-35={blur_background}
     bind:this={self}

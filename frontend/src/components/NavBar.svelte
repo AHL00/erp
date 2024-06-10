@@ -5,7 +5,7 @@
 </script>
 
 <div
-	class="sidebar bg-white dark:bg-custom-bg-dark !fixed shadow-md dark:shadow-custom-bg-dark-shadow shadow-custom-bg-light-shadow"
+	class="sidebar bg-white dark:bg-custom-dark !fixed shadow-md dark:shadow-custom-dark-shadow shadow-custom-light-shadow"
 >
 	<button class="sidebar-item" on:click={() => redirect('/app')}>
 		<div class="sidebar-icon">

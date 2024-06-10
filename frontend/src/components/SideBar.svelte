@@ -64,7 +64,7 @@
 	<div
 		bind:this={sidebar}
 		style="--width: {width}"
-		class="sidebar !fixed flex flex-col justify-start bg-white dark:bg-custom-bg-dark shadow-md dark:shadow-custom-bg-dark-shadow shadow-custom-bg-light-shadow"
+		class="sidebar !fixed flex flex-col justify-start bg-white dark:bg-custom-dark shadow-md dark:shadow-custom-dark-shadow shadow-custom-light-shadow"
 	>
 		<slot name="sidebar" />
 	</div>

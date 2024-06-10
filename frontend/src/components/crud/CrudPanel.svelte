@@ -370,10 +370,10 @@
 		<!-- Content Wrapper -->
 		<div
 			slot="content"
-			class="relative flex flex-col flex-grow self-center w-full h-full 
-            bg-custom-bg-lighter dark:bg-custom-bg-dark
+			class="relative flex flex-col flex-grow self-center w-full h-full
+            bg-custom-lighter dark:bg-custom-dark
             "
-            >
+		>
 			{#if loading_count > 0}
 				<div class="absolute h-full w-full flex">
 					<Loader blur_background={true} custom_classes="rounded-2xl" />
@@ -398,14 +398,14 @@
                             Inheriting is a mess so I'm just going to hardcode it. -->
 							<PermissionGuard permissions={write_perms}>
 								{#if !edit_all_mode}
-									<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
 										Edit
 									</th>
 								{/if}
 							</PermissionGuard>
 							{#each columns as column, index}
 								<th
-									class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl"
+									class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"
 									on:click={() => {
 										sort_toggle(index);
 									}}
@@ -427,7 +427,7 @@
 							{/each}
 							<PermissionGuard permissions={write_perms}>
 								{#if edit_all_mode}
-									<th class="p-2 z-20 bg-custom-bg-lighter dark:bg-custom-bg-dark rounded-t-2xl">
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
 									</th>
 								{/if}
 							</PermissionGuard>
@@ -470,36 +470,38 @@
 			<!-- Table controls -->
 			<div class="inline-flex px-2 pt-3 pb-2 justify-start">
 				<PermissionGuard permissions={write_perms}>
-					<div class="mx-1">
-						<button
-							type="button"
-							class="rounded-lg outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
-                            text-custom-text-light-lighter dark:text-custom-text-dark-lighter px-2 dark:bg-custom-bg-dark hover:brightness-90
+					{#if edit_override === null}
+						<div class="mx-1">
+							<button
+								type="button"
+								class="rounded-lg outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline
+                            text-custom-text-light-lighter dark:text-custom-text-dark-lighter px-2 dark:bg-custom-dark hover:brightness-90
                             inline-flex items-center h-7"
-							on:click={() => {
-								edit_all_mode = !edit_all_mode;
-							}}
-						>
-							{#if edit_all_mode}
-								<span class="text-md"> Done </span>
-								<i class="fa-solid fa-check ml-2"></i>
-							{:else}
-								<span class="text-md"> Edit all </span>
-								<i class="fa-solid fa-pen-to-square ml-2"></i>
-							{/if}
-						</button>
-					</div>
-					{#if create_default != null}
+								on:click={() => {
+									edit_all_mode = !edit_all_mode;
+								}}
+							>
+								{#if edit_all_mode}
+									<span class="text-md"> Done </span>
+									<i class="fa-solid fa-check ml-2"></i>
+								{:else}
+									<span class="text-md"> Edit all </span>
+									<i class="fa-solid fa-pen-to-square ml-2"></i>
+								{/if}
+							</button>
+						</div>
+					{/if}
+					{#if create_default !== null}
 						<div class="mx-1">
 							<div
-								class="inline-flex rounded-md outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
+								class="inline-flex rounded-md outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline
                         text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
 								role="group"
 							>
 								<button
 									type="button"
-									class="rounded-lg h-7 px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
-                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+									class="rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
+                            outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline z-10"
 									on:click={() => {
 										create_new_handler();
 									}}
@@ -514,14 +516,14 @@
 
 				<div class="justify-self-end ml-auto mx-1">
 					<div
-						class="inline-flex rounded-md outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline
+						class="inline-flex rounded-md outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline
                         text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
 						role="group"
 					>
 						<button
 							type="button"
-							class="rounded-l-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
-                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+							class="rounded-l-lg px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
+                            outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline z-10"
 							on:click={() => {
 								page_select_input.value = (parseInt(page_select_input.value) - 1).toString();
 								page_select_input.dispatchEvent(new Event('change'));
@@ -531,9 +533,9 @@
 						</button>
 						<div class="px-5 inline-flex align-middle">
 							<input
-								class=" dark:bg-custom-bg-dark inline-flex items-center w-6"
+								class=" dark:bg-custom-dark inline-flex items-center w-6"
 								value={current_page}
-                                type="text"
+								type="text"
 								inputmode="numeric"
 								bind:this={page_select_input}
 								on:keypress={(e) => {
@@ -567,8 +569,8 @@
 						</div>
 						<button
 							type="button"
-							class="rounded-r-lg px-2 dark:bg-custom-bg-dark hover:brightness-90 inline-flex items-center
-                            outline outline-1 outline-custom-bg-light-outline dark:outline-custom-bg-dark-outline z-10"
+							class="rounded-r-lg px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
+                            outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline z-10"
 							on:click={() => {
 								page_select_input.value = (parseInt(page_select_input.value) + 1).toString();
 								page_select_input.dispatchEvent(new Event('change'));
