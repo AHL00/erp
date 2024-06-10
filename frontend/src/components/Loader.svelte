@@ -10,6 +10,7 @@
 
 	type Icon = 'dots' | 'spinner' | 'error';
 	export let icon: Icon = 'dots';
+    export let icon_size: number;
 
 	let displayed_text = `${text}`;
 
@@ -35,11 +36,16 @@
 		}
 	}
 
+    let icon_container: HTMLElement;
+
 	onMount(() => {
-		if (ellipsis) {
+        icon_container.style.scale = `${icon_size}`;
+		
+        if (ellipsis) {
 			enable_ellipsis();
 		}
-		return () => {
+		
+        return () => {
 			if (ellipsis_interval != null) {
 				clearInterval(ellipsis_interval);
 			}
@@ -52,7 +58,7 @@
 	class:backdrop-blur-md={blur_background}
 	class:!bg-opacity-35={blur_background}
 >
-	<div class="flex place-items-center space-x-2 opacity-95">
+	<div class="flex place-items-center space-x-2 opacity-95" bind:this={icon_container}>
 		{#if icon === 'dots'}
 			<div
 				class="h-4 w-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce [animation-delay:-0.3s]"
@@ -80,7 +86,7 @@
 			</svg>
 		{/if}
 		{#if icon === 'error'}
-			<div class="text-7xl animate-pulse">
+			<div class="text-6xl animate-pulse">
 				<i class="fa fa-triangle-exclamation"></i>
 			</div>
 		{/if}

@@ -376,12 +376,13 @@
 		>
 			{#if loading_count > 0}
 				<div class="absolute h-full w-full flex">
-					<Loader blur_background={true} custom_classes="rounded-2xl" />
+					<Loader icon_size={1} blur_background={true} custom_classes="rounded-2xl" />
 				</div>
 			{/if}
 			{#if error}
 				<div class="absolute h-full w-full flex">
 					<Loader
+						icon_size={1}
 						blur_background={true}
 						custom_classes="rounded-2xl"
 						icon="error"
@@ -427,8 +428,7 @@
 							{/each}
 							<PermissionGuard permissions={write_perms}>
 								{#if edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
-									</th>
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"> </th>
 								{/if}
 							</PermissionGuard>
 						</tr>

@@ -113,7 +113,7 @@
                             <span class="text-md font-thin">Retail</span>
                         </label>
                         <label class="flex flex-row items-center space-x-2">
-                            <input type="radio" name="order_type" value="wholesale" />
+                            <input type="radio" name="order_type" value="wholesale" checked/>
                             <span class="text-md font-thin">Wholesale</span>
                         </label>
                     </div>
