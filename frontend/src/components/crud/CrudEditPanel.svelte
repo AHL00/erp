@@ -215,7 +215,7 @@
 			{#if saving_loading_counter == 0 && current_editing_item == null}
 				<div class="flex-grow">Error loading item</div>
 			{:else}
-				<Loader text="Saving" />
+				<Loader text="Saving" icon_size={1} />
 			{/if}
 		{:else}
 			<!-- Here, the item data should be populated in the variable -->

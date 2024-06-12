@@ -11,10 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS customers (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255),
+  name_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', name)) STORED,
   phone VARCHAR(255),
   address TEXT,
   notes TEXT
 );
+
+CREATE INDEX IF NOT EXISTS customers_name_ts_idx ON customers USING GIN (name_ts);
 
 CREATE TABLE IF NOT EXISTS suppliers (
   id SERIAL PRIMARY KEY,
@@ -27,10 +30,13 @@ CREATE TABLE IF NOT EXISTS suppliers (
 CREATE TABLE IF NOT EXISTS inventory (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  name_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', name)) STORED,
   price NUMERIC(10, 2) NOT NULL,
   stock INTEGER NOT NULL,
   quantity_per_box INTEGER NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS inventory_name_ts_idx ON inventory USING GIN (name_ts);
 
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,

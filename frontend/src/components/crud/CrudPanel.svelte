@@ -178,7 +178,7 @@
 		return list_request.sorts.findIndex((sort: ListSort) => sort.column == column_api_name);
 	}
 
-	function get_item_field(item: EntryType, field: string): string {
+	function get_field_of_item(item: EntryType, field: string): any {
 		return (item as any)[field];
 	}
 
@@ -233,6 +233,12 @@
 			// Try to send an API call to create the item
 			try {
 				api_call(`${crud_endpoint}`, 'POST', create_default).then((res) => {
+					if (res === undefined) {
+						console.error('Error creating item: no response');
+						toast.push('Error creating item: no response');
+						return;
+					}
+
 					if (res?.status == 201) {
 						// The server should return an id of the created item
 						res?.json().then((id) => {
@@ -301,6 +307,23 @@
 		sidebar.open_sidebar();
 	}
 
+	function delete_item_handler(item: EntryType) {
+		if (confirm('Are you sure you want to delete this item? This action is irreversible.')) {
+			api_call(`${crud_endpoint}/${item.id}`, 'DELETE', null)
+				.then((res) => {
+					if (res?.status == 204) {
+						toast.push('Item deleted');
+						refresh_list();
+					} else {
+						toast.push('Error deleting item');
+					}
+				})
+				.catch((e) => {
+					toast.push('Error deleting item');
+				});
+		}
+	}
+
 	let current_page = 1;
 	let items_per_page = list_request.range.count;
 
@@ -341,6 +364,8 @@
 	}
 
 	let page_select_input: HTMLInputElement;
+
+	export let delete_enabled: boolean = false;
 </script>
 
 <!-- TODO: Allow custom edit panel, make it fit in any space with flex-grow -->
@@ -403,6 +428,11 @@
 										Edit
 									</th>
 								{/if}
+								{#if delete_enabled}
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
+										Delete
+									</th>
+								{/if}
 							</PermissionGuard>
 							{#each columns as column, index}
 								<th
@@ -426,11 +456,14 @@
 									{/if}
 								</th>
 							{/each}
-							<PermissionGuard permissions={write_perms}>
+							<!-- <PermissionGuard permissions={write_perms}>
 								{#if edit_all_mode}
 									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"> </th>
 								{/if}
-							</PermissionGuard>
+                                {#if !delete_enabled}
+                                    <th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"> </th>
+                                {/if}
+							</PermissionGuard> -->
 						</tr>
 					</thead>
 					<tbody id="{crud_endpoint}_table_body">
@@ -438,20 +471,38 @@
 							{#each objects_list as item}
 								<tr class="text-center">
 									<PermissionGuard permissions={write_perms}>
-										<td class="p-2">
-											<button
-												class="font-bold"
-												on:click={() => {
-													edit_item_handler(item);
-												}}
-											>
-												<i class="fa-solid fa-pen-to-square ml-2 opacity-80"></i>
-											</button>
-										</td>
+										{#if !edit_all_mode}
+											<td class="p-2">
+												<button
+													class="font-bold"
+													on:click={() => {
+														edit_item_handler(item);
+													}}
+												>
+													<i class="fa-solid fa-pen-to-square ml-2 opacity-80"></i>
+												</button>
+											</td>
+										{/if}
+										{#if delete_enabled}
+											<td class="p-2">
+												<button
+													class="font-bold"
+													on:click={() => {
+														delete_item_handler(item);
+													}}
+												>
+													<i class="fa fa-trash ml-2 opacity-80"></i>
+												</button>
+											</td>
+										{/if}
 									</PermissionGuard>
 									{#each columns as column}
 										<td class="p-2">
-											{get_item_field(item, column.api_name)}
+											{#if column.display_map_fn !== null}
+												{column.display_map_fn(get_field_of_item(item, column.api_name))}
+											{:else}
+												{get_field_of_item(item, column.api_name)}
+											{/if}
 										</td>
 									{/each}
 								</tr>
@@ -459,6 +510,18 @@
 						{:else}
 							<PermissionGuard permissions={write_perms}>
 								{#each objects_list as item}
+									{#if delete_enabled}
+										<td class="p-2">
+											<button
+												class="font-bold"
+												on:click={() => {
+													delete_item_handler(item);
+												}}
+											>
+												<i class="fa fa-trash ml-2 opacity-80"></i>
+											</button>
+										</td>
+									{/if}
 									<!-- <EditItemInline {item} /> -->
 								{/each}
 							</PermissionGuard>

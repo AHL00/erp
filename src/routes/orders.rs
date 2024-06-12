@@ -1,5 +1,4 @@
 use rocket::{
-    futures::{future::join_all, SinkExt},
     http::Status,
 };
 use serde::{Deserialize, Serialize};
@@ -268,7 +267,7 @@ pub(super) async fn post(
 
     let id: (i32, ) = sqlx::query_as(r#"
         INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, notes)
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
         "#,
     )
@@ -281,4 +280,23 @@ pub(super) async fn post(
     .await?;
 
     Ok(ApiReturn(Status::Created, id.0))
+}
+
+#[rocket::delete("/orders/<id>")]
+pub(super) async fn delete(
+    id: i32,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<Status, ApiError> {
+    sqlx::query(
+        r#"
+        DELETE FROM orders
+        WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .execute(&mut **db)
+    .await?;
+
+    Ok(Status::NoContent)
 }

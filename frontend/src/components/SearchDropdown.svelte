@@ -3,15 +3,19 @@
  The dropdown list is populated as the user types.
 -->
 <script lang="ts" generics="ResultType">
+	import { auth_info_store } from '$lib/auth';
+
 	import { api_call } from '$lib/backend';
 
 	import Loader from './Loader.svelte';
 
 	import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
+	import type { SearchRequest } from '$bindings/SearchRequest';
+
+	import { onMount } from 'svelte';
 
 	export let input_id: string;
 	export let input_placeholder: string;
-	export let input_custom_classes: string = '';
 
 	/// Milliseconds to wait after the user stops typing before sending the search request
 	export let typing_search_delay: number = 500;
@@ -21,7 +25,13 @@
 	export let search_endpoint: string;
 	export let search_perms: UserPermissionEnum[] = [];
 	export let search_results: ResultType[] = [];
+	export let search_column: string;
+	export let search_count: number;
 	export let display_map_fn: (val: any) => string;
+
+	export let form_id: string;
+	export let required: boolean = false;
+	export let validity_message: string = 'Select a value from the dropdown';
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -54,6 +64,8 @@
 		// If closed without selecting, reset the search input
 		if (selected === null) {
 			search_input.value = '';
+		} else {
+			search_input.value = display_map_fn(selected);
 		}
 
 		search_input.blur();
@@ -86,17 +98,37 @@
 	}
 
 	function search() {
+		if (search_perms.length > 0) {
+			let auth_info = $auth_info_store;
+
+			if (auth_info === null || auth_info === undefined) {
+				search_error = 'Not authenticated';
+				return;
+			}
+
+			// TODO: Test permissions
+
+			let user_perms = auth_info.permissions;
+
+			if (user_perms.includes('ADMIN')) {
+				// If it includes ADMIN, then it will be allowed
+			} else if (!search_perms.some((perm) => auth_info.permissions.includes(perm))) {
+				search_error = 'Permission denied';
+				return;
+			}
+		}
+
 		loading = true;
 		search_error = null;
 
+		let search_request: SearchRequest = {
+			search: search_input.value,
+			column: search_column,
+			count: search_count
+		};
+
 		// Fetch the search results
-		api_call(
-			search_endpoint,
-			'POST',
-			JSON.stringify({
-				search: current_search
-			})
-		)
+		api_call(search_endpoint, 'POST', search_request)
 			.then((res) => {
 				if (res === undefined) {
 					search_error = 'Error searching';
@@ -111,6 +143,7 @@
 							loading = false;
 						})
 						.catch((err) => {
+							console.error(err);
 							search_error = 'Error parsing response';
 						});
 				} else {
@@ -121,19 +154,45 @@
 				search_error = 'Error searching';
 			});
 	}
+
+	onMount(() => {
+		if (required) {
+			search_input.required = true;
+		}
+
+		search_input.setAttribute('form', form_id);
+		// search_input.setCustomValidity(validity_message);
+	});
+
+	export function selected_value() {
+		return selected;
+	}
+
+	export function internal_input(): HTMLInputElement {
+		return search_input;
+	}
+
+	export function reportValidity() {
+		return search_input.reportValidity();
+	}
 </script>
 
 <div class="relative w-full">
 	<input
 		type="text"
 		bind:this={search_input}
+		autocomplete="off"
 		id={input_id}
 		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 		placeholder={input_placeholder}
 		on:click={() => {
-			// If the dropdown is shown, hide it
+			// Toggle the dropdown
 			if (dropdown_div.classList.contains('hidden')) {
 				dropdown_div.classList.remove('hidden');
+
+                // Reset the search results
+                search_input.value = '';
+                search_results = [];
 			} else {
 				close();
 			}
@@ -167,6 +226,7 @@
 					<button
 						class="flex flex-row items-center p-2 dark:hover:bg-custom-darker hover:bg-custom-light"
 						on:click={() => select(i)}
+                        type="button"
 					>
 						<span class="text-sm">
 							{display_map_fn(result)}

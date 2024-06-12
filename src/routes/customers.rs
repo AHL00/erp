@@ -4,7 +4,7 @@ use sqlx::prelude::FromRow;
 
 use crate::{
     db::{FromDB, DB},
-    routes::{auth::AuthGuard, ListRequest},
+    routes::{auth::AuthGuard, search::SearchRequest, ListRequest},
     types::permissions::UserPermissionEnum,
 };
 
@@ -105,9 +105,13 @@ pub(super) async fn list(
         .fetch_all(&mut **db)
         .await
         .map_err(|e| match e {
-            sqlx::Error::ColumnNotFound(column) => {
-                ApiError(Status::BadRequest, format!("Column not found: {}", column))
-            }
+            sqlx::Error::ColumnNotFound(column) => ApiError(
+                Status::BadRequest,
+                format!(
+                    "Column not found or doesn't have a search index: {}",
+                    column
+                ),
+            ),
             _ => e.into(),
         })?;
 
@@ -227,4 +231,39 @@ pub(super) async fn patch(
         })?;
 
     Ok(Status::Ok)
+}
+
+#[rocket::post("/customers/search", data = "<req>")]
+pub(super) async fn search(
+    req: Json<SearchRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
+) -> Result<Json<Vec<Customer>>, ApiError> {
+    let req = req.into_inner();
+
+    let column_ts_name = format!("{}_ts", req.column);
+
+    let query_str = format!(r#"
+    SELECT *
+    FROM customers
+    WHERE {} @@ phraseto_tsquery('english', $1)
+    LIMIT $2
+    "#, column_ts_name);
+
+    let query = sqlx::query_as(
+        &query_str
+    );
+// ORDER BY ts_rank($3, phraseto_tsquery('english', $1)) DESC
+
+    let data = query
+    .bind(req.search)
+    .bind(req.count)
+    .fetch_all(&mut **db).await.map_err(|e| match e {
+        sqlx::Error::ColumnNotFound(column) => {
+            ApiError(Status::BadRequest, format!("Column not found: {}", column))
+        }
+        _ => e.into(),
+    })?;
+
+    Ok(Json(data))
 }

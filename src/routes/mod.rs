@@ -28,7 +28,6 @@ pub fn routes() -> Vec<rocket::Route> {
         auth::delete_user,
         auth::list_users,
         auth::permissions,
-        search::product,
         inventory::count,
         inventory::list,
         inventory::get,
@@ -39,12 +38,14 @@ pub fn routes() -> Vec<rocket::Route> {
         orders::count,
         orders::list,
         orders::post,
+        orders::delete,
         // orders::patch,
         customers::get,
         customers::count,
         customers::list,
         customers::post,
         customers::patch,
+        customers::search,
         // customers::delete,
     ]
 }

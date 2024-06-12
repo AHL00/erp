@@ -45,7 +45,7 @@ export interface CrudColumn {
     /// If null, the column will not be displayed
 	display_name: string | null;
     /// Allows custom formatting and processing of the data before displaying it
-    display_map_fn: ((value: any) => any) | null;
+    display_map_fn: ((value: any) => string) | null;
 	current_sort: SortOrder | null;
 	edit_type: CrudEditType;
     edit_readonly: boolean;

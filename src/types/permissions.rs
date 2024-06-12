@@ -2,7 +2,7 @@ use std::ops::BitOr;
 
 // TODO: Split for more granularity such as CREATE, DELETE
 #[allow(non_camel_case_types)]
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ts_rs::TS)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, ts_rs::TS, PartialEq)]
 #[ts(export)]
 #[repr(u32)]
 pub enum UserPermissionEnum {
