@@ -1,12 +1,10 @@
-use rocket::{
-    http::Status,
-};
+use rocket::{http::Status, response::status::Custom};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Row};
+use sqlx::{prelude::FromRow, types::Json, Row};
 
 use crate::{
     db::{FromDB, DB},
-    routes::{auth::AuthGuard, ListRequest},
+    routes::{auth::{AuthGuard, UserRow}, ListRequest},
     types::permissions::UserPermissionEnum,
 };
 
@@ -144,6 +142,8 @@ pub(super) async fn count(
 /// }
 /// ```
 /// Response: Vec<Order>
+///
+/// Special columns: customer, created_by_user
 #[rocket::post("/orders/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
@@ -161,7 +161,17 @@ pub(super) async fn list(
 
     let query_str = format!(
         r#"
-        SELECT * FROM orders
+        SELECT 
+            orders.id,
+            orders.date_time,
+            orders.amount_paid,
+            orders.retail,
+            orders.notes,
+            get_customer_json(orders.customer_id) AS customer,
+            get_user_json(orders.created_by_user_id) AS created_by_user
+        FROM orders
+            INNER JOIN customers ON orders.customer_id = customers.id
+            INNER JOIN users ON orders.created_by_user_id = users.id
         {}
         {}
         LIMIT ${}
@@ -173,15 +183,29 @@ pub(super) async fn list(
         current_param + 1
     );
 
-    #[derive(FromRow)]
+    #[derive(FromRow, Debug)]
     struct OrderRow {
         id: i32,
         date_time: chrono::DateTime<chrono::Utc>,
-        customer_id: i32,
-        created_by_user_id: i32,
+        customer: sqlx_core::types::Json<Customer>,
+        created_by_user: sqlx_core::types::Json<UserRow>,
         amount_paid: sqlx::types::BigDecimal,
         retail: bool,
         notes: String,
+    }
+
+    impl From<OrderRow> for OrderMeta {
+        fn from(row: OrderRow) -> Self {
+            Self {
+                id: row.id,
+                date_time: row.date_time,
+                customer: row.customer.0,
+                created_by_user: row.created_by_user.0.into(),
+                amount_paid: row.amount_paid,
+                retail: row.retail,
+                notes: row.notes,
+            }
+        }
     }
 
     let query = sqlx::query_as(&query_str);
@@ -192,29 +216,14 @@ pub(super) async fn list(
 
     let query = query.bind(req.range.count).bind(req.range.offset);
 
-    let order_rows: Vec<OrderRow> = query.fetch_all(&mut **db).await.map_err(|e| match e {
-        sqlx::Error::RowNotFound => ApiError(Status::NotFound, "No orders found".to_string()),
-        e => ApiError(Status::InternalServerError, e.to_string()),
-    })?;
-
-    let mut orders = Vec::with_capacity(order_rows.len());
-
-    for row in order_rows {
-        let customer = Customer::from_db(row.customer_id, &mut db).await?;
-        let created_by_user = User::from_db(row.created_by_user_id, &mut db).await?;
-
-        let order_meta = OrderMeta {
-            id: row.id,
-            date_time: row.date_time,
-            customer,
-            created_by_user,
-            amount_paid: row.amount_paid,
-            retail: row.retail,
-            notes: row.notes,
-        };
-
-        orders.push(order_meta);
-    }
+    let orders: Vec<OrderMeta> = query
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ApiError(Status::NotFound, "No orders found".to_string()),
+            e => ApiError(Status::InternalServerError, e.to_string()),
+        })
+        .map(|rows: Vec<OrderRow>| rows.into_iter().map(OrderMeta::from).collect())?;
 
     Ok(rocket::serde::json::Json(orders))
 }
@@ -265,7 +274,8 @@ pub(super) async fn post(
 
     let user_id = auth.auth_info.user.id;
 
-    let id: (i32, ) = sqlx::query_as(r#"
+    let id: (i32,) = sqlx::query_as(
+        r#"
         INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, notes)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id

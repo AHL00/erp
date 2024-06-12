@@ -121,6 +121,48 @@ CREATE TABLE IF NOT EXISTS expenses (
 --     pub items: Vec<OrderItem>,
 -- }
 
+CREATE OR REPLACE FUNCTION get_customer_json(customer_id_input INT) RETURNS JSON AS $$
+DECLARE
+  customer_record RECORD;
+BEGIN
+    SELECT * INTO customer_record FROM customers WHERE id = customer_id_input;
+
+    -- if the customer does not exist, return NULL
+    IF customer_record IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN json_build_object(
+        'id', customer_record.id,
+        'name', customer_record.name,
+        'phone', customer_record.phone,
+        'address', customer_record.address,
+        'notes', customer_record.notes
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_user_json(user_id_input INT) RETURNS JSON AS $$
+DECLARE
+  user_record RECORD;
+BEGIN
+    SELECT * INTO user_record FROM users WHERE id = user_id_input;
+
+    -- if the user does not exist, return NULL
+    IF user_record IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN json_build_object(
+        'id', user_record.id,
+        'username', user_record.username,
+        'password', user_record.password,
+        'salt', user_record.salt,
+        'permissions', user_record.permissions
+    );
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION get_order_meta(order_id_input INT) RETURNS JSON AS $$
 DECLARE
   order_record RECORD;

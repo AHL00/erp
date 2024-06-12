@@ -22,13 +22,13 @@ pub(super) struct User {
     pub permissions: UserPermissionsVec,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
-struct UserRow {
-    id: i32,
-    username: String,
-    password: String,
-    salt: String,
-    permissions: i32,
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub(super) struct UserRow {
+    pub id: i32,
+    pub username: String,
+    pub password: String,
+    pub salt: String,
+    pub permissions: i32,
 }
 
 impl From<UserRow> for User {

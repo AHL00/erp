@@ -35,6 +35,10 @@
 
 	let error = false;
 
+	function get_api_request_name(column: CrudColumn): string {
+		return column.api_request_name ?? column.api_name;
+	}
+
 	function refresh_list() {
 		loading_count++;
 
@@ -93,7 +97,7 @@
 
 		// Update the list request
 		let sort_list_index = list_request.sorts.findIndex(
-			(sort: ListSort) => sort.column == column.api_name
+			(sort: ListSort) => sort.column == get_api_request_name(column)
 		);
 
 		// Remove the sort if it exists
@@ -104,7 +108,7 @@
 		// Add the sort
 		if (column.current_sort != null) {
 			let sort: ListSort = {
-				column: column.api_name,
+				column: get_api_request_name(column),
 				order: column.current_sort
 			};
 
@@ -123,14 +127,19 @@
 		let refresh_needed = false;
 
 		for (let column of edited_columns) {
-			if (list_request.sorts.findIndex((sort: ListSort) => sort.column == column.api_name) != -1) {
+			if (
+				list_request.sorts.findIndex(
+					(sort: ListSort) => sort.column == get_api_request_name(column)
+				) != -1
+			) {
 				refresh_needed = true;
 				break;
 			}
 
 			if (
-				list_request.filters.findIndex((filter: ListFilter) => filter.column == column.api_name) !=
-				-1
+				list_request.filters.findIndex(
+					(filter: ListFilter) => filter.column == get_api_request_name(column)
+				) != -1
 			) {
 				refresh_needed = true;
 				break;
@@ -451,7 +460,7 @@
 
 									{#if column.current_sort != null}
 										<span>
-											{find_sort_index(column.api_name) + 1}
+											{find_sort_index(get_api_request_name(column)) + 1}
 										</span>
 									{/if}
 								</th>

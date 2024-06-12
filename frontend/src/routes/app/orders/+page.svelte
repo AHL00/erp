@@ -32,6 +32,7 @@
 	let columns: CrudColumn[] = [
 		{
 			api_name: 'id',
+			api_request_name: null,
 			display_name: 'ID',
 			display_map_fn: null,
 			current_sort: null,
@@ -40,6 +41,7 @@
 		},
 		{
 			api_name: 'date_time',
+			api_request_name: null,
 			display_name: 'Date',
 			display_map_fn: (val: string) => {
 				let date = new Date(val);
@@ -51,6 +53,7 @@
 		},
 		{
 			api_name: 'customer',
+			api_request_name: 'customers.name',
 			display_name: 'Customer',
 			display_map_fn: (val: Customer) => {
 				return val.name;
@@ -61,6 +64,7 @@
 		},
 		{
 			api_name: 'created_by_user',
+			api_request_name: 'users.username',
 			display_name: 'Created by',
 			display_map_fn: (val: User) => {
 				return val.username;
@@ -69,24 +73,26 @@
 			edit_type: { type: 'none' },
 			edit_readonly: true
 		},
-        {
-            api_name: 'amount_paid',
-            display_name: 'Amount paid',
-            display_map_fn: null,
-            current_sort: null,
-            edit_type: { type: 'none' },
-            edit_readonly: true
-        },
-        {
-            api_name: 'retail',
-            display_name: 'Order type',
-            display_map_fn: (val: boolean) => {
-                return val ? 'Retail' : 'Wholesale';
-            },
-            current_sort: null,
-            edit_type: { type: 'none' },
-            edit_readonly: true
-        }
+		{
+			api_name: 'amount_paid',
+			api_request_name: null,
+			display_name: 'Amount paid',
+			display_map_fn: null,
+			current_sort: null,
+			edit_type: { type: 'none' },
+			edit_readonly: true
+		},
+		{
+			api_name: 'retail',
+			api_request_name: null,
+			display_name: 'Order type',
+			display_map_fn: (val: boolean) => {
+				return val ? 'Retail' : 'Wholesale';
+			},
+			current_sort: null,
+			edit_type: { type: 'none' },
+			edit_readonly: true
+		}
 	];
 
 	let customer_search_results: Customer[] = [];
@@ -130,26 +136,29 @@
 		api_call('orders', 'POST', order_create_req)
 			.then((res) => {
 				if (!res) {
-                    toast.push('Failed to create order');
-                    console.error('No response from server');
-                    return;
+					toast.push('Failed to create order');
+					console.error('No response from server');
+					return;
 				}
 
 				if (res?.ok) {
-					res.json().then((data) => {
-                        redirect(`/app/orders/${data}`);
-                    }).catch((err) => {
-                        toast.push('Failed to parse response after creating order');
-                        console.error(err);
-                    });
+					res
+						.json()
+						.then((data) => {
+							redirect(`/app/orders/${data}`);
+						})
+						.catch((err) => {
+							toast.push('Failed to parse response after creating order');
+							console.error(err);
+						});
 				} else {
 					toast.push('Failed to create order');
-                    console.error(res, res.status);
+					console.error(res, res.status);
 				}
 			})
 			.catch((err) => {
-                console.error(err);
-                toast.push('Failed to create order');                
+				console.error(err);
+				toast.push('Failed to create order');
 			});
 	};
 </script>
@@ -229,7 +238,7 @@
 			edit_override={(item_id) => {
 				redirect(`/app/orders/${item_id}`);
 			}}
-            delete_enabled={true}
+			delete_enabled={true}
 			{columns}
 		></CrudPanel>
 	</div>

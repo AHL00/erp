@@ -23,6 +23,7 @@
 	let columns: CrudColumn[] = [
 		{
 			api_name: 'id',
+            api_request_name: null,
 			display_name: 'ID',
 			display_map_fn: null,
 			current_sort: 'ASC',
@@ -31,6 +32,7 @@
 		},
 		{
 			api_name: 'name',
+            api_request_name: null,
 			display_name: 'Name',
 			display_map_fn: null,
 			current_sort: null,
@@ -45,6 +47,7 @@
 		},
 		{
 			api_name: 'phone',
+            api_request_name: null,
 			display_name: 'Phone',
 			display_map_fn: null,
 			current_sort: null,
@@ -59,6 +62,7 @@
 		},
 		{
 			api_name: 'address',
+            api_request_name: null,
 			display_name: 'Address',
 			display_map_fn: null,
 			current_sort: null,
@@ -73,6 +77,7 @@
 		},
 		{
 			api_name: 'notes',
+            api_request_name: null,
 			display_name: 'Notes',
 			display_map_fn: null,
 			// (val: string) => {

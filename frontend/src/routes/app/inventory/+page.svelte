@@ -11,11 +11,11 @@
 		},
 		filters: [],
 		sorts: [
-            {
-                column: 'id',
-                order: 'ASC'
-            }
-        ]
+			{
+				column: 'id',
+				order: 'ASC'
+			}
+		]
 	};
 
 	let inventory_list: InventoryItem[] = [];
@@ -23,16 +23,18 @@
 	let columns: CrudColumn[] = [
 		{
 			api_name: 'id',
+			api_request_name: null,
 			display_name: 'ID',
-            display_map_fn: null,
+			display_map_fn: null,
 			current_sort: 'ASC',
 			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
-            edit_readonly: true
+			edit_readonly: true
 		},
 		{
 			api_name: 'name',
+			api_request_name: null,
 			display_name: 'Name',
-            display_map_fn: null,
+			display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'string',
@@ -41,12 +43,13 @@
 					regex: null
 				}
 			},
-            edit_readonly: false
+			edit_readonly: false
 		},
 		{
 			api_name: 'price',
+			api_request_name: null,
 			display_name: 'Price',
-            display_map_fn: null,
+			display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -56,12 +59,13 @@
 					step: 1
 				}
 			},
-            edit_readonly: false
+			edit_readonly: false
 		},
 		{
 			api_name: 'stock',
+			api_request_name: null,
 			display_name: 'Stock',
-            display_map_fn: null,
+			display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -71,12 +75,13 @@
 					step: 1
 				}
 			},
-            edit_readonly: false
+			edit_readonly: false
 		},
 		{
 			api_name: 'quantity_per_box',
+			api_request_name: null,
 			display_name: 'Qty/Box',
-            display_map_fn: null,
+			display_map_fn: null,
 			current_sort: null,
 			edit_type: {
 				type: 'number',
@@ -86,29 +91,27 @@
 					step: 1
 				}
 			},
-            edit_readonly: false
+			edit_readonly: false
 		}
 	];
 
-    let default_item: InventoryItem = {
-        id: -1,
-        name: 'New Item',
-        price: "0.00",
-        stock: 0,
-        quantity_per_box: 1,
-    };
+	let default_item: InventoryItem = {
+		id: -1,
+		name: 'New Item',
+		price: '0.00',
+		stock: 0,
+		quantity_per_box: 1
+	};
 </script>
 
-<div
-	class="flex flex-col h-full"
->
-<CrudPanel
-	list_request={inventory_list_req}
-	objects_list={inventory_list}
-	crud_endpoint="inventory"
-	read_perms={['INVENTORY_READ']}
-	write_perms={['INVENTORY_WRITE']}
-    create_default={default_item}
-	{columns}
-></CrudPanel>
+<div class="flex flex-col h-full">
+	<CrudPanel
+		list_request={inventory_list_req}
+		objects_list={inventory_list}
+		crud_endpoint="inventory"
+		read_perms={['INVENTORY_READ']}
+		write_perms={['INVENTORY_WRITE']}
+		create_default={default_item}
+		{columns}
+	></CrudPanel>
 </div>
