@@ -186,9 +186,7 @@ pub(super) async fn patch(
 ) -> Result<Status, ApiError> {
     let req = item.into_inner();
 
-    log::info!("PATCH /inventory/{}: {:?}", id, req);
-
-    let mut current_param = 1;
+    let mut current_param_index = 1;
 
     let columns = vec![
         req.name.as_ref().map(|_| "name"),
@@ -200,10 +198,10 @@ pub(super) async fn patch(
     .flatten()
     .collect::<Vec<&str>>();
 
-    let sets_string = super::generate_sets_string(&columns, &mut current_param);
+    let sets_string = super::generate_sets_string(&columns, &mut current_param_index);
 
     if sets_string.is_empty() {
-        return Ok(Status::Ok);
+        return Ok(Status::NoContent);
     }
 
     let set_binds = vec![
@@ -224,7 +222,7 @@ pub(super) async fn patch(
         WHERE id = ${}
         RETURNING id
         "#,
-        sets_string, current_param
+        sets_string, current_param_index
     );
 
     let query = sqlx::query(&query_str);
@@ -244,5 +242,5 @@ pub(super) async fn patch(
             _ => e.into(),
         })?;
 
-    Ok(Status::Ok)
+    Ok(Status::NoContent)
 }

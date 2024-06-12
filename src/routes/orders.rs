@@ -1,14 +1,19 @@
-use rocket::{http::Status, response::status::Custom};
+use rocket::{http::Status, response::status::Custom, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, types::Json, Row};
+use sqlx::{prelude::FromRow, Row, Acquire};
 
 use crate::{
-    db::{FromDB, DB},
-    routes::{auth::{AuthGuard, UserRow}, ListRequest},
+    db::DB,
+    routes::{
+        auth::{AuthGuard, UserRow},
+        ListRequest,
+    },
     types::permissions::UserPermissionEnum,
 };
 
-use super::{auth::User, customers::Customer, inventory::InventoryItem, ApiError, ApiReturn};
+use super::{
+    auth::User, customers::Customer, inventory::InventoryItem, ApiError, ApiReturn, SqlType,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
 #[ts(export)]
@@ -40,6 +45,31 @@ pub(super) struct Order {
     pub items: Vec<OrderItem>,
 }
 
+#[derive(FromRow, Debug)]
+struct OrderRow {
+    id: i32,
+    date_time: chrono::DateTime<chrono::Utc>,
+    customer: sqlx_core::types::Json<Customer>,
+    created_by_user: sqlx_core::types::Json<UserRow>,
+    amount_paid: sqlx::types::BigDecimal,
+    retail: bool,
+    notes: String,
+}
+
+impl From<OrderRow> for OrderMeta {
+    fn from(row: OrderRow) -> Self {
+        Self {
+            id: row.id,
+            date_time: row.date_time,
+            customer: row.customer.0,
+            created_by_user: row.created_by_user.0.into(),
+            amount_paid: row.amount_paid,
+            retail: row.retail,
+            notes: row.notes,
+        }
+    }
+}
+
 /// GET /orders/<id>
 /// Response: OrderMeta
 #[rocket::get("/orders/<id>")]
@@ -47,30 +77,30 @@ pub(super) async fn get(
     id: i32,
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
-) -> Result<rocket::serde::json::Json<OrderMeta>, ApiError> {
-    let row = sqlx::query(
+) -> Result<Json<OrderMeta>, ApiError> {
+    let order_meta: OrderMeta = sqlx::query_as(
         r#"
-        SELECT get_order($1)
+        SELECT 
+            orders.id,
+            orders.date_time,
+            orders.amount_paid,
+            orders.retail,
+            orders.notes,
+            get_customer_json(orders.customer_id) AS customer,
+            get_user_json(orders.created_by_user_id) AS created_by_user
+        FROM orders
+            INNER JOIN customers ON orders.customer_id = customers.id
+            INNER JOIN users ON orders.created_by_user_id = users.id
+        WHERE orders.id = $1
         "#,
     )
     .bind(id)
     .fetch_one(&mut **db)
     .await
-    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))
+    .map(|row: OrderRow| row.into())?;
 
-    let json = row
-        .try_get_raw(0)?
-        .as_str()
-        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
-
-    let order_meta = serde_json::from_str::<OrderMeta>(json)
-        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
-
-    // Re-encoding json may not be efficient but we may do some serde flattening later.
-    // Also allows some error handling to be done in the future.
-    // It also makes sure that the json layout is correct before sending it to the client.
-    // If not perfomant enough, we can always just send the json variable directly.
-    Ok(rocket::serde::json::Json(order_meta))
+    Ok(order_meta.into())
 }
 
 #[rocket::get("/orders/<id>/items")]
@@ -81,7 +111,11 @@ pub(super) async fn get_items(
 ) -> Result<rocket::serde::json::Json<Vec<OrderItem>>, ApiError> {
     let rows = sqlx::query(
         r#"
-        SELECT get_order_items($1)
+        SELECT 
+            *
+        FROM order_items
+            INNER JOIN inventory ON inventory_id = inventory.id
+        WHERE order_id = $1
         "#,
     )
     .bind(id)
@@ -143,7 +177,7 @@ pub(super) async fn count(
 /// ```
 /// Response: Vec<Order>
 ///
-/// Special columns: customer, created_by_user
+/// Nested columns: customer, created_by_user
 #[rocket::post("/orders/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
@@ -183,31 +217,6 @@ pub(super) async fn list(
         current_param + 1
     );
 
-    #[derive(FromRow, Debug)]
-    struct OrderRow {
-        id: i32,
-        date_time: chrono::DateTime<chrono::Utc>,
-        customer: sqlx_core::types::Json<Customer>,
-        created_by_user: sqlx_core::types::Json<UserRow>,
-        amount_paid: sqlx::types::BigDecimal,
-        retail: bool,
-        notes: String,
-    }
-
-    impl From<OrderRow> for OrderMeta {
-        fn from(row: OrderRow) -> Self {
-            Self {
-                id: row.id,
-                date_time: row.date_time,
-                customer: row.customer.0,
-                created_by_user: row.created_by_user.0.into(),
-                amount_paid: row.amount_paid,
-                retail: row.retail,
-                notes: row.notes,
-            }
-        }
-    }
-
     let query = sqlx::query_as(&query_str);
 
     let query = filter_binds
@@ -243,7 +252,6 @@ pub(super) struct OrderPostRequest {
     pub retail: bool,
     pub notes: String,
     pub amount_paid: sqlx::types::BigDecimal,
-    pub items: Vec<OrderItemPostRequest>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
@@ -261,7 +269,6 @@ pub(super) struct OrderPatchRequest {
     pub retail: Option<bool>,
     pub notes: Option<String>,
     pub amount_paid: Option<sqlx::types::BigDecimal>,
-    pub items: Vec<OrderItemPatchRequest>,
 }
 
 #[rocket::post("/orders", data = "<req>")]
@@ -290,6 +297,211 @@ pub(super) async fn post(
     .await?;
 
     Ok(ApiReturn(Status::Created, id.0))
+}
+
+#[rocket::patch("/orders/<id>", data = "<req>")]
+pub(super) async fn patch(
+    id: i32,
+    req: rocket::serde::json::Json<OrderPatchRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<Status, ApiError> {
+    let req = req.into_inner();
+
+    let mut current_param_index = 1;
+
+    let columns = vec![
+        req.customer_id.as_ref().map(|_| "customer_id"),
+        req.retail.as_ref().map(|_| "retail"),
+        req.notes.as_ref().map(|_| "notes"),
+        req.amount_paid.as_ref().map(|_| "amount_paid"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<&str>>();
+
+    let sets_string = super::generate_sets_string(&columns, &mut current_param_index);
+
+    if sets_string.is_empty() {
+        return Ok(Status::NoContent);
+    }
+
+    let set_binds = vec![
+        req.customer_id.as_ref().map(|v| SqlType::Int(v.clone())),
+        req.retail.as_ref().map(|v| SqlType::Boolean(v.clone())),
+        req.notes.as_ref().map(|v| SqlType::String(v.clone())),
+        req.amount_paid
+            .as_ref()
+            .map(|v| SqlType::BigDecimal(v.clone())),
+    ]
+    .into_iter()
+    .flatten();
+
+    let query_str = format!(
+        r#"
+        UPDATE orders
+        SET {}
+        WHERE id = ${}
+        "#,
+        sets_string, current_param_index
+    );
+
+    let query = sqlx::query(&query_str);
+
+    let query = set_binds
+        .into_iter()
+        .fold(query.bind(id), |query, value| value.bind_to_query(query));
+
+    query.execute(&mut **db).await.map_err(|e| match e {
+        sqlx::Error::RowNotFound => ApiError(
+            Status::BadRequest,
+            format!("Order with id {} not found", id),
+        ),
+        _ => e.into(),
+    })?;
+
+    Ok(Status::NoContent)
+}
+
+/// Post one or more items to an order
+/// POST /orders/<id>/items
+#[rocket::post("/orders/<id>/items", data = "<req>")]
+pub(super) async fn post_items(
+    id: i32,
+    req: rocket::serde::json::Json<Vec<OrderItemPostRequest>>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<ApiReturn<Vec<i32>>, ApiError> {
+    let requests = req.into_inner();
+
+    let mut ids = vec![];
+
+    let mut transaction = db.begin().await.map_err(|e| ApiError(
+        Status::InternalServerError,
+        format!("Failed to start transaction: {}", e),
+    ))?;
+
+    for (i, req) in requests.into_iter().enumerate() {
+        let id: Result<(i32,), _> = sqlx::query_as(
+            r#"
+        INSERT INTO order_items (order_id, inventory_id, quantity, price)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        "#,
+        )
+        .bind(id)
+        .bind(req.inventory_item_id)
+        .bind(req.quantity)
+        .bind(req.price)
+        .fetch_one(&mut *transaction)
+        .await;
+
+        if let Err(error) = id {
+            transaction.rollback().await.map_err(|e| ApiError(
+                Status::InternalServerError,
+                format!("Failed to rollback transaction: {}", e),
+            ))?;
+
+            return Err(ApiError(
+                Status::InternalServerError,
+                format!("Failed to insert order item request at index {}: {}", i, error),
+            ));
+        }
+
+        ids.push(id.unwrap().0);
+    };
+
+    transaction.commit().await.map_err(|e| ApiError(
+        Status::InternalServerError,
+        format!("Failed to commit transaction: {}", e),
+    ))?;
+
+    Ok(ApiReturn(Status::Created, ids))
+}
+
+#[rocket::patch("/orders/<id>/items", data = "<req>")]
+pub(super) async fn patch_items(
+    id: i32,
+    req: rocket::serde::json::Json<Vec<OrderItemPatchRequest>>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+) -> Result<Status, ApiError> {
+    let requests = req.into_inner();
+
+    let mut transaction = db.begin().await.map_err(|e| ApiError(
+        Status::InternalServerError,
+        format!("Failed to start transaction: {}", e),
+    ))?;
+
+    for req in requests {
+        let mut current_param_index = 1;
+
+        let columns = vec![
+            req.inventory_item_id.as_ref().map(|_| "inventory_id"),
+            req.quantity.as_ref().map(|_| "quantity"),
+            req.price.as_ref().map(|_| "price"),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<&str>>();
+
+        let sets_string = super::generate_sets_string(&columns, &mut current_param_index);
+
+        if sets_string.is_empty() {
+            return Ok(Status::NoContent);
+        }
+
+        let set_binds = vec![
+            req.inventory_item_id
+                .as_ref()
+                .map(|v| SqlType::Int(v.clone())),
+            req.quantity.as_ref().map(|v| SqlType::Int(v.clone())),
+            req.price.as_ref().map(|v| SqlType::BigDecimal(v.clone())),
+        ]
+        .into_iter()
+        .flatten();
+
+        let query_str = format!(
+            r#"
+        UPDATE order_items
+        SET {}
+        WHERE order_id = ${}
+        "#,
+            sets_string, current_param_index
+        );
+
+        let query = sqlx::query(&query_str);
+
+        let query = set_binds
+            .into_iter()
+            .fold(query.bind(id), |query, value| value.bind_to_query(query));
+
+        let res = query.execute(&mut *transaction).await;
+
+        if let Err(error) = res {
+            transaction.rollback().await.map_err(|e| ApiError(
+                Status::InternalServerError,
+                format!("Failed to rollback transaction: {}", e),
+            ))?;
+
+            match error {
+                sqlx::Error::RowNotFound => {
+                    return Err(ApiError(
+                        Status::BadRequest,
+                        format!("Order with id {} not found", id),
+                    ));
+                }
+                _ => return Err(error.into()),
+            }
+        }
+    }
+
+    transaction.commit().await.map_err(|e| ApiError(
+        Status::InternalServerError,
+        format!("Failed to commit transaction: {}", e),
+    ))?;
+
+    Ok(Status::NoContent)
 }
 
 #[rocket::delete("/orders/<id>")]

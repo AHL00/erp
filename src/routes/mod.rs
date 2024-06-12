@@ -38,8 +38,10 @@ pub fn routes() -> Vec<rocket::Route> {
         orders::count,
         orders::list,
         orders::post,
+        orders::post_items,
+        orders::patch,
+        orders::patch_items,
         orders::delete,
-        // orders::patch,
         customers::get,
         customers::count,
         customers::list,
@@ -173,6 +175,7 @@ enum SqlType {
     String(String),
     BigDecimal(BigDecimal),
     Float(f64),
+    Boolean(bool),
     // DateTime(sqlx::types::chrono::NaiveDateTime),
 }
 
@@ -186,6 +189,7 @@ impl SqlType {
             SqlType::String(s) => query.bind(s),
             SqlType::BigDecimal(b) => query.bind(b),
             SqlType::Float(f) => query.bind(f),
+            SqlType::Boolean(b) => query.bind(b),
             // SqlType::DateTime(d) => query.bind(d),
         }
     }
@@ -199,6 +203,7 @@ impl SqlType {
             SqlType::String(s) => query.bind(s),
             SqlType::BigDecimal(b) => query.bind(b),
             SqlType::Float(f) => query.bind(f),
+            SqlType::Boolean(b) => query.bind(b),
             // SqlType::DateTime(d) => query.bind(d),
         }
     }
