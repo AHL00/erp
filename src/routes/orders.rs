@@ -76,7 +76,7 @@ impl From<OrderRow> for OrderMeta {
 pub(super) async fn get(
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<Json<OrderMeta>, ApiError> {
     let order_meta: OrderMeta = sqlx::query_as(
         r#"
@@ -107,7 +107,7 @@ pub(super) async fn get(
 pub(super) async fn get_items(
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<Vec<OrderItem>>, ApiError> {
     let rows = sqlx::query(
         r#"
@@ -143,7 +143,7 @@ pub(super) async fn get_items(
 #[rocket::get("/orders/count")]
 pub(super) async fn count(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<i64>, ApiError> {
     let count: (i64,) = sqlx::query_as(
         r#"
@@ -181,7 +181,7 @@ pub(super) async fn count(
 #[rocket::post("/orders/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
     req: rocket::serde::json::Json<ListRequest>,
 ) -> Result<rocket::serde::json::Json<Vec<OrderMeta>>, ApiError> {
     let req = req.into_inner();
@@ -275,7 +275,7 @@ pub(super) struct OrderPatchRequest {
 pub(super) async fn post(
     req: rocket::serde::json::Json<OrderPostRequest>,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let req = req.into_inner();
 
@@ -304,7 +304,7 @@ pub(super) async fn patch(
     id: i32,
     req: rocket::serde::json::Json<OrderPatchRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 
@@ -370,7 +370,7 @@ pub(super) async fn post_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemPostRequest>>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<ApiReturn<Vec<i32>>, ApiError> {
     let requests = req.into_inner();
 
@@ -424,7 +424,7 @@ pub(super) async fn patch_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemPatchRequest>>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let requests = req.into_inner();
 
@@ -508,7 +508,7 @@ pub(super) async fn patch_items(
 pub(super) async fn delete(
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ADMIN as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     sqlx::query(
         r#"
