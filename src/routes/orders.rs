@@ -326,6 +326,8 @@ pub(super) async fn patch(
         return Ok(Status::NoContent);
     }
 
+    log::info!("Request: {:?}", req);
+
     let set_binds = vec![
         req.customer_id.as_ref().map(|v| SqlType::Int(v.clone())),
         req.retail.as_ref().map(|v| SqlType::Boolean(v.clone())),
@@ -337,6 +339,10 @@ pub(super) async fn patch(
     .into_iter()
     .flatten();
 
+    let set_binds = set_binds.collect::<Vec<SqlType>>();
+
+    log::info!("Set binds: {:?}", set_binds);
+
     let query_str = format!(
         r#"
         UPDATE orders
@@ -346,11 +352,15 @@ pub(super) async fn patch(
         sets_string, current_param_index
     );
 
-    let query = sqlx::query(&query_str);
+    log::info!("Query: {}", query_str);
 
-    let query = set_binds
+    let mut query = sqlx::query(&query_str);
+
+    query = set_binds
         .into_iter()
-        .fold(query.bind(id), |query, value| value.bind_to_query(query));
+        .fold(query, |query, value| value.bind_to_query(query));
+
+    query = query.bind(id);
 
     query.execute(&mut **db).await.map_err(|e| match e {
         sqlx::Error::RowNotFound => ApiError(

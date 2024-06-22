@@ -54,20 +54,20 @@
 </script>
 
 <div
-	class="flex-grow flex flex-col place-self-center space-y-3 w-full h-full z-30 justify-center items-center bg-custom-lighter dark:bg-custom-dark {custom_classes}"
+	class="flex-grow flex flex-col place-self-center space-y-3 w-full h-full z-30 justify-center items-center bg-transparent {custom_classes}"
 	class:backdrop-blur-md={blur_background}
 	class:!bg-opacity-35={blur_background}
 >
 	<div class="flex place-items-center space-x-2 opacity-95" bind:this={icon_container}>
 		{#if icon === 'dots'}
 			<div
-				class="h-4 w-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce [animation-delay:-0.3s]"
+				class="h-4 w-4 mt-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce [animation-delay:-0.3s]"
 			></div>
 			<div
-				class="h-4 w-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce [animation-delay:-0.15s]"
+				class="h-4 w-4 mt-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce [animation-delay:-0.15s]"
 			></div>
 			<div
-				class="h-4 w-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce"
+				class="h-4 w-4 mt-4 bg-custom-text-light dark:bg-custom-text-dark rounded-full animate-bounce"
 			></div>
 		{/if}
 		{#if icon === 'spinner'}

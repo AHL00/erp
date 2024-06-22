@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { logout } from '$lib/auth';
 	import { redirect } from '$lib';
 	import type { ListRequest } from '$bindings/ListRequest';
 	import type { OrderMeta } from '$bindings/OrderMeta';
@@ -11,6 +10,7 @@
 	import SearchDropdown from '../../../components/SearchDropdown.svelte';
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
+	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 
 	let order_list_req: ListRequest = {
 		range: {
@@ -102,18 +102,23 @@
 
 	let customer_search_dropdown: SearchDropdown<Customer>;
 
+	let currently_creating: boolean = false;
+
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
+		currently_creating = true;
 
 		let customer = customer_search_dropdown.selected_value();
 
 		if (!customer_search_dropdown.reportValidity()) {
+			currently_creating = false;
 			return;
 		}
 
 		let customer_id = customer?.id;
 
 		if (!customer_id) {
+			currently_creating = false;
 			return;
 		}
 
@@ -127,7 +132,6 @@
 
 		let order_create_req: OrderPostRequest = {
 			amount_paid: '0.0',
-			items: [],
 			customer_id: customer_id,
 			notes: notes,
 			retail: order_type_val === 'retail'
@@ -138,6 +142,7 @@
 				if (!res) {
 					toast.push('Failed to create order');
 					console.error('No response from server');
+					currently_creating = false;
 					return;
 				}
 
@@ -145,7 +150,8 @@
 					res
 						.json()
 						.then((data) => {
-							redirect(`/app/orders/${data}`);
+							redirect(`/app/orders/edit?id=${data}`);
+							currently_creating = false;
 						})
 						.catch((err) => {
 							toast.push('Failed to parse response after creating order');
@@ -154,76 +160,84 @@
 				} else {
 					toast.push('Failed to create order');
 					console.error(res, res.status);
+					currently_creating = false;
 				}
 			})
 			.catch((err) => {
 				console.error(err);
 				toast.push('Failed to create order');
+
+				currently_creating = false;
 			});
 	};
 </script>
 
-<div class="flex flex-col h-full w-full items-center overflow-hidden p-3">
-	<div class="w-full flex flex-row h-fit space-x-3">
-		<div
-			class="h-fit w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
-		>
-			<div class="flex flex-row w-full justify-between items-center p-2">
-				<span class="text-2xl">New order</span>
-				<button
-					class="bg-green-500 text-white px-2 py-1 rounded-md place-self-end justify-self-end self-end"
-					type="submit"
-					form="order-create-form"
-				>
-					Create order
-				</button>
-			</div>
-
-			<form
-				class="flex flex-col h-fit w-full p-2 items-start space-y-3"
-				id="order-create-form"
-				on:submit={create_submit_callback}
+<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
+	<PermissionGuard permissions={['ORDER_WRITE']}>
+		<div class="w-full flex flex-row h-fit space-x-3">
+			<div
+				class="h-fit w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 			>
-				<SearchDropdown
-					input_id="customer"
-					input_placeholder="Customer"
-					search_endpoint="customers/search"
-					search_perms={['CUSTOMERS_READ']}
-					search_results={customer_search_results}
-					display_map_fn={customer_display_map_fn}
-					search_column="name"
-					search_count={10}
-					form_id="order-create-form"
-					validity_message={'Select a customer from the dropdown'}
-					required={true}
-					bind:this={customer_search_dropdown}
-				/>
-				<div class="flex flex-row w-full space-x-3 h-fit">
-					<textarea
-						class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
-						placeholder="Notes"
-					></textarea>
-
-					<div
-						class="w-fit flex flex-col space-y-1 py-2 px-4 border dark:border-custom-dark-outline border-custom-light-outline rounded"
-					>
-						<span class="text-md">Order type:</span>
-						<label class="flex flex-row items-center space-x-2">
-							<input type="radio" name="order_type" value="retail" />
-							<span class="text-md font-thin">Retail</span>
-						</label>
-						<label class="flex flex-row items-center space-x-2">
-							<input type="radio" name="order_type" value="wholesale" checked />
-							<span class="text-md font-thin">Wholesale</span>
-						</label>
-					</div>
+				<div class="flex flex-row w-full justify-between items-center p-2">
+					<span class="text-2xl">New order</span>
+					{#if !currently_creating}
+						<button
+							class="bg-green-500 text-white px-2 py-1 rounded-md place-self-end justify-self-end self-end"
+							type="submit"
+							form="order-create-form"
+							disabled={currently_creating}
+						>
+							Create order
+						</button>
+					{/if}
 				</div>
-			</form>
+
+				<form
+					class="flex flex-col h-fit w-full p-2 items-start space-y-3"
+					id="order-create-form"
+					on:submit={create_submit_callback}
+				>
+					<SearchDropdown
+						input_id="customer"
+						input_placeholder="Customer"
+						search_endpoint="customers/search"
+						search_perms={['CUSTOMERS_READ']}
+						search_results={customer_search_results}
+						display_map_fn={customer_display_map_fn}
+						search_column="name"
+						search_count={10}
+						form_id="order-create-form"
+						validity_message={'Select a customer from the dropdown'}
+						required={true}
+						bind:this={customer_search_dropdown}
+					/>
+					<div class="flex flex-row w-full space-x-3 h-fit">
+						<textarea
+							class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+							placeholder="Notes"
+						></textarea>
+
+						<div
+							class="w-fit flex flex-col space-y-1 py-2 px-4 border dark:border-custom-dark-outline border-custom-light-outline rounded"
+						>
+							<span class="text-md">Order type:</span>
+							<label class="flex flex-row items-center space-x-2">
+								<input type="radio" name="order_type" value="retail" />
+								<span class="text-md font-thin">Retail</span>
+							</label>
+							<label class="flex flex-row items-center space-x-2">
+								<input type="radio" name="order_type" value="wholesale" checked />
+								<span class="text-md font-thin">Wholesale</span>
+							</label>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div
+				class="w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+			></div>
 		</div>
-		<div
-			class="w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
-		></div>
-	</div>
+	</PermissionGuard>
 	<div
 		class="w-full rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 	>
@@ -236,7 +250,7 @@
 			write_perms={['ORDER_WRITE']}
 			create_default={null}
 			edit_override={(item_id) => {
-				redirect(`/app/orders/${item_id}`);
+				redirect(`/app/orders/edit?id=${item_id}`);
 			}}
 			delete_enabled={true}
 			{columns}

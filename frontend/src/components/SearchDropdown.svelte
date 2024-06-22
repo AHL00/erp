@@ -12,7 +12,7 @@
 	import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
 	import type { SearchRequest } from '$bindings/SearchRequest';
 
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 
 	export let input_id: string;
 	export let input_placeholder: string;
@@ -33,6 +33,8 @@
 	export let required: boolean = false;
 	export let validity_message: string = 'Select a value from the dropdown';
 
+	export let on_change: (val: ResultType) => void = () => {};
+
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
 
@@ -42,21 +44,21 @@
 
 	let selected: ResultType | null = null;
 
-	// Escape handler if dropdown is open
-	window.addEventListener('keydown', (e) => {
-		if (e.key === 'Escape') {
-			if (!dropdown_div.classList.contains('hidden')) {
-				close();
-			}
-		}
-	});
-
 	function select(idx: number) {
 		selected = search_results[idx];
 
 		// Set the search input to the selected value
 		search_input.value = display_map_fn(selected);
+		on_change(selected);
 
+		close();
+	}
+
+	export function set_selected_value(value: ResultType) {
+		selected = value;
+		search_input.value = display_map_fn(selected);
+
+		on_change(selected);
 		close();
 	}
 
@@ -155,6 +157,16 @@
 			});
 	}
 
+	let keydown_listener = (e: KeyboardEvent) => {
+		if (e.key === 'Escape') {
+			if (dropdown_div !== null && dropdown_div !== undefined) {
+				if (!dropdown_div.classList.contains('hidden')) {
+					close();
+				}
+			}
+		}
+	};
+
 	onMount(() => {
 		if (required) {
 			search_input.required = true;
@@ -162,6 +174,13 @@
 
 		search_input.setAttribute('form', form_id);
 		// search_input.setCustomValidity(validity_message);
+
+		// Escape handler if dropdown is open
+		window.addEventListener('keydown', keydown_listener);
+	});
+
+	onDestroy(() => {
+		window.removeEventListener('keydown', keydown_listener);
 	});
 
 	export function selected_value() {
@@ -183,16 +202,16 @@
 		bind:this={search_input}
 		autocomplete="off"
 		id={input_id}
-		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto"
 		placeholder={input_placeholder}
 		on:click={() => {
 			// Toggle the dropdown
 			if (dropdown_div.classList.contains('hidden')) {
 				dropdown_div.classList.remove('hidden');
 
-                // Reset the search results
-                search_input.value = '';
-                search_results = [];
+				// Reset the search results
+				search_input.value = '';
+				search_results = [];
 			} else {
 				close();
 			}
@@ -226,7 +245,7 @@
 					<button
 						class="flex flex-row items-center p-2 dark:hover:bg-custom-darker hover:bg-custom-light"
 						on:click={() => select(i)}
-                        type="button"
+						type="button"
 					>
 						<span class="text-sm">
 							{display_map_fn(result)}
