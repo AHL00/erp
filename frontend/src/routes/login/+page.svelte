@@ -20,6 +20,8 @@
 				// TODO: Redirect to the page the user was trying to access
                 let url_params = new URLSearchParams(window.location.search);
                 let redirect = url_params.get('redirect');
+                // TODO: Just redirect to /app cause redirecting to orders/edit for example breaks loader stuff for some reason. Easier just to
+                // redirect to /app and let the app handle the redirect
                 console.log('Redirecting to', redirect);
                 
                 window.location.href = redirect ? redirect : '/app';

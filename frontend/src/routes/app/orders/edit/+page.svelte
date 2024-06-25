@@ -9,11 +9,12 @@
 	import type { OrderPatchRequest } from '$bindings/OrderPatchRequest';
 	import { toast } from '@zerodevx/svelte-toast';
 	import SearchDropdown from '../../../../components/SearchDropdown.svelte';
+	import FullscreenLoader from '../../../../components/FullscreenLoader.svelte';
 	import PermissionGuard from '../../../../components/PermissionGuard.svelte';
 	import type { Customer } from '$bindings/Customer';
-	import { error } from '@sveltejs/kit';
 
 	let query_params = new URLSearchParams(window.location.search);
+	let loader: FullscreenLoader;
 
 	let order_id = query_params.get('id');
 
@@ -95,18 +96,6 @@
 			});
 	};
 
-	let order_items: OrderItem[];
-
-	function create_new_order_item() {
-		let order_item = {
-			product_id: null,
-			quantity: 1,
-			price: 0,
-			discount: 0
-		};
-	}
-
-	let loader: Loader;
 	let loading_info: boolean = false;
 	let loading_info_error: string | null = null;
 	let loading_info_retry: boolean = false;
@@ -141,6 +130,10 @@
 		if (oif_notes !== undefined) {
 			oif_notes.value = x.notes;
 		}
+	}
+
+	function set_order_items(x: OrderItem[]) {
+		order_items_editing = { ...x };
 	}
 
 	function load_info() {
@@ -194,11 +187,20 @@
 			});
 	}
 
+	let order_items: OrderItem[] = [];
+	let order_items_editing: OrderItem[] = [];
+	let currently_saving_items: boolean = false;
+
 	let loading_items: boolean = false;
 	let loading_items_error: string | null = null;
 	let loading_items_retry: boolean = false;
 
 	function load_items() {
+		if (loading_items) {
+			console.error('Already loading order items');
+			return;
+		}
+
 		loading_items = true;
 		api_call(`orders/${order_id}/items`, 'GET', null)
 			.then((res) => {
@@ -221,14 +223,18 @@
 				res
 					.json()
 					.then((data) => {
-						order_items = data;
 						loading_items = false;
+						order_items = data;
+
+						set_order_items(order_items);
+
 						loading_items_error = null;
 						loading_items_retry = false;
 					})
 					.catch((err) => {
 						loading_items_error = 'Failed to parse order items';
 						loading_items = false;
+						console.error(err);
 						loading_items_retry = true;
 					});
 			})
@@ -240,11 +246,16 @@
 			});
 	}
 
+	async function create_new_order_item() {}
+
 	onMount(() => {
-		if (order_id === null) {
-			loader.change_text('No order ID provided');
+		loader.hide();
+
+		if (order_id === null || order_id === undefined || order_id === '') {
+			loader.set_text('No order ID provided');
 			loader.disable_ellipsis();
 			loader.icon = 'error';
+			loader.show();
 			console.error('No order ID provided');
 			return;
 		}
@@ -287,6 +298,7 @@
 	}
 </script>
 
+<FullscreenLoader bind:this={loader} />
 <div class="relative w-full h-full flex">
 	<PermissionGuard permissions={['ORDERS_READ', 'ORDERS_WRITE']}>
 		<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
@@ -353,7 +365,20 @@
 								}
 							}}
 							bind:this={oif_customer}
-						/>
+						>
+							<!-- <div slot="view">
+                                <!-- Show customer info here, should be found in oif_customer.selected_value -->
+							<div class="flex flex-col space-y-2 p-2">
+								<span class="text-lg">Customer info</span>
+								<span class="text-md">Name: {oif_customer.selected_value()?.name}</span>
+								<span class="text-md">Phone: {oif_customer.selected_value()?.phone}</span>
+								<span class="text-md">Address: {oif_customer.selected_value()?.address}</span>
+								{#if oif_customer.selected_value()?.notes !== null}
+									<span class="text-md">Notes: {oif_customer.selected_value()?.notes}</span>
+								{/if}
+							</div>
+							-->
+						</SearchDropdown>
 						<div class="flex flex-row w-full space-x-3 h-fit">
 							<textarea
 								class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
@@ -444,52 +469,62 @@
 
 			<!-- Center section -->
 			<div
-				class="w-full rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+				class="w-full relative rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 			>
-				<span class="text-2xl m-3">Items</span>
-				{#if loading_info}
-					<div class="flex w-full h-full my-3">
+				{#if loading_items}
+					<div class="w-full h-full absolute left-0 z-30">
 						<Loader
-							blur_background={false}
+							blur_background={true}
 							icon={'dots'}
 							icon_size={1.1}
 							ellipsis={true}
 							text={'Loading order info'}
 						/>
 					</div>
-				{:else if loading_info_error !== null}
-					<div class="flex w-full h-full my-3">
+				{:else if currently_saving_items}
+					<div class="w-full h-full absolute left-0 z-30">
 						<Loader
-							blur_background={false}
+							blur_background={true}
+							icon={'dots'}
+							icon_size={1.1}
+							ellipsis={true}
+							text={'Saving order info'}
+						/>
+					</div>
+				{:else if loading_items_error !== null}
+					<div class="w-full h-full absolute left-0 z-30">
+						<Loader
+							blur_background={true}
 							icon={'error'}
 							icon_size={0.9}
 							ellipsis={true}
-							text={loading_info_error + ', retrying soon'}
+							text={loading_items_error  + ', retrying soon'}
 						/>
 					</div>
-				{:else}
-					<div class="flex flex-col grow">
-						<div
-							class="h-full
+				{/if}
+
+				<span class="text-2xl m-3">Items</span>
+
+				<div class="flex flex-col grow">
+					<div
+						class="h-full
                         overflow-y-visible
                     "
-						>
-							<!-- {#each order_items as item, i}
-                            <span>{item}</span>
-                        {/each} -->
-						</div>
-
-						<div class="flex p-2">
-							<button
-								class="bg-green-500 text-white px-2 py-1 rounded-md"
-								type="submit"
-								form="order-create-form"
-							>
-								Add new item
-							</button>
-						</div>
+					>
+						{#each order_items as item, i}
+							<span>{item}</span>
+						{/each}
 					</div>
-				{/if}
+
+					<div class="flex p-2">
+						<button
+							class="bg-green-500 text-white px-2 py-1 rounded-md"
+							on:click={create_new_order_item}
+						>
+							Add new item
+						</button>
+					</div>
+				</div>
 			</div>
 
 			<!-- Bottom section -->

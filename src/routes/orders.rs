@@ -1,6 +1,6 @@
-use rocket::{http::Status, response::status::Custom, serde::json::Json};
+use rocket::{http::Status, response::status::Custom};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Row, Acquire};
+use sqlx::{prelude::FromRow, Acquire, Row};
 
 use crate::{
     db::DB,
@@ -28,15 +28,6 @@ pub(super) struct OrderMeta {
     pub notes: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
-#[ts(export)]
-pub(super) struct OrderItem {
-    pub id: i32,
-    pub inventory_item: InventoryItem,
-    pub quantity: i32,
-    pub price: sqlx::types::BigDecimal,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct Order {
@@ -46,7 +37,7 @@ pub(super) struct Order {
 }
 
 #[derive(FromRow, Debug)]
-struct OrderRow {
+struct OrderMetaRow {
     id: i32,
     date_time: chrono::DateTime<chrono::Utc>,
     customer: sqlx_core::types::Json<Customer>,
@@ -56,8 +47,8 @@ struct OrderRow {
     notes: String,
 }
 
-impl From<OrderRow> for OrderMeta {
-    fn from(row: OrderRow) -> Self {
+impl From<OrderMetaRow> for OrderMeta {
+    fn from(row: OrderMetaRow) -> Self {
         Self {
             id: row.id,
             date_time: row.date_time,
@@ -77,7 +68,7 @@ pub(super) async fn get(
     id: i32,
     mut db: DB,
     auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
-) -> Result<Json<OrderMeta>, ApiError> {
+) -> Result<rocket::serde::json::Json<OrderMeta>, ApiError> {
     let order_meta: OrderMeta = sqlx::query_as(
         r#"
         SELECT 
@@ -86,8 +77,8 @@ pub(super) async fn get(
             orders.amount_paid,
             orders.retail,
             orders.notes,
-            get_customer_json(orders.customer_id) AS customer,
-            get_user_json(orders.created_by_user_id) AS created_by_user
+            row_to_json(customers) AS customer,
+            row_to_json(users) AS created_by_user
         FROM orders
             INNER JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
@@ -98,9 +89,37 @@ pub(super) async fn get(
     .fetch_one(&mut **db)
     .await
     .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))
-    .map(|row: OrderRow| row.into())?;
+    .map(|row: OrderMetaRow| row.into())?;
 
     Ok(order_meta.into())
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
+#[ts(export)]
+pub(super) struct OrderItem {
+    pub id: i32,
+    pub inventory_item: InventoryItem,
+    pub quantity: i32,
+    pub price: sqlx::types::BigDecimal,
+}
+
+#[derive(FromRow, Debug)]
+struct OrderItemRow {
+    pub id: i32,
+    pub inventory: sqlx_core::types::Json<InventoryItem>,
+    pub quantity: i32,
+    pub price: sqlx::types::BigDecimal,
+}
+
+impl From<OrderItemRow> for OrderItem {
+    fn from(value: OrderItemRow) -> Self {
+        OrderItem {
+            id: value.id,
+            inventory_item: value.inventory.0,
+            quantity: value.quantity,
+            price: value.price,
+        }
+    }
 }
 
 #[rocket::get("/orders/<id>/items")]
@@ -109,10 +128,13 @@ pub(super) async fn get_items(
     mut db: DB,
     auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<Vec<OrderItem>>, ApiError> {
-    let rows = sqlx::query(
+    let order_items: Vec<OrderItem> = sqlx::query_as(
         r#"
         SELECT 
-            *
+            order_items.id as id,
+            row_to_json(inventory) as inventory,
+            order_items.price as price,
+            order_items.quantity as quantity
         FROM order_items
             INNER JOIN inventory ON inventory_id = inventory.id
         WHERE order_id = $1
@@ -121,21 +143,8 @@ pub(super) async fn get_items(
     .bind(id)
     .fetch_all(&mut **db)
     .await
-    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
-
-    let mut order_items = Vec::with_capacity(rows.len());
-
-    for row in rows {
-        let json = row
-            .try_get_raw(0)?
-            .as_str()
-            .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
-
-        let order_item = serde_json::from_str::<OrderItem>(json)
-            .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
-
-        order_items.push(order_item);
-    }
+    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))
+    .map(|rows: Vec<OrderItemRow>| rows.into_iter().map(OrderItem::from).collect())?;
 
     Ok(rocket::serde::json::Json(order_items))
 }
@@ -201,8 +210,8 @@ pub(super) async fn list(
             orders.amount_paid,
             orders.retail,
             orders.notes,
-            get_customer_json(orders.customer_id) AS customer,
-            get_user_json(orders.created_by_user_id) AS created_by_user
+            row_to_json(customers) AS customer,
+            row_to_json(users) AS created_by_user
         FROM orders
             INNER JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
@@ -232,7 +241,7 @@ pub(super) async fn list(
             sqlx::Error::RowNotFound => ApiError(Status::NotFound, "No orders found".to_string()),
             e => ApiError(Status::InternalServerError, e.to_string()),
         })
-        .map(|rows: Vec<OrderRow>| rows.into_iter().map(OrderMeta::from).collect())?;
+        .map(|rows: Vec<OrderMetaRow>| rows.into_iter().map(OrderMeta::from).collect())?;
 
     Ok(rocket::serde::json::Json(orders))
 }
@@ -386,10 +395,12 @@ pub(super) async fn post_items(
 
     let mut ids = vec![];
 
-    let mut transaction = db.begin().await.map_err(|e| ApiError(
-        Status::InternalServerError,
-        format!("Failed to start transaction: {}", e),
-    ))?;
+    let mut transaction = db.begin().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to start transaction: {}", e),
+        )
+    })?;
 
     for (i, req) in requests.into_iter().enumerate() {
         let id: Result<(i32,), _> = sqlx::query_as(
@@ -407,24 +418,31 @@ pub(super) async fn post_items(
         .await;
 
         if let Err(error) = id {
-            transaction.rollback().await.map_err(|e| ApiError(
-                Status::InternalServerError,
-                format!("Failed to rollback transaction: {}", e),
-            ))?;
+            transaction.rollback().await.map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to rollback transaction: {}", e),
+                )
+            })?;
 
             return Err(ApiError(
                 Status::InternalServerError,
-                format!("Failed to insert order item request at index {}: {}", i, error),
+                format!(
+                    "Failed to insert order item request at index {}: {}",
+                    i, error
+                ),
             ));
         }
 
         ids.push(id.unwrap().0);
-    };
+    }
 
-    transaction.commit().await.map_err(|e| ApiError(
-        Status::InternalServerError,
-        format!("Failed to commit transaction: {}", e),
-    ))?;
+    transaction.commit().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to commit transaction: {}", e),
+        )
+    })?;
 
     Ok(ApiReturn(Status::Created, ids))
 }
@@ -438,10 +456,12 @@ pub(super) async fn patch_items(
 ) -> Result<Status, ApiError> {
     let requests = req.into_inner();
 
-    let mut transaction = db.begin().await.map_err(|e| ApiError(
-        Status::InternalServerError,
-        format!("Failed to start transaction: {}", e),
-    ))?;
+    let mut transaction = db.begin().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to start transaction: {}", e),
+        )
+    })?;
 
     for req in requests {
         let mut current_param_index = 1;
@@ -489,10 +509,12 @@ pub(super) async fn patch_items(
         let res = query.execute(&mut *transaction).await;
 
         if let Err(error) = res {
-            transaction.rollback().await.map_err(|e| ApiError(
-                Status::InternalServerError,
-                format!("Failed to rollback transaction: {}", e),
-            ))?;
+            transaction.rollback().await.map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to rollback transaction: {}", e),
+                )
+            })?;
 
             match error {
                 sqlx::Error::RowNotFound => {
@@ -506,10 +528,12 @@ pub(super) async fn patch_items(
         }
     }
 
-    transaction.commit().await.map_err(|e| ApiError(
-        Status::InternalServerError,
-        format!("Failed to commit transaction: {}", e),
-    ))?;
+    transaction.commit().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to commit transaction: {}", e),
+        )
+    })?;
 
     Ok(Status::NoContent)
 }
