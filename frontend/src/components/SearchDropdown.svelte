@@ -24,15 +24,16 @@
 	// It must be a POST request accepting the type SearchRequest as the body.
 	export let search_endpoint: string;
 	export let search_perms: UserPermissionEnum[] = [];
+    /// NOTE: This is just a type indicator
 	export let search_results: ResultType[] = [];
 	export let search_column: string;
 	export let search_count: number;
 	export let display_map_fn: (val: any) => string;
-
+	export let initial_value: ResultType | null = null;
+	export let max_dropdown_height: string = '300px';
 	export let form_id: string;
 	export let required: boolean = false;
 	export let validity_message: string = 'Select a value from the dropdown';
-
 	export let on_change: (val: ResultType) => void = () => {};
 
 	let search_input: HTMLInputElement;
@@ -167,13 +168,13 @@
 		}
 	};
 
-    let click_listener = (e: MouseEvent) => {
-        if (dropdown_div !== null && dropdown_div !== undefined) {
-            if (!dropdown_div.contains(e.target as Node) && !search_input.contains(e.target as Node)) {
-                close();
-            }
-        }
-    };
+	let click_listener = (e: MouseEvent) => {
+		if (dropdown_div !== null && dropdown_div !== undefined) {
+			if (!dropdown_div.contains(e.target as Node) && !search_input.contains(e.target as Node)) {
+				close();
+			}
+		}
+	};
 
 	onMount(() => {
 		if (required) {
@@ -186,15 +187,17 @@
 		// Escape handler if dropdown is open
 		window.addEventListener('keydown', keydown_listener);
 
-        // Click handler
-        window.addEventListener('click', click_listener);
+		// Click handler
+		window.addEventListener('click', click_listener);
+
+		if (initial_value !== null) {
+			set_selected_value(initial_value);
+		}
 	});
 
 	onDestroy(() => {
-        console.log('Destroying search dropdown');
-
         window.removeEventListener('keydown', keydown_listener);
-        window.removeEventListener('click', click_listener);
+		window.removeEventListener('click', click_listener);
 	});
 
 	export function selected_value() {
@@ -210,6 +213,7 @@
 	}
 </script>
 
+<!-- TODO: BUG: Doesn't activate search if typing fast -->
 <div class="relative w-full">
 	<input
 		type="text"
@@ -237,7 +241,8 @@
 		bind:this={dropdown_div}
 		class="absolute mt-10 top-0 left-0 w-full bg-white dark:bg-custom-dark border dark:border-custom-dark-outline
          border-custom-light-outline shadow-lg dark:shadow-custom-dark-shadow shadow-custom-light-shadow rounded-md
-         overflow-hidden max-h-96 overflow-y-auto z-40 hidden"
+         overflow-hidden overflow-y-auto z-40 hidden"
+		style="max-height: {max_dropdown_height};"
 	>
 		<div class="flex flex-col">
 			{#if search_error !== null}

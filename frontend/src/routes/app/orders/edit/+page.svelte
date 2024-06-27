@@ -188,6 +188,7 @@
 
 	type OrderItemEditingData = {
 		inventory_item_search_results: InventoryItem[];
+		/// Note: inventory_item may be null and id will be -n if new item
 		order_item: OrderItem;
 	};
 
@@ -264,7 +265,27 @@
 			});
 	}
 
-	async function create_new_order_item() {}
+	async function create_new_order_item() {
+		// Find next id, should be smallest current id - 1
+        // IDs must be unique for svelte keyed each block
+		let smallest_id = order_items_editing
+			.map((x) => x.order_item.id)
+			.reduce((a, b) => Math.min(a, b), 0);
+
+		order_items_editing.push({
+			inventory_item_search_results: [],
+			order_item: {
+				id: smallest_id - 1,
+				// @ts-ignore
+				inventory_item: null,
+				price: '0.00',
+				quantity: 1
+			}
+		});
+
+		// Reactivity
+		order_items_editing = order_items_editing;
+	}
 
 	onMount(() => {
 		loader.hide();
@@ -530,11 +551,11 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each order_items_editing as data, i}
+							{#each order_items_editing as data, i (data.order_item.id)}
 								<tr class="h-12">
 									<td>
 										<SearchDropdown
-											input_id="inventory_item_${i}"
+											input_id="inventory_item_{i}"
 											input_placeholder="Inventory item"
 											search_endpoint="inventory/search"
 											search_perms={['INVENTORY_READ']}
@@ -543,9 +564,10 @@
 												return val.name;
 											}}
 											search_column="name"
-											search_count={10}
-											form_id="order-edit-form"
-											validity_message={'Select a customer from the dropdown'}
+											initial_value={data.order_item.inventory_item}
+											search_count={15}
+											form_id="order-items-edit-form"
+											validity_message={'Select an item from the dropdown'}
 											required={true}
 											on_change={(value) => {
 												if (order_items_editing[i] !== undefined) {
@@ -553,6 +575,7 @@
 												}
 											}}
 										/>
+										{data.order_item.inventory_item}
 									</td>
 									<td>
 										<input
