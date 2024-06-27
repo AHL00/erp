@@ -187,13 +187,13 @@
 		window.addEventListener('keydown', keydown_listener);
 
         // Click handler
-        window.addEventListener('click', (e) => {
-            click_listener(e);
-        });
+        window.addEventListener('click', click_listener);
 	});
 
 	onDestroy(() => {
-		window.removeEventListener('keydown', keydown_listener);
+        console.log('Destroying search dropdown');
+
+        window.removeEventListener('keydown', keydown_listener);
         window.removeEventListener('click', click_listener);
 	});
 

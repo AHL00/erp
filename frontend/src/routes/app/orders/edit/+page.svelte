@@ -186,31 +186,31 @@
 
 	let order_items: OrderItem[] = [];
 
-    type OrderItemEditingData = {
-        inventory_item_search_results: InventoryItem[];
-        order_item: OrderItem;
-    }
+	type OrderItemEditingData = {
+		inventory_item_search_results: InventoryItem[];
+		order_item: OrderItem;
+	};
 
 	let order_items_editing: OrderItemEditingData[] = [];
-    let inventory_item_search_results: InventoryItem[][] = [];
+	let inventory_item_search_results: InventoryItem[][] = [];
 	let currently_saving_items: boolean = false;
 
 	let loading_items: boolean = false;
 	let loading_items_error: string | null = null;
 	let loading_items_retry: boolean = false;
 
-    function set_order_items(x: OrderItem[]) {
-        // For the number of items, create a new array of empty arrays
-        let y: OrderItemEditingData[] = [];
-        
-        x.map((item) => {
-            y.push({
-                inventory_item_search_results: [],
-                order_item: item
-            });
-        });
+	function set_order_items(x: OrderItem[]) {
+		// For the number of items, create a new array of empty arrays
+		let y: OrderItemEditingData[] = [];
 
-        order_items_editing = y;
+		x.map((item) => {
+			y.push({
+				inventory_item_search_results: [],
+				order_item: item
+			});
+		});
+
+		order_items_editing = y;
 	}
 
 	function load_items() {
@@ -540,8 +540,8 @@
 											search_perms={['INVENTORY_READ']}
 											search_results={data.inventory_item_search_results}
 											display_map_fn={(val) => {
-                                                return val.name;
-                                            }}
+												return val.name;
+											}}
 											search_column="name"
 											search_count={10}
 											form_id="order-edit-form"
@@ -549,8 +549,8 @@
 											required={true}
 											on_change={(value) => {
 												if (order_items_editing[i] !== undefined) {
-                                                    order_items_editing[i].order_item.inventory_item = value;
-                                                }
+													order_items_editing[i].order_item.inventory_item = value;
+												}
 											}}
 										/>
 									</td>
@@ -575,11 +575,21 @@
 											type="number"
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Total"
-											value={Math.round(parseFloat(data.order_item.price) * data.order_item.quantity * 100) / 100}
+											value={Math.round(
+												parseFloat(data.order_item.price) * data.order_item.quantity * 100
+											) / 100}
 										/>
 									</td>
 									<td>
-										<button class="bg-red-500 text-white px-2 py-1 rounded-md"> Remove </button>
+										<button
+											class="bg-red-500 text-white px-2 py-1 rounded-md"
+											on:click={() => {
+												// Remove the item from the array
+												order_items_editing = order_items_editing.filter((_, index) => index !== i);
+											}}
+										>
+											<i class="fas fa-trash"></i>
+										</button>
 									</td>
 								</tr>
 							{/each}
