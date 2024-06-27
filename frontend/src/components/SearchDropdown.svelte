@@ -167,6 +167,14 @@
 		}
 	};
 
+    let click_listener = (e: MouseEvent) => {
+        if (dropdown_div !== null && dropdown_div !== undefined) {
+            if (!dropdown_div.contains(e.target as Node) && !search_input.contains(e.target as Node)) {
+                close();
+            }
+        }
+    };
+
 	onMount(() => {
 		if (required) {
 			search_input.required = true;
@@ -177,10 +185,16 @@
 
 		// Escape handler if dropdown is open
 		window.addEventListener('keydown', keydown_listener);
+
+        // Click handler
+        window.addEventListener('click', (e) => {
+            click_listener(e);
+        });
 	});
 
 	onDestroy(() => {
 		window.removeEventListener('keydown', keydown_listener);
+        window.removeEventListener('click', click_listener);
 	});
 
 	export function selected_value() {
