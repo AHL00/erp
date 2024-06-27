@@ -433,19 +433,19 @@
                             Inheriting is a mess so I'm just going to hardcode it. -->
 							<PermissionGuard permissions={write_perms}>
 								{#if !edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">
 										Edit
 									</th>
 								{/if}
 								{#if delete_enabled}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl">
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">
 										Delete
 									</th>
 								{/if}
 							</PermissionGuard>
 							{#each columns as column, index}
 								<th
-									class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"
+									class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"
 									on:click={() => {
 										sort_toggle(index);
 									}}
@@ -467,10 +467,10 @@
 							{/each}
 							<!-- <PermissionGuard permissions={write_perms}>
 								{#if edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"> </th>
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> </th>
 								{/if}
                                 {#if !delete_enabled}
-                                    <th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark rounded-t-2xl"> </th>
+                                    <th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> </th>
                                 {/if}
 							</PermissionGuard> -->
 						</tr>

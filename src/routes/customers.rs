@@ -108,7 +108,7 @@ pub(super) async fn list(
             sqlx::Error::ColumnNotFound(column) => ApiError(
                 Status::BadRequest,
                 format!(
-                    "Column not found or doesn't have a search index: {}",
+                    "Column not found: {}",
                     column
                 ),
             ),
@@ -260,7 +260,7 @@ pub(super) async fn search(
     .bind(req.count)
     .fetch_all(&mut **db).await.map_err(|e| match e {
         sqlx::Error::ColumnNotFound(column) => {
-            ApiError(Status::BadRequest, format!("Column not found: {}", column))
+            ApiError(Status::BadRequest, format!("Column not found or doesn't have a text search index: {}", column))
         }
         _ => e.into(),
     })?;

@@ -12,6 +12,7 @@
 	import FullscreenLoader from '../../../../components/FullscreenLoader.svelte';
 	import PermissionGuard from '../../../../components/PermissionGuard.svelte';
 	import type { Customer } from '$bindings/Customer';
+	import type { InventoryItem } from '$bindings/InventoryItem';
 
 	let query_params = new URLSearchParams(window.location.search);
 	let loader: FullscreenLoader;
@@ -132,10 +133,6 @@
 		}
 	}
 
-	function set_order_items(x: OrderItem[]) {
-		order_items_editing = { ...x };
-	}
-
 	function load_info() {
 		if (loading_info) {
 			console.error('Already loading order info');
@@ -188,12 +185,33 @@
 	}
 
 	let order_items: OrderItem[] = [];
-	let order_items_editing: OrderItem[] = [];
+
+    type OrderItemEditingData = {
+        inventory_item_search_results: InventoryItem[];
+        order_item: OrderItem;
+    }
+
+	let order_items_editing: OrderItemEditingData[] = [];
+    let inventory_item_search_results: InventoryItem[][] = [];
 	let currently_saving_items: boolean = false;
 
 	let loading_items: boolean = false;
 	let loading_items_error: string | null = null;
 	let loading_items_retry: boolean = false;
+
+    function set_order_items(x: OrderItem[]) {
+        // For the number of items, create a new array of empty arrays
+        let y: OrderItemEditingData[] = [];
+        
+        x.map((item) => {
+            y.push({
+                inventory_item_search_results: [],
+                order_item: item
+            });
+        });
+
+        order_items_editing = y;
+	}
 
 	function load_items() {
 		if (loading_items) {
@@ -366,8 +384,7 @@
 							}}
 							bind:this={oif_customer}
 						>
-							<!-- <div slot="view">
-                                <!-- Show customer info here, should be found in oif_customer.selected_value -->
+							<!-- Show customer info here, should be found in oif_customer.selected_value -->
 							<div class="flex flex-col space-y-2 p-2">
 								<span class="text-lg">Customer info</span>
 								<span class="text-md">Name: {oif_customer.selected_value()?.name}</span>
@@ -377,7 +394,6 @@
 									<span class="text-md">Notes: {oif_customer.selected_value()?.notes}</span>
 								{/if}
 							</div>
-							-->
 						</SearchDropdown>
 						<div class="flex flex-row w-full space-x-3 h-fit">
 							<textarea
@@ -469,7 +485,7 @@
 
 			<!-- Center section -->
 			<div
-				class="w-full relative rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+				class="w-full relative rounded-lg p-1 shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col grow min-h-0"
 			>
 				{#if loading_items}
 					<div class="w-full h-full absolute left-0 z-30">
@@ -498,32 +514,86 @@
 							icon={'error'}
 							icon_size={0.9}
 							ellipsis={true}
-							text={loading_items_error  + ', retrying soon'}
+							text={loading_items_error + ', retrying soon'}
 						/>
 					</div>
 				{/if}
+				<div class="flex flex-col grow min-h-0 overflow-auto">
+					<table class="w-full">
+						<thead>
+							<tr>
+								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Item</th>
+								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Quantity</th>
+								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Price</th>
+								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Total</th>
+								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each order_items_editing as data, i}
+								<tr class="h-12">
+									<td>
+										<SearchDropdown
+											input_id="inventory_item_${i}"
+											input_placeholder="Inventory item"
+											search_endpoint="inventory/search"
+											search_perms={['INVENTORY_READ']}
+											search_results={data.inventory_item_search_results}
+											display_map_fn={(val) => {
+                                                return val.name;
+                                            }}
+											search_column="name"
+											search_count={10}
+											form_id="order-edit-form"
+											validity_message={'Select a customer from the dropdown'}
+											required={true}
+											on_change={(value) => {
+												if (order_items_editing[i] !== undefined) {
+                                                    order_items_editing[i].order_item.inventory_item = value;
+                                                }
+											}}
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
+											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Quantity"
+											value={data.order_item.quantity}
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
+											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Price"
+											value={data.order_item.price}
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
+											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Total"
+											value={Math.round(parseFloat(data.order_item.price) * data.order_item.quantity * 100) / 100}
+										/>
+									</td>
+									<td>
+										<button class="bg-red-500 text-white px-2 py-1 rounded-md"> Remove </button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
 
-				<span class="text-2xl m-3">Items</span>
-
-				<div class="flex flex-col grow">
-					<div
-						class="h-full
-                        overflow-y-visible
-                    "
+				<div class="flex p-2">
+					<button
+						class="bg-green-500 text-white px-2 py-1 rounded-md"
+						on:click={create_new_order_item}
 					>
-						{#each order_items as item, i}
-							<span>{item}</span>
-						{/each}
-					</div>
-
-					<div class="flex p-2">
-						<button
-							class="bg-green-500 text-white px-2 py-1 rounded-md"
-							on:click={create_new_order_item}
-						>
-							Add new item
-						</button>
-					</div>
+						Add new item
+					</button>
 				</div>
 			</div>
 
@@ -536,3 +606,10 @@
 		</div>
 	</PermissionGuard>
 </div>
+
+<style>
+	th {
+		position: sticky;
+		top: 0;
+	}
+</style>

@@ -1,4 +1,5 @@
 use crate::routes::auth::AuthGuard;
+use crate::routes::search::SearchRequest;
 use crate::routes::{ListRequest, SqlType};
 use crate::{db::DB, types::permissions::UserPermissionEnum};
 use bigdecimal::BigDecimal;
@@ -243,4 +244,45 @@ pub(super) async fn patch(
         })?;
 
     Ok(Status::NoContent)
+}
+
+#[rocket::post("/inventory/search", data = "<req>")]
+pub(super) async fn search(
+    req: Json<SearchRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
+) -> Result<Json<Vec<InventoryItem>>, ApiError> {
+    let req = req.into_inner();
+
+    let column_ts_name = format!("{}_ts", req.column);
+
+    let query_str = format!(
+        r#"
+    SELECT *
+    FROM inventory
+    WHERE {} @@ phraseto_tsquery('english', $1)
+    LIMIT $2
+    "#,
+        column_ts_name
+    );
+
+    let query = sqlx::query_as(&query_str);
+
+    let data: Vec<InventoryItem> = query
+        .bind(&req.search)
+        .bind(req.count)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::ColumnNotFound(column) => ApiError(
+                Status::BadRequest,
+                format!(
+                    "Column not found or doesn't have a text search index: {}",
+                    column
+                ),
+            ),
+            _ => e.into(),
+        })?;
+
+    Ok(Json(data))
 }

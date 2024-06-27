@@ -33,6 +33,7 @@ pub fn routes() -> Vec<rocket::Route> {
         inventory::get,
         inventory::patch,
         inventory::post,
+        inventory::search,
         orders::get,
         orders::get_items,
         orders::count,
