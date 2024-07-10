@@ -166,7 +166,7 @@
 		}
 
 		api_call(`${api_endpoint}/${current_item_id}`, 'PATCH', request).then((res) => {
-			if (res?.status == 200) {
+			if (res?.status.toString().startsWith('2')) {
 				toast.push('Item edited successfully');
 				edited_callback(current_item_id!, edited_columns);
 				end_and_close();

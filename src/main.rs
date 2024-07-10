@@ -39,7 +39,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 
-    let rocket = rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()));
+    let rocket = if (env::public_dir().len() > 0) {
+        log::info!("Serving static files from: {}", env::public_dir());
+        rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()))
+    } else {
+        rocket
+    };
 
     rocket.launch().await?;
 
