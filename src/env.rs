@@ -1,9 +1,9 @@
 pub fn public_dir() -> String {
     std::env::var("PUBLIC_DIR")
         .unwrap_or_else(|_| {
-            log::warn!("No PUBLIC_DIR environment variable found, using default public directory frontend/dist");
+            log::warn!("No PUBLIC_DIR environment variable found, using default public directory \"\"");
 
-            "frontend/dist".to_string()
+            "".to_string()
         })
 }
 
@@ -25,4 +25,13 @@ pub fn port() -> u16 {
         })
         .parse()
         .expect("Failed to parse PORT environment variable")
+}
+
+pub fn api_root() -> String {
+    std::env::var("API_ROOT")
+        .unwrap_or_else(|_| {
+            log::warn!("No API_ROOT environment variable found, using default API root /");
+
+            "/".to_string()
+        })
 }
