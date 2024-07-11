@@ -10,7 +10,7 @@
 
 	type Icon = 'dots' | 'spinner' | 'error';
 	export let icon: Icon = 'dots';
-    export let icon_size: number;
+    export let icon_size: number = 1;
 
 	let displayed_text = `${text}`;
 

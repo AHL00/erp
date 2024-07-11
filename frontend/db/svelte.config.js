@@ -18,8 +18,7 @@ const config = {
 			strict: true
 		}),
 		alias: {
-			$bindings: '../bindings',
-
+			$bindings: '../../bindings',
 		}
 	}
 };

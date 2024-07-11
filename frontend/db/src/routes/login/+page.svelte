@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { login, auth_info_store } from '$lib/auth';
 	import { get } from 'svelte/store';
-    import logo from '$lib/assets/logo.jpg';
     import { page } from '$app/stores';
-
-
 
 	let username = '';
 	let password = '';
@@ -40,7 +37,7 @@
                 <div class="column is-5-tablet is-4-desktop is-3-widescreen">
                     <form action="" class="box" on:submit|preventDefault={handleSubmit}>
                         <figure class="image is-128x128 ml-auto mr-auto mb-4">
-                            <img src={logo} alt="Logo" />
+                            <!-- <img src={logo} alt="Logo" /> -->
                         </figure>
 						<div class="field">
 							<label for="" class="label">Username</label>

@@ -20,6 +20,8 @@
 	export let objects_list: EntryType[];
 	export let crud_endpoint: string;
 
+	export let custom_margins: string = 'm-0';
+
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
 
@@ -359,8 +361,12 @@
 		// Send request for total count
 		let count: number;
 
-		// No need to catch, get_total_count will handle it
-		count = await get_total_count();
+		try {
+			count = await get_total_count();
+		} catch (e: any) {
+			// get_total_count will have handled showing the error to the user
+			return e;
+		}
 
 		if (count !== undefined || count !== null) {
 			// Calculate the page count
@@ -425,7 +431,7 @@
 					/>
 				</div>
 			{/if}
-			<div class="overflow-auto h-full flex flex-col mt-3 mx-3">
+			<div class="overflow-auto h-full flex flex-col {custom_margins}">
 				<table class="w-full">
 					<thead>
 						<tr>
@@ -433,14 +439,10 @@
                             Inheriting is a mess so I'm just going to hardcode it. -->
 							<PermissionGuard permissions={write_perms}>
 								{#if !edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">
-										Edit
-									</th>
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> Edit </th>
 								{/if}
 								{#if delete_enabled}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">
-										Delete
-									</th>
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> Delete </th>
 								{/if}
 							</PermissionGuard>
 							{#each columns as column, index}
@@ -450,19 +452,20 @@
 										sort_toggle(index);
 									}}
 								>
-									{column.display_name}
-									{#if column.current_sort == 'ASC'}
-										<span>▲</span>
-									{/if}
-									{#if column.current_sort == 'DESC'}
-										<span>▼</span>
-									{/if}
-
-									{#if column.current_sort != null}
-										<span>
-											{find_sort_index(get_api_request_name(column)) + 1}
-										</span>
-									{/if}
+									<span style="white-space: nowrap;">
+										{column.display_name}
+										{#if column.current_sort == 'ASC'}
+											<span class="text-xl">▲</span>
+										{/if}
+										{#if column.current_sort == 'DESC'}
+											<span class="text-xl">▼</span>
+										{/if}
+										{#if column.current_sort != null && list_request.sorts.length > 1}
+											<span class="text-xs"
+												>{find_sort_index(get_api_request_name(column)) + 1}</span
+											>
+										{/if}
+									</span>
 								</th>
 							{/each}
 							<!-- <PermissionGuard permissions={write_perms}>

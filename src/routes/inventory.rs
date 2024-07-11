@@ -40,19 +40,22 @@ pub(super) struct InventoryItemPostRequest {
     pub quantity_per_box: i32,
 }
 
-// GET /inventory/count
-// Response: i64
-#[rocket::get("/inventory/count")]
-pub(super) async fn count(
-    mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
-) -> Result<Json<i64>, ApiError> {
-    // WHERE deleted = false
+pub(super) async fn count_impl(mut db: DB) -> Result<Json<i64>, ApiError> {
     let count = sqlx::query_scalar("SELECT COUNT(*) FROM inventory")
         .fetch_one(&mut **db)
         .await?;
 
     Ok(Json(count))
+}
+
+// GET /inventory/count
+// Response: i64
+#[rocket::get("/inventory/count")]
+pub(super) async fn count(
+    db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
+) -> Result<Json<i64>, ApiError> {
+    count_impl(db).await
 }
 
 /// POST /inventory/list

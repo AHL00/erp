@@ -4,6 +4,8 @@ pub mod inventory;
 pub mod orders;
 pub mod search;
 
+pub mod public;
+
 use bigdecimal::BigDecimal;
 use rocket::{
     http::Status,

@@ -1,6 +1,7 @@
 use std::{net::IpAddr, str::FromStr};
 
 use db::DatabaseConnection;
+use env::api_root;
 use rocket::Config;
 use rocket_db_pools::Database;
 
@@ -36,6 +37,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rocket = rocket::build()
         .mount(env::api_root(), routes::routes())
+        .mount(
+            format!("{}/public", env::api_root()),
+            routes::public::routes(),
+        )
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
 

@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.fixed-header-table {
+	overflow: auto;
+	height: 100px;
+}
+
+.fixed-header-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.inset-shadow-y {
+    box-shadow: inset -1px 5px 7px -5px var(--tw-shadow-color);
+}
