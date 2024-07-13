@@ -1,0 +1,18 @@
+# Copied to /etc/systemd/system
+# Run with: systemctl start api_server.service
+# Make sure to set SELinux to permissive or disabled if getting the 203/exec error
+
+[Unit]
+Description=Api Server
+After=network-online.target
+
+[Service]
+Type=simple
+# On droplets the ~ dir is root
+WorkingDirectory=/root/erp
+ExecStart=/root/erp/target/release/server
+User=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

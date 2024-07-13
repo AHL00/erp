@@ -1,2 +1,0 @@
-# Run server
-./server
