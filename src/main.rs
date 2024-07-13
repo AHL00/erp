@@ -1,13 +1,10 @@
-use std::{net::IpAddr, str::FromStr};
-
 use db::DatabaseConnection;
-use env::api_root;
-use rocket::Config;
 use rocket_db_pools::Database;
 
 pub mod db;
 pub mod env;
 pub mod routes;
+
 pub mod types;
 
 #[rocket::main]
@@ -19,11 +16,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     dotenv::dotenv().ok();
-
-    let mut config = Config::from(Config::figment());
-
-    config.port = env::port();
-    config.address = IpAddr::from_str(&env::host()).expect("Failed to parse IP address");
 
     // Note: To reset the DB for testing, use the following SQL code: DROP SCHEMA public CASCADE;
 
