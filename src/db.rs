@@ -3,7 +3,7 @@ use std::future::Future;
 use pollster::FutureExt;
 use rocket::{Ignite, Rocket, Sentinel};
 use rocket_db_pools::Connection;
-use sqlx::{PgConnection, Row};
+use sqlx::Row;
 
 pub use rocket_db_pools::sqlx;
 

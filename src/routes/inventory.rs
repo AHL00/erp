@@ -1,3 +1,4 @@
+use crate::db::FromDB;
 use crate::routes::auth::AuthGuard;
 use crate::routes::search::SearchRequest;
 use crate::routes::{ListRequest, SqlType};
@@ -18,6 +19,26 @@ pub(super) struct InventoryItem {
     pub price: BigDecimal,
     pub stock: i32,
     pub quantity_per_box: i32,
+}
+
+impl FromDB for InventoryItem {
+    async fn from_db(id: i32, db: &mut crate::db::DB) -> Result<Self, ApiError> {
+        sqlx::query_as(
+            r#"
+                SELECT * FROM inventory
+                WHERE id = $1
+                "#,
+        )
+        .bind(id)
+        .fetch_one(&mut ***db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => {
+                ApiError(Status::BadRequest, format!("Row with id {} not found", id))
+            }
+            _ => e.into(),
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]

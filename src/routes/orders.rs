@@ -1,9 +1,9 @@
-use rocket::{http::Status, response::status::Custom};
+use rocket::http::Status;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Acquire, Row};
+use sqlx::{prelude::FromRow, Acquire};
 
 use crate::{
-    db::DB,
+    db::{FromDB, DB},
     routes::{
         auth::{AuthGuard, UserRow},
         ListRequest,
@@ -67,7 +67,7 @@ impl From<OrderMetaRow> for OrderMeta {
 pub(super) async fn get(
     id: i32,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<OrderMeta>, ApiError> {
     let order_meta: OrderMeta = sqlx::query_as(
         r#"
@@ -126,7 +126,7 @@ impl From<OrderItemRow> for OrderItem {
 pub(super) async fn get_items(
     id: i32,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<Vec<OrderItem>>, ApiError> {
     let order_items: Vec<OrderItem> = sqlx::query_as(
         r#"
@@ -152,7 +152,7 @@ pub(super) async fn get_items(
 #[rocket::get("/orders/count")]
 pub(super) async fn count(
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<i64>, ApiError> {
     let count: (i64,) = sqlx::query_as(
         r#"
@@ -190,7 +190,7 @@ pub(super) async fn count(
 #[rocket::post("/orders/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
     req: rocket::serde::json::Json<ListRequest>,
 ) -> Result<rocket::serde::json::Json<Vec<OrderMeta>>, ApiError> {
     let req = req.into_inner();
@@ -248,7 +248,10 @@ pub(super) async fn list(
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
-pub(super) struct OrderItemPostRequest {
+pub(super) struct OrderItemUpdateRequest {
+    /// If the id is None, a new item will be created
+    /// If the id is Some, the item with that id will be updated
+    pub order_item_id: Option<i32>,
     pub inventory_item_id: i32,
     pub quantity: i32,
     pub price: sqlx::types::BigDecimal,
@@ -261,14 +264,6 @@ pub(super) struct OrderPostRequest {
     pub retail: bool,
     pub notes: String,
     pub amount_paid: sqlx::types::BigDecimal,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-#[ts(export)]
-pub struct OrderItemPatchRequest {
-    pub inventory_item_id: Option<i32>,
-    pub quantity: Option<i32>,
-    pub price: Option<sqlx::types::BigDecimal>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
@@ -313,7 +308,7 @@ pub(super) async fn patch(
     id: i32,
     req: rocket::serde::json::Json<OrderPatchRequest>,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 
@@ -382,18 +377,71 @@ pub(super) async fn patch(
     Ok(Status::NoContent)
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct StockUpdate {
+    pub inventory_item: InventoryItem,
+    pub delta: i32,
+}
+
 /// Post one or more items to an order
 /// POST /orders/<id>/items
-#[rocket::post("/orders/<id>/items", data = "<req>")]
-pub(super) async fn post_items(
+#[rocket::post("/orders/<id>/items/update", data = "<req>")]
+pub(super) async fn update_items(
     id: i32,
-    req: rocket::serde::json::Json<Vec<OrderItemPostRequest>>,
+    req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
-) -> Result<ApiReturn<Vec<i32>>, ApiError> {
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
     let requests = req.into_inner();
 
-    let mut ids = vec![];
+    // Get current items for this order
+    let current_items: Vec<OrderItem> = sqlx::query_as(
+        r#"
+        SELECT 
+            order_items.id as id,
+            row_to_json(inventory) as inventory,
+            order_items.price as price,
+            order_items.quantity as quantity
+        FROM order_items
+            INNER JOIN inventory ON inventory_id = inventory.id
+        WHERE order_id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
+        }
+        _ => e.into(),
+    })?
+    .into_iter()
+    .map(|row: OrderItemRow| row.into())
+    .collect();
+
+    log::info!("1");
+
+    // Calculate stock deltas
+    let mut stock_updates = vec![];
+
+    for request in &requests {
+        let current_item_match = current_items
+            .iter()
+            .find(|item| item.inventory_item.id == request.inventory_item_id);
+
+        let delta = request.quantity - current_item_match.map(|item| item.quantity).unwrap_or(0);
+
+        if delta != 0 {
+            stock_updates.push(StockUpdate {
+                inventory_item: InventoryItem::from_db(request.inventory_item_id, &mut db).await?,
+                delta,
+            });
+        }
+    }
+
+    log::info!("2");
 
     let mut transaction = db.begin().await.map_err(|e| {
         ApiError(
@@ -403,110 +451,111 @@ pub(super) async fn post_items(
     })?;
 
     for (i, req) in requests.into_iter().enumerate() {
-        let id: Result<(i32,), _> = sqlx::query_as(
-            r#"
+        if let Some(order_item_id) = req.order_item_id {
+            // Patch existing item
+            let res = sqlx::query(
+                r#"
+            UPDATE order_items
+            SET inventory_id = $1, quantity = $2, price = $3
+            WHERE id = $4
+            "#,
+            )
+            .bind(req.inventory_item_id)
+            .bind(req.quantity)
+            .bind(req.price)
+            .bind(order_item_id)
+            .execute(&mut *transaction)
+            .await
+            ;
+
+            if let Err(error) = res {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
+                    Status::InternalServerError,
+                    format!(
+                        "Failed to update order item request at index {}: {}",
+                        i, error
+                    ),
+                ));
+            }
+
+        log::info!("3");
+
+        } else {
+            // Do not allow two order items with the same item
+            if current_items.iter().any(|item| item.inventory_item.id == req.inventory_item_id) {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
+                    Status::BadRequest,
+                    format!(
+                        "Order item with inventory item id {} already exists",
+                        req.inventory_item_id
+                    ),
+                ));
+            }
+
+            // Insert new item
+            let id: Result<(i32,), _> = sqlx::query_as(
+                r#"
         INSERT INTO order_items (order_id, inventory_id, quantity, price)
         VALUES ($1, $2, $3, $4)
         RETURNING id
         "#,
-        )
-        .bind(id)
-        .bind(req.inventory_item_id)
-        .bind(req.quantity)
-        .bind(req.price)
-        .fetch_one(&mut *transaction)
-        .await;
+            )
+            .bind(id)
+            .bind(req.inventory_item_id)
+            .bind(req.quantity)
+            .bind(req.price)
+            .fetch_one(&mut *transaction)
+            .await;
 
-        if let Err(error) = id {
-            transaction.rollback().await.map_err(|e| {
-                ApiError(
+            if let Err(error) = id {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
                     Status::InternalServerError,
-                    format!("Failed to rollback transaction: {}", e),
-                )
-            })?;
+                    format!(
+                        "Failed to insert order item request at index {}: {}",
+                        i, error
+                    ),
+                ));
+            }
 
-            return Err(ApiError(
-                Status::InternalServerError,
-                format!(
-                    "Failed to insert order item request at index {}: {}",
-                    i, error
-                ),
-            ));
+            log::info!("4");
         }
-
-        ids.push(id.unwrap().0);
     }
 
-    transaction.commit().await.map_err(|e| {
-        ApiError(
-            Status::InternalServerError,
-            format!("Failed to commit transaction: {}", e),
-        )
-    })?;
-
-    Ok(ApiReturn(Status::Created, ids))
-}
-
-#[rocket::patch("/orders/<id>/items", data = "<req>")]
-pub(super) async fn patch_items(
-    id: i32,
-    req: rocket::serde::json::Json<Vec<OrderItemPatchRequest>>,
-    mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
-) -> Result<Status, ApiError> {
-    let requests = req.into_inner();
-
-    let mut transaction = db.begin().await.map_err(|e| {
-        ApiError(
-            Status::InternalServerError,
-            format!("Failed to start transaction: {}", e),
-        )
-    })?;
-
-    for req in requests {
-        let mut current_param_index = 1;
-
-        let columns = vec![
-            req.inventory_item_id.as_ref().map(|_| "inventory_id"),
-            req.quantity.as_ref().map(|_| "quantity"),
-            req.price.as_ref().map(|_| "price"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<&str>>();
-
-        let sets_string = super::generate_sets_string(&columns, &mut current_param_index);
-
-        if sets_string.is_empty() {
-            return Ok(Status::NoContent);
-        }
-
-        let set_binds = vec![
-            req.inventory_item_id
-                .as_ref()
-                .map(|v| SqlType::Int(v.clone())),
-            req.quantity.as_ref().map(|v| SqlType::Int(v.clone())),
-            req.price.as_ref().map(|v| SqlType::BigDecimal(v.clone())),
-        ]
-        .into_iter()
-        .flatten();
-
-        let query_str = format!(
+    // Update stock
+    for update in stock_updates.iter() {
+        let res = sqlx::query(
             r#"
-        UPDATE order_items
-        SET {}
-        WHERE order_id = ${}
+        UPDATE inventory
+        SET stock = stock + $1
+        WHERE id = $2
         "#,
-            sets_string, current_param_index
-        );
-
-        let query = sqlx::query(&query_str);
-
-        let query = set_binds
-            .into_iter()
-            .fold(query.bind(id), |query, value| value.bind_to_query(query));
-
-        let res = query.execute(&mut *transaction).await;
+        )
+        .bind(update.delta)
+        .bind(update.inventory_item.id)
+        .execute(&mut *transaction)
+        .await       
+        ;
 
         if let Err(error) = res {
             transaction.rollback().await.map_err(|e| {
@@ -516,15 +565,10 @@ pub(super) async fn patch_items(
                 )
             })?;
 
-            match error {
-                sqlx::Error::RowNotFound => {
-                    return Err(ApiError(
-                        Status::BadRequest,
-                        format!("Order with id {} not found", id),
-                    ));
-                }
-                _ => return Err(error.into()),
-            }
+            return Err(ApiError(
+                Status::InternalServerError,
+                format!("Failed to update stock: {}", error),
+            ));
         }
     }
 
@@ -535,7 +579,7 @@ pub(super) async fn patch_items(
         )
     })?;
 
-    Ok(Status::NoContent)
+    Ok(ApiReturn(Status::Created, stock_updates))
 }
 
 #[rocket::delete("/orders/<id>")]

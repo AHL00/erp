@@ -7,6 +7,8 @@
 	import type { OrderMeta } from '$bindings/OrderMeta';
 	import type { OrderItem } from '$bindings/OrderItem';
 	import type { OrderPatchRequest } from '$bindings/OrderPatchRequest';
+	import type { OrderItemUpdateRequest } from '$bindings/OrderItemUpdateRequest';
+	import type { StockUpdate } from '$bindings/StockUpdate';
 	import { toast } from '@zerodevx/svelte-toast';
 	import SearchDropdown from '../../../../components/SearchDropdown.svelte';
 	import FullscreenLoader from '../../../../components/FullscreenLoader.svelte';
@@ -29,10 +31,7 @@
 	};
 	let customer_search_results: Customer[] = [];
 
-	let edit_submit_callback = async (e: any) => {
-		// Disable default form submission
-		e.preventDefault();
-
+	let edit_meta_save = async () => {
 		currently_saving_meta = true;
 
 		let order_patch_req: OrderPatchRequest = {
@@ -95,6 +94,102 @@
 				console.error(err);
 				currently_saving_meta = false;
 			});
+
+		currently_saving_meta = false;
+	};
+
+	let edit_items_save = async () => {
+		currently_saving_items = true;
+
+		let update_requests: OrderItemUpdateRequest[] = [];
+
+		for (let i = 0; i < order_items_editing.length; i++) {
+			let item = order_items_editing[i].order_item;
+
+			let order_item_id;
+
+			if (item.id < 0) {
+				order_item_id = null;
+			} else {
+				order_item_id = item.id;
+			}
+
+			let item_update_req: OrderItemUpdateRequest = {
+				order_item_id,
+				inventory_item_id: item.inventory_item.id,
+				price: item.price,
+				quantity: item.quantity
+			};
+
+			update_requests.push(item_update_req);
+		}
+
+		// Make sure only one order item exists per inventory item
+		for (let i = 0; i < update_requests.length; i++) {
+			for (let j = i + 1; j < update_requests.length; j++) {
+				if (update_requests[i].inventory_item_id === update_requests[j].inventory_item_id) {
+					toast.push('Only one order row per inventory item type is allowed');
+					currently_saving_items = false;
+					return;
+				}
+			}
+		}
+
+		api_call(`orders/${order_id}/items/update`, 'POST', update_requests)
+			.then((res) => {
+				if (!res) {
+					toast.push('Failed to update order items');
+					console.error('No response from server');
+					currently_saving_items = false;
+					return;
+				}
+
+				if (res?.ok) {
+					currently_saving_items = false;
+
+					let prepull_editing_items = [...order_items_editing];
+
+					// Pull latest order items just to be sure that it was actually updated
+					// If the status was ok, it should be updated, but just to be sure
+					load_items();
+
+					if (
+						compare_order_items(
+							prepull_editing_items.map((x) => x.order_item),
+							order_items
+						)
+					) {
+						toast.push('Failed to update order items');
+						console.error(
+							'Failed to update order items, patch was successful but order items were not updated'
+						);
+						return;
+					}
+
+					toast.push('Order items saved successfully');
+
+					res
+						.json()
+						.then((data) => {
+							let stock_updates: StockUpdate[] = data;
+
+							console.log(stock_updates);
+						})
+						.catch((err) => {
+							console.error(err);
+						});
+				} else {
+					toast.push('Failed to update order items');
+					console.error('Failed to update order items');
+				}
+			})
+			.catch((err) => {
+				toast.push('Failed to update order items');
+				console.error(err);
+				currently_saving_items = false;
+			});
+
+		currently_saving_items = false;
 	};
 
 	let loading_info: boolean = false;
@@ -200,14 +295,14 @@
 	let loading_items_error: string | null = null;
 	let loading_items_retry: boolean = false;
 
-	function set_order_items(x: OrderItem[]) {
+	function set_order_items_editing(x: OrderItem[]) {
 		// For the number of items, create a new array of empty arrays
 		let y: OrderItemEditingData[] = [];
 
 		x.map((item) => {
 			y.push({
 				inventory_item_search_results: [],
-				order_item: item
+				order_item: { ...item }
 			});
 		});
 
@@ -245,7 +340,7 @@
 						loading_items = false;
 						order_items = data;
 
-						set_order_items(order_items);
+						set_order_items_editing(order_items);
 
 						loading_items_error = null;
 						loading_items_retry = false;
@@ -267,7 +362,7 @@
 
 	async function create_new_order_item() {
 		// Find next id, should be smallest current id - 1
-        // IDs must be unique for svelte keyed each block
+		// IDs must be unique for svelte keyed each block
 		let smallest_id = order_items_editing
 			.map((x) => x.order_item.id)
 			.reduce((a, b) => Math.min(a, b), 0);
@@ -317,6 +412,46 @@
 		);
 	}
 
+	function compare_order_item(a: OrderItem, b: OrderItem) {
+		if (a === undefined || b === undefined) {
+			return false;
+		}
+
+		return (
+			a.id === b.id &&
+			a.inventory_item.id === b.inventory_item.id &&
+			a.price === b.price &&
+			a.quantity === b.quantity
+		);
+	}
+
+	/// Check if two arrays of order items are the same.
+	/// The order of the items does not matter.
+	function compare_order_items(a: OrderItem[], b: OrderItem[]) {
+		if (a.length !== b.length) {
+			return false;
+		}
+
+		let found_indexes: number[] = [];
+
+		for (let i = 0; i < a.length; i++) {
+			for (let j = 0; j < b.length; j++) {
+				if (!found_indexes.includes(j) && compare_order_item(a[i], b[j])) {
+					found_indexes.push(j);
+					break;
+				}
+			}
+		}
+
+		if (found_indexes.length !== a.length) {
+			return false;
+		}
+
+		return true;
+	}
+
+    let save_button: HTMLButtonElement;
+
 	$: {
 		// If error, retry fetching order
 		if (loading_info_retry) {
@@ -338,21 +473,35 @@
 </script>
 
 <FullscreenLoader bind:this={loader} />
-<div class="relative w-full h-full flex">
+<form
+	class="relative w-full h-full flex"
+	on:submit|preventDefault
+	id="order-edit-form"
+	on:submit={() => {
+		if (!compare_order_meta(order_meta, order_meta_editing)) {
+			edit_meta_save();
+		}
+
+		if (
+			!compare_order_items(
+				order_items,
+				order_items_editing.map((x) => x.order_item)
+			)
+		) {
+			edit_items_save();
+		}
+	}}
+>
 	<PermissionGuard permissions={['ORDERS_READ', 'ORDERS_WRITE']}>
 		<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
 			<div
-				class="h-fit w-full p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+				class="h-fit w-full p-3 space-y-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 			>
-				<div class="flex flex-row w-full justify-between items-center p-2">
+				<div class="flex flex-row w-full justify-between items-center">
 					<span class="text-2xl">Order Information</span>
 				</div>
 
-				<form
-					class="flex flex-row h-fit w-full p-2 items-start space-x-3 relative"
-					id="order-edit-form"
-					on:submit={edit_submit_callback}
-				>
+				<div class="flex flex-row h-fit w-full items-start space-x-3 relative">
 					{#if loading_info}
 						<div class="w-full h-full my-3 absolute left-0 -top-4 z-30">
 							<Loader
@@ -482,14 +631,6 @@
 						<div class="flex flex-row w-full justify-end space-x-3">
 							{#if !compare_order_meta(order_meta, order_meta_editing)}
 								<button
-									class="bg-green-500 text-white px-2 py-1 rounded-md"
-									type="submit"
-									form="order-edit-form"
-								>
-									<i class="fas fa-save"></i>
-									Save
-								</button>
-								<button
 									class="bg-red-500 text-white px-2 py-1 rounded-md"
 									on:click={() => {
 										set_oifs(order_meta);
@@ -501,12 +642,12 @@
 							{/if}
 						</div>
 					</div>
-				</form>
+				</div>
 			</div>
 
 			<!-- Center section -->
 			<div
-				class="w-full relative rounded-lg p-1 shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col grow min-h-0"
+				class="w-full relative rounded-lg p-3 shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col grow min-h-0"
 			>
 				{#if loading_items}
 					<div class="w-full h-full absolute left-0 z-30">
@@ -540,14 +681,14 @@
 					</div>
 				{/if}
 				<div class="flex flex-col grow min-h-0 overflow-auto">
-					<table class="w-full">
+					<table class="w-full border-separate border-spacing-x-3 border-spacing-y-1">
 						<thead>
 							<tr>
 								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Item</th>
-								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Quantity</th>
-								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Price</th>
-								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Total</th>
-								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Actions</th>
+								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Quantity</th>
+								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Price</th>
+								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Total</th>
+								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -566,7 +707,7 @@
 											search_column="name"
 											initial_value={data.order_item.inventory_item}
 											search_count={15}
-											form_id="order-items-edit-form"
+											form_id="order-edit-form"
 											validity_message={'Select an item from the dropdown'}
 											required={true}
 											on_change={(value) => {
@@ -575,14 +716,14 @@
 												}
 											}}
 										/>
-										{data.order_item.inventory_item}
 									</td>
 									<td>
 										<input
 											type="number"
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Quantity"
-											value={data.order_item.quantity}
+											form="order-edit-form"
+											bind:value={data.order_item.quantity}
 										/>
 									</td>
 									<td>
@@ -590,7 +731,8 @@
 											type="number"
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Price"
-											value={data.order_item.price}
+											form="order-edit-form"
+											bind:value={data.order_item.price}
 										/>
 									</td>
 									<td>
@@ -598,9 +740,12 @@
 											type="number"
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Total"
+											form="order-edit-form"
 											value={Math.round(
 												parseFloat(data.order_item.price) * data.order_item.quantity * 100
 											) / 100}
+											readonly
+											disabled
 										/>
 									</td>
 									<td>
@@ -620,7 +765,7 @@
 					</table>
 				</div>
 
-				<div class="flex p-2">
+				<div class="flex">
 					<button
 						class="bg-green-500 text-white px-2 py-1 rounded-md"
 						on:click={create_new_order_item}
@@ -632,13 +777,24 @@
 
 			<!-- Bottom section -->
 			<div
-				class="w-full h-fit p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
+				class="w-full h-fit p-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
 			>
-				<div class="h-40"></div>
+				{#if !compare_order_meta(order_meta, order_meta_editing) || !compare_order_items( order_items, order_items_editing.map((x) => x.order_item) )}
+					<button
+						form="order-edit-form"
+						type="submit"
+                        id="save-order-button"
+                        bind:this={save_button}
+						class="bg-green-500 text-white px-2 py-1 rounded-md"
+					>
+						<i class="fas fa-save"></i>
+						Save
+					</button>
+				{/if}
 			</div>
 		</div>
 	</PermissionGuard>
-</div>
+</form>
 
 <style>
 	th {
