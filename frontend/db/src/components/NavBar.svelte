@@ -16,12 +16,14 @@
 
 	<div class="separator"></div>
 
+    <PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']} all_or_any="any">
 	<button class="sidebar-item" on:click={() => redirect('/app/orders')}>
 		<div class="sidebar-icon">
 			<i class="fa fa-clipboard-list"></i>
 		</div>
 		<span class="sidebar-label">Orders</span>
 	</button>
+    </PermissionGuard>
 
 	<div class="separator"></div>
 
@@ -42,6 +44,17 @@
 			<i class="fa fa-users-gear"></i>
 		</div>
 		<span class="sidebar-label">Customers</span>
+	</button>
+    </PermissionGuard>
+
+    <div class="separator"></div>
+
+    <PermissionGuard permissions={['REPORTS']}>
+	<button class="sidebar-item" on:click={() => redirect('/app/reports')}>
+		<div class="sidebar-icon">
+			<i class="fa fa-file-contract"></i>
+		</div>
+		<span class="sidebar-label">Reports</span>
 	</button>
     </PermissionGuard>
 

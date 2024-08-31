@@ -18,19 +18,17 @@
 		filters: [],
 		report_types: ['Revenue', 'Profit', 'Expenses']
 	};
-    // One mon
+	// One mon
 	let start_date = new Date().toDateString();
 	let end_date = new Date().toDateString();
 
 	$: {
-        console.log("Converting end: ", end_date);
 		data.end_date = new Date(end_date).toISOString();
 	}
 
-    $: {
-        console.log("Converting start: ", start_date);
-        data.start_date = new Date(start_date).toISOString();
-    }
+	$: {
+		data.start_date = new Date(start_date).toISOString();
+	}
 
 	let currently_generating_report = false;
 	let report: Report | null = null;
@@ -60,7 +58,6 @@
 						.json()
 						.then((data) => {
 							report = data;
-							console.log(data);
 						})
 						.catch((err) => {
 							toast.push('Failed to parse response after generating report');
@@ -84,7 +81,6 @@
 	<div
 		class="h-fit w-full p-3 space-y-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 	>
-		<h1 class="text-2xl font-bold">Finance Report</h1>
 		<div class="flex flex-row space-x-3">
 			{#each rt_variants as rt_variant}
 				<label
@@ -96,8 +92,10 @@
 				>
 			{/each}
 		</div>
-		<input type="date" bind:value={start_date} />
-		<input type="date" bind:value={end_date} />
+		<div class="flex flex-row space-x-3">
+			<label for="start_date">Start date: <input type="date" bind:value={start_date} /></label>
+			<label for="end_date">End date: <input type="date" bind:value={end_date} /></label>
+		</div>
 		<button
 			form="order-edit-form"
 			type="submit"
@@ -119,22 +117,61 @@
 			<Loader text="Generating report" icon_size={1} />
 		{:else if report}
 			<h1 class="text-2xl font-bold">Report</h1>
-			<div class="flex flex-row space-x-3">
-				{#each Object.keys(report) as key}
-					<div class="flex flex-col">
-						<h2 class="text-lg font-bold">{key}</h2>
-
-						<!-- <div class="flex flex-col">
-							{#each Object.keys(report[key]) as subkey}
-								<div class="flex flex-row">
-									<h3 class="text-md font-bold">{subkey}</h3>
-
-									<p>{report[key][subkey]}</p>
-								</div>
-							{/each}
-						</div> -->
+			<hr />
+			<div class="flex flex-col space-y-3 w-full h-full">
+				<h1 class="text-xl font-bold">Orders</h1>
+				{#each report.orders as order}
+					<div class="flex flex-row space-x-3 w-full h-fit">
+						<div class="flex flex-col">
+							<div class="font-bold">ID</div>
+							<div>
+								{order.id}
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<div class="font-bold">Customer</div>
+							<div>
+								{order.customer.name}
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<div class="font-bold">Date</div>
+							<div>
+								{new Date(order.date_time).toLocaleDateString()}
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<div class="font-bold">Total</div>
+							<div>
+								{order.items.reduce((acc, item) => acc + item.price * item.quantity, 0)}
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<div class="font-bold">Paid</div>
+							<div>
+								{order.amount_paid}
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<div class="font-bold">Receivable</div>
+							<div>
+								{Math.max((order.items.reduce((acc, item) => acc + item.price * item.quantity, 0) -
+									order.amount_paid), 0)}
+							</div>
+						</div>
 					</div>
 				{/each}
+				<hr />
+				<div class="flex flex-row space-x-3 w-full h-fit">
+					{#each Object.keys(report.data) as key}
+						<div class="flex flex-col">
+							<div class="font-bold">{key}</div>
+							<div>
+								{parseFloat(report.data[key])}
+							</div>
+						</div>
+					{/each}
+				</div>
 			</div>
 		{:else}
 			<div class="flex-grow">Nothing generated yet...</div>

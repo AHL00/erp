@@ -77,7 +77,7 @@ pub(super) struct Report {
 pub async fn create_report(
     mut db: DB,
     report_request: rocket::serde::json::Json<ReportRequest>,
-    _auth: AuthGuard<{ UserPermissionEnum::REPORT as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::REPORTS as u32 }>,
 ) -> Result<rocket::serde::json::Json<Report>, ApiError> {
     let ReportRequest {
         start_date,
@@ -158,8 +158,6 @@ pub async fn create_report(
             {}
         ) AS items
     FROM order_meta
-        LEFT JOIN order_items ON order_meta.id = order_items.order_id
-        LEFT JOIN inventory ON order_items.inventory_id = inventory.id        
     "#,
         filters_sql_order_meta, filters_sql_order_items
     );
@@ -201,7 +199,7 @@ pub async fn create_report(
             .map(|item| &item.price * BigDecimal::from(item.quantity))
             .sum();
 
-        let receivable = (&order_total - &order_meta.amount_paid).min(BigDecimal::from(0));
+        let receivable = (&order_total - &order_meta.amount_paid).max(BigDecimal::from(0));
         total_revenue += order_total;
         total_receivable += receivable;
 
@@ -223,7 +221,7 @@ pub async fn create_report(
                 ReportRequestType::Profit => BigDecimal::from(0),
                 ReportRequestType::Expenses => BigDecimal::from(0),
                 ReportRequestType::Product => BigDecimal::from(0),
-                ReportRequestType::Receivable => BigDecimal::from(0),
+                ReportRequestType::Receivable => total_receivable.clone(),
                 ReportRequestType::Payable => BigDecimal::from(0),
             };
 

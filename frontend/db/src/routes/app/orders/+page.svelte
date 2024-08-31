@@ -238,22 +238,24 @@
 			></div>
 		</div>
 	</PermissionGuard>
-	<div
-		class="w-full rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
-	>
-		<span class="text-2xl m-3">Past orders</span>
-		<CrudPanel
-			list_request={order_list_req}
-			objects_list={orders_list}
-			crud_endpoint="orders"
-			read_perms={['ORDER_READ']}
-			write_perms={['ORDER_WRITE']}
-			create_default={null}
-			edit_override={(item_id) => {
-				redirect(`/app/orders/edit?id=${item_id}`);
-			}}
-			delete_enabled={true}
-			{columns}
-		></CrudPanel>
-	</div>
+	<PermissionGuard permissions={['ORDER_READ']}>
+		<div
+			class="w-full rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+		>
+			<span class="text-2xl m-3">Past orders</span>
+			<CrudPanel
+				list_request={order_list_req}
+				objects_list={orders_list}
+				crud_endpoint="orders"
+				read_perms={['ORDER_READ']}
+				write_perms={['ORDER_WRITE']}
+				create_default={null}
+				edit_override={(item_id) => {
+					redirect(`/app/orders/edit?id=${item_id}`);
+				}}
+				delete_enabled={true}
+				{columns}
+			></CrudPanel>
+		</div>
+	</PermissionGuard>
 </div>
