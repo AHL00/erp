@@ -37,7 +37,7 @@ pub(super) struct Order {
 }
 
 #[derive(FromRow, Debug)]
-struct OrderMetaRow {
+pub(super) struct OrderMetaRow {
     id: i32,
     date_time: chrono::DateTime<chrono::Utc>,
     customer: sqlx_core::types::Json<Customer>,
@@ -46,6 +46,8 @@ struct OrderMetaRow {
     retail: bool,
     notes: String,
 }
+
+pub(super) type OrderTotal = sqlx::types::BigDecimal;
 
 impl From<OrderMetaRow> for OrderMeta {
     fn from(row: OrderMetaRow) -> Self {
@@ -103,8 +105,8 @@ pub(super) struct OrderItem {
     pub price: sqlx::types::BigDecimal,
 }
 
-#[derive(FromRow, Debug)]
-struct OrderItemRow {
+#[derive(FromRow, Debug, Deserialize)]
+pub(super) struct OrderItemRow {
     pub id: i32,
     pub inventory: sqlx_core::types::Json<InventoryItem>,
     pub quantity: i32,
@@ -301,6 +303,31 @@ pub(super) async fn post(
     .await?;
 
     Ok(ApiReturn(Status::Created, id.0))
+}
+
+#[rocket::get("/orders/<id>/total")]
+pub(super) async fn total(
+    id: i32,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>
+) -> Result<rocket::serde::json::Json<OrderTotal>, ApiError> {
+    Ok(rocket::serde::json::Json(get_order_total(id, &mut db).await?))
+}
+
+pub(super) async fn get_order_total(order_id: i32, db: &mut DB) -> Result<OrderTotal, ApiError> {
+    let total: (sqlx::types::BigDecimal,) = sqlx::query_as(
+        r#"
+        SELECT sum(price * quantity) as total
+        FROM order_items
+        WHERE order_id = $1
+        "#,
+    )
+    .bind(order_id)
+    .fetch_one(&mut ***db)
+    .await
+    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+
+    Ok(total.0)
 }
 
 #[rocket::patch("/orders/<id>", data = "<req>")]

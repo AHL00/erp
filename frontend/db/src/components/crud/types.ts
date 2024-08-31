@@ -39,7 +39,8 @@ export type CrudEditType =
 	| { type: 'image' }
 	| { type: 'password' }
 	| { type: 'none' }
-	| { type: 'textarea'; data: CrudEditTypeTextarea }
+	| { type: 'textarea'; data: CrudEditTypeTextarea };
+    
 export interface CrudColumn {
     /// The name in structs returned by the API
 	api_name: string;

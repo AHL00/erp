@@ -3,6 +3,7 @@ pub mod customers;
 pub mod inventory;
 pub mod orders;
 pub mod search;
+pub mod reports;
 
 pub mod public;
 
@@ -44,12 +45,14 @@ pub fn routes() -> Vec<rocket::Route> {
         orders::update_items,
         orders::patch,
         orders::delete,
+        orders::total,
         customers::get,
         customers::count,
         customers::list,
         customers::post,
         customers::patch,
         customers::search,
+        reports::create_report,
         // customers::delete,
     ]
 }

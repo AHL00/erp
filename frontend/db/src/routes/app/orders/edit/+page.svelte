@@ -128,7 +128,7 @@
 		for (let i = 0; i < update_requests.length; i++) {
 			for (let j = i + 1; j < update_requests.length; j++) {
 				if (update_requests[i].inventory_item_id === update_requests[j].inventory_item_id) {
-					toast.push('Only one order row per inventory item type is allowed');
+					toast.push('Duplicate inventory items in order');
 					currently_saving_items = false;
 					return;
 				}
@@ -167,6 +167,7 @@
 					}
 
 					toast.push('Order items saved successfully');
+					currently_saving_items = false;
 
 					res
 						.json()
@@ -188,8 +189,6 @@
 				console.error(err);
 				currently_saving_items = false;
 			});
-
-		currently_saving_items = false;
 	};
 
 	let loading_info: boolean = false;
@@ -420,7 +419,7 @@
 		return (
 			a.id === b.id &&
 			a.inventory_item.id === b.inventory_item.id &&
-			a.price === b.price &&
+			parseFloat(a.price) === parseFloat(b.price) &&
 			a.quantity === b.quantity
 		);
 	}
@@ -450,7 +449,7 @@
 		return true;
 	}
 
-    let save_button: HTMLButtonElement;
+	let save_button: HTMLButtonElement;
 
 	$: {
 		// If error, retry fetching order
@@ -711,9 +710,12 @@
 											validity_message={'Select an item from the dropdown'}
 											required={true}
 											on_change={(value) => {
-												if (order_items_editing[i] !== undefined) {
-													order_items_editing[i].order_item.inventory_item = value;
+												if (value === null) {
+													return;
 												}
+
+												data.order_item.price = value.price;
+												data.order_item.inventory_item = value;
 											}}
 										/>
 									</td>
@@ -727,13 +729,28 @@
 										/>
 									</td>
 									<td>
-										<input
-											type="number"
-											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
-											placeholder="Price"
-											form="order-edit-form"
-											bind:value={data.order_item.price}
-										/>
+										<div class="space-x-2 flex">
+											<input
+												type="number"
+												class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												placeholder="Price"
+												form="order-edit-form"
+												bind:value={data.order_item.price}
+											/>
+											{#if data.order_item.inventory_item && parseFloat(data.order_item.inventory_item.price) != parseFloat(data.order_item.price)}
+												<button
+													class="w-min box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+													on:click={() => {
+														// truncate the price string to 2 decimal places
+														let price = parseFloat(data.order_item.inventory_item.price);
+
+														data.order_item.price = price.toFixed(2);
+													}}
+												>
+													<i class="fas fa-sync"></i>
+												</button>
+											{/if}
+										</div>
 									</td>
 									<td>
 										<input
@@ -779,12 +796,22 @@
 			<div
 				class="w-full h-fit p-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
 			>
-				{#if !compare_order_meta(order_meta, order_meta_editing) || !compare_order_items( order_items, order_items_editing.map((x) => x.order_item) )}
+				{#if currently_saving_items}
+					<div class="w-full h-full absolute left-0 z-30">
+						<Loader
+							blur_background={true}
+							icon={'dots'}
+							icon_size={1.1}
+							ellipsis={true}
+							text={'Saving order items'}
+						/>
+					</div>
+				{:else if !compare_order_meta(order_meta, order_meta_editing) || !compare_order_items( order_items, order_items_editing.map((x) => x.order_item) )}
 					<button
 						form="order-edit-form"
 						type="submit"
-                        id="save-order-button"
-                        bind:this={save_button}
+						id="save-order-button"
+						bind:this={save_button}
 						class="bg-green-500 text-white px-2 py-1 rounded-md"
 					>
 						<i class="fas fa-save"></i>
