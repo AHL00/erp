@@ -1,6 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { replaceCodePlugin } from 'vite-plugin-replace';
+import StringReplace from 'vite-plugin-string-replace'
+
 // @ts-ignore
 import { execSync } from 'child_process';
 
@@ -10,14 +11,11 @@ const commitId = execSync('git rev-parse --short HEAD').toString().trim();
 export default defineConfig({
 	plugins: [
 		sveltekit(),
-		replaceCodePlugin({
-			replacements: [
+		StringReplace([
 				{
-					from: '__COMMIT_ID__',
-					to: commitId
-				}
-			]
-		})
+					search: '__COMMIT_ID__',
+					replace: commitId
+				}])
 	],
 
 	css: {
