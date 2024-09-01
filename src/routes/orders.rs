@@ -598,41 +598,7 @@ pub(super) async fn update_items(
         )
     })?;
 
-    // If there are items in the current
-    // order items that are not in the request,
-    // remove them
-    for current_item in &current_items {
-        if !requests
-            .iter()
-            .any(|req| req.inventory_item_id == current_item.inventory_item.id)
-        {
-            let res = sqlx::query(
-                r#"
-            DELETE FROM order_items
-            WHERE id = $1
-            "#,
-            )
-            .bind(current_item.id)
-            .execute(&mut *transaction)
-            .await;
-
-            if let Err(error) = res {
-                transaction.rollback().await.map_err(|e| {
-                    ApiError(
-                        Status::InternalServerError,
-                        format!("Failed to rollback transaction: {}", e),
-                    )
-                })?;
-
-                return Err(ApiError(
-                    Status::InternalServerError,
-                    format!("Failed to delete order item: {}", error),
-                ));
-            }
-        }
-    }
-
-    for (i, req) in requests.into_iter().enumerate() {
+    for (i, req) in requests.iter().enumerate() {
         if let Some(order_item_id) = req.order_item_id {
             // Patch existing item
             let res = sqlx::query(
@@ -644,7 +610,7 @@ pub(super) async fn update_items(
             )
             .bind(req.inventory_item_id)
             .bind(req.quantity)
-            .bind(req.price)
+            .bind(req.price.clone())
             .bind(order_item_id)
             .execute(&mut *transaction)
             .await;
@@ -698,7 +664,7 @@ pub(super) async fn update_items(
             .bind(id)
             .bind(req.inventory_item_id)
             .bind(req.quantity)
-            .bind(req.price)
+            .bind(req.price.clone())
             .fetch_one(&mut *transaction)
             .await;
 
@@ -716,6 +682,47 @@ pub(super) async fn update_items(
                         "Failed to insert order item request at index {}: {}",
                         i, error
                     ),
+                ));
+            }
+        }
+    }
+
+    // If there are items in the current
+    // order items that are not in the request,
+    // remove them
+    for current_item in &current_items {
+        if !requests
+            .iter()
+            .any(|req| {
+                if let Some(order_item_id) = req.order_item_id {
+                    order_item_id == current_item.id
+                } else {
+                    false
+                }
+            })
+        {
+            log::info!("Deleting item: {:#?}", current_item);
+            let res = sqlx::query(
+                r#"
+            DELETE FROM order_items
+            WHERE id = $1
+            "#,
+            )
+            .bind(current_item.id)
+            .execute(&mut *transaction)
+            .await;
+
+            if let Err(error) = res {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to delete order item: {}", error),
                 ));
             }
         }
