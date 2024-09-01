@@ -143,19 +143,22 @@ pub async fn create_report(
     )
     SELECT
         order_meta.*,
-        (
-            SELECT json_agg(
-                json_build_object(
-                    'id', order_items.id,
-                    'inventory', row_to_json(inventory),
-                    'price', order_items.price,
-                    'quantity', order_items.quantity
+        -- COALESCE is used to return an empty array if there are no items
+        COALESCE(
+            (
+                SELECT json_agg(
+                    json_build_object(
+                        'id', order_items.id,
+                        'inventory', row_to_json(inventory),
+                        'price', order_items.price,
+                        'quantity', order_items.quantity
+                    )
                 )
-            )
-            FROM order_items
-                INNER JOIN inventory ON order_items.inventory_id = inventory.id
-            WHERE order_items.order_id = order_meta.id
-            {}
+                FROM order_items
+                    INNER JOIN inventory ON order_items.inventory_id = inventory.id
+                WHERE order_items.order_id = order_meta.id
+                {}
+            ), '[]'
         ) AS items
     FROM order_meta
     "#,

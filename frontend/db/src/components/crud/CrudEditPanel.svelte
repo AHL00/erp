@@ -201,7 +201,6 @@
 </script>
 
 <div class="flex flex-col h-full w-full items-center">
-	test_date.set
 	<div class="my-4">
 		<span class="text-2xl">Edit Item</span>
 	</div>
