@@ -23,3 +23,13 @@ export function middle_ellipsis(text: string, max_length: number) {
     let half = Math.floor(max_length / 2);
     return text.slice(0, half) + '...' + text.slice(text.length - half);
 }
+
+export function utc_date_to_local(isoString: string): string {
+    let date = new Date(isoString);
+    let localMillis = date.getTime() - date.getTimezoneOffset() * 60000;
+    let localDate = new Date(localMillis)
+    let localIso = localDate.toISOString()
+    localIso = localIso.slice(0, -1);
+
+    return localIso;
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
 	import { type InventoryItem } from '$bindings/InventoryItem';
+    import { type InventoryItemPostRequest } from '$bindings/InventoryItemPostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
@@ -95,8 +96,7 @@
 		}
 	];
 
-	let default_item: InventoryItem = {
-		id: -1,
+	let default_item: InventoryItemPostRequest = {
 		name: 'New Item',
 		price: '0.00',
 		stock: 0,
@@ -111,7 +111,7 @@
 		crud_endpoint="inventory"
 		read_perms={['INVENTORY_READ']}
 		write_perms={['INVENTORY_WRITE']}
-		create_default={default_item}
+		create_post_request={default_item}
 		{columns}
 	></CrudPanel>
 </div>

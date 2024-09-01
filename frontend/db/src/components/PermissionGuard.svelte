@@ -2,7 +2,7 @@
 	import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
 	import { auth_info_store } from '$lib/auth';
 
-	export let permissions: string[];
+	export let permissions: UserPermissionEnum[];
 	/// This is a variable that will be used to determine if all permissions are required or any
 	export let all_or_any: 'all' | 'any' = 'all';
 

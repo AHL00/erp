@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
 	import { type Customer } from '$bindings/Customer';
+    import { type CustomerPostRequest } from '$bindings/CustomerPostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
@@ -99,8 +100,7 @@
 		}
 	];
 
-	let create_default: Customer = {
-		id: -1,
+	let create_default: CustomerPostRequest = {
 		name: 'New Customer',
 		phone: '09 ',
 		address: '',
@@ -117,7 +117,7 @@
 		crud_endpoint="customers"
 		read_perms={['CUSTOMERS_READ']}
 		write_perms={['CUSTOMERS_WRITE']}
-		{create_default}
+		create_post_request={create_default}
 		{columns}
 	></CrudPanel>
 </div>

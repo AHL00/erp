@@ -31,7 +31,7 @@
 	/// The default item to create when the create button is pressed.
 	/// The ID field will be ignored, and the rest of the fields will be used to create the item.
 	/// If null, the create button will be disabled.
-	export let create_default: EntryType | null;
+	export let create_post_request: any | null;
 
 	let loading_count = 0;
 
@@ -232,18 +232,18 @@
 
 	function create_new_handler() {
 		// This should not be called if the create button is disabled, but just in case
-		if (create_default == null) {
+		if (create_post_request == null) {
 			return;
 		}
 
-		if (create_default != null) {
+		if (create_post_request != null) {
 			// Set the ID to -1, although it should be ignored by the backend.
 			// In case anything goes very wrong, this will keep existing items from being overwritten.
-			create_default.id = -1;
+			create_post_request.id = -1;
 
 			// Try to send an API call to create the item
 			try {
-				api_call(`${crud_endpoint}`, 'POST', create_default).then((res) => {
+				api_call(`${crud_endpoint}`, 'POST', create_post_request).then((res) => {
 					if (res === undefined) {
 						console.error('Error creating item: no response');
 						toast.push('Error creating item: no response');
@@ -566,7 +566,7 @@
 							</button>
 						</div>
 					{/if}
-					{#if create_default !== null}
+					{#if create_post_request !== null}
 						<div class="mx-1">
 							<div
 								class="inline-flex rounded-md outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline

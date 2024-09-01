@@ -27,6 +27,17 @@
 
 	<div class="separator"></div>
 
+    <PermissionGuard permissions={['EXPENSES_READ', 'EXPENSES_WRITE']} all_or_any="any">
+        <button class="sidebar-item" on:click={() => redirect('/app/expenses')}>
+            <div class="sidebar-icon">
+                <i class="fa fa-money-check-dollar"></i>
+			</div>
+			<span class="sidebar-label">Expenses</span>
+		</button>
+	</PermissionGuard>
+
+	<div class="separator"></div>
+
 	<PermissionGuard permissions={['INVENTORY_READ']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
 			<div class="sidebar-icon">

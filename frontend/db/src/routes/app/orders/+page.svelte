@@ -249,7 +249,7 @@
 				crud_endpoint="orders"
 				read_perms={['ORDER_READ']}
 				write_perms={['ORDER_WRITE']}
-				create_default={null}
+				create_post_request={null}
 				edit_override={(item_id) => {
 					redirect(`/app/orders/edit?id=${item_id}`);
 				}}

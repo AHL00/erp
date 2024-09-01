@@ -53,15 +53,17 @@ pub(super) async fn get(
     let expense_row: ExpenseRow = sqlx::query_as(
         r#"
     SELECT 
-        id, 
+        expenses.id, 
         date_time, 
         description, 
         row_to_json(users) AS created_by_user,
         amount
-    FROM expenses WHERE id = $1
+    FROM expenses
         INNER JOIN users ON expenses.created_by_user_id = users.id
+    WHERE expenses.id = $1
     "#,
     )
+    .bind(id)
     .fetch_one(&mut **db)
     .await?;
 
@@ -97,7 +99,7 @@ pub(super) async fn list(
 
     let query = format!(
         r#"SELECT 
-            id, 
+            expenses.id, 
             date_time, 
             description, 
             row_to_json(users) AS created_by_user,

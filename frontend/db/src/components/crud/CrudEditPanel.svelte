@@ -1,6 +1,7 @@
 <script lang="ts" generics="EditObject extends { id: number }">
 	import { match } from 'ts-pattern';
 
+	import { utc_date_to_local } from '$lib/index';
 	import type { CrudColumn } from './types';
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
@@ -200,6 +201,7 @@
 </script>
 
 <div class="flex flex-col h-full w-full items-center">
+	test_date.set
 	<div class="my-4">
 		<span class="text-2xl">Edit Item</span>
 	</div>
@@ -233,12 +235,24 @@
 								type="number"
 								name={column.api_name}
 								readonly={column.edit_readonly}
-                                disabled={column.edit_readonly}
+								disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								min={column.edit_type.data.range[0]}
 								max={column.edit_type.data.range[1]}
 								step={column.edit_type.data.step}
+							/>
+						{:else if column.edit_type.type == 'datetime'}
+							<input
+								id="{api_endpoint}-{column.api_name}-input"
+								form="edit-{api_endpoint}-form"
+								class="flex-grow"
+								type="datetime-local"
+								name={column.api_name}
+								readonly={column.edit_readonly}
+								disabled={column.edit_readonly}
+								value={// @ts-ignore
+								utc_date_to_local(get_column_value(column.api_name))}
 							/>
 						{:else if column.edit_type.type == 'string'}
 							<input
@@ -249,7 +263,7 @@
 								autocomplete="off"
 								name={column.api_name}
 								readonly={column.edit_readonly}
-                                disabled={column.edit_readonly}
+								disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								minlength={column.edit_type.data.length_range[0]}
@@ -264,7 +278,7 @@
 								class="flex-grow"
 								name={column.api_name}
 								readonly={column.edit_readonly}
-                                disabled={column.edit_readonly}
+								disabled={column.edit_readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
 								minlength={column.edit_type.data.length_range[0]}
@@ -276,23 +290,23 @@
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
 								readonly={column.edit_readonly}
-                                disabled={column.edit_readonly}
+								disabled={column.edit_readonly}
 								type="checkbox"
 								name={column.api_name}
 								checked={// @ts-ignore
 								get_column_value(column.api_name)}
 							/>
 						{/if}
-                        {#if !column.edit_readonly}
-						<button
-							on:click={() =>
-								// @ts-ignore
-								(document.getElementById(`${api_endpoint}-${column.api_name}-input`).value =
-									get_column_value(column.api_name))}
-						>
-							<i class="fa-solid fa-rotate-left"></i>
-						</button>
-                        {/if}
+						{#if !column.edit_readonly}
+							<button
+								on:click={() =>
+									// @ts-ignore
+									(document.getElementById(`${api_endpoint}-${column.api_name}-input`).value =
+										get_column_value(column.api_name))}
+							>
+								<i class="fa-solid fa-rotate-left"></i>
+							</button>
+						{/if}
 					</div>
 				{/if}
 			{/each}
