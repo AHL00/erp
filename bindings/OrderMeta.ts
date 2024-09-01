@@ -2,6 +2,9 @@
 import type { Customer } from "./Customer";
 import type { User } from "./User";
 
+/**
+ * TODO: Allow customer to be None when retail is true
+ */
 export type OrderMeta = { id: number, date_time: string, 
 /**
  * This will be false if the order is retail

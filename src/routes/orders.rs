@@ -12,9 +12,11 @@ use crate::{
 };
 
 use super::{
-    auth::User, customers::Customer, inventory::InventoryItem, ApiError, ApiReturn, SqlType,
+    auth::User, customers::Customer, inventory::InventoryItem, ApiError, ApiReturn,
+    CreateStockUpdate, SqlType, StockUpdate,
 };
 
+/// TODO: Allow customer to be None when retail is true
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
 #[ts(export)]
 pub(super) struct OrderMeta {
@@ -309,9 +311,11 @@ pub(super) async fn post(
 pub(super) async fn total(
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<OrderTotal>, ApiError> {
-    Ok(rocket::serde::json::Json(get_order_total(id, &mut db).await?))
+    Ok(rocket::serde::json::Json(
+        get_order_total(id, &mut db).await?,
+    ))
 }
 
 pub(super) async fn get_order_total(order_id: i32, db: &mut DB) -> Result<OrderTotal, ApiError> {
@@ -357,8 +361,6 @@ pub(super) async fn patch(
         return Ok(Status::NoContent);
     }
 
-    log::info!("Request: {:?}", req);
-
     let set_binds = vec![
         req.customer_id.as_ref().map(|v| SqlType::Int(v.clone())),
         req.retail.as_ref().map(|v| SqlType::Boolean(v.clone())),
@@ -372,8 +374,6 @@ pub(super) async fn patch(
 
     let set_binds = set_binds.collect::<Vec<SqlType>>();
 
-    log::info!("Set binds: {:?}", set_binds);
-
     let query_str = format!(
         r#"
         UPDATE orders
@@ -382,8 +382,6 @@ pub(super) async fn patch(
         "#,
         sets_string, current_param_index
     );
-
-    log::info!("Query: {}", query_str);
 
     let mut query = sqlx::query(&query_str);
 
@@ -404,23 +402,27 @@ pub(super) async fn patch(
     Ok(Status::NoContent)
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
-#[ts(export)]
-pub(super) struct StockUpdate {
-    pub inventory_item: InventoryItem,
-    pub delta: i32,
-}
-
-/// Post one or more items to an order
-/// POST /orders/<id>/items
-#[rocket::post("/orders/<id>/items/update", data = "<req>")]
-pub(super) async fn update_items(
+#[rocket::post("/orders/<id>/items/update/preview", data = "<req>")]
+pub(super) async fn preview_update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
-) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+) -> Result<ApiReturn<Vec<CreateStockUpdate>>, ApiError> {
     let requests = req.into_inner();
+
+    // Check for duplicate inventory items
+    let mut inventory_item_ids = vec![];
+    for req in requests.iter() {
+        if inventory_item_ids.contains(&req.inventory_item_id) {
+            return Err(ApiError(
+                Status::BadRequest,
+                format!("Duplicate inventory item id {}", req.inventory_item_id),
+            ));
+        }
+
+        inventory_item_ids.push(req.inventory_item_id);
+    }
 
     // Get current items for this order
     let current_items: Vec<OrderItem> = sqlx::query_as(
@@ -448,27 +450,146 @@ pub(super) async fn update_items(
     .map(|row: OrderItemRow| row.into())
     .collect();
 
-    log::info!("1");
-
     // Calculate stock deltas
-    let mut stock_updates = vec![];
+    let mut create_stock_updates = vec![];
 
-    for request in &requests {
-        let current_item_match = current_items
+    // Calculate stock deltas assuming that all current items are removed
+    for item in current_items.iter() {
+        create_stock_updates.push(CreateStockUpdate {
+            inventory_id: item.inventory_item.id,
+            delta: item.quantity,
+            order_item_id: Some(item.id),
+            order_id: Some(id),
+            purchase_item_id: None,
+            purchase_id: None,
+            created_by_user_id: _auth.auth_info.user.id,
+        });
+    }
+
+    // Calculate stock deltas for new items
+    for req in requests.iter() {
+        // Find and merge
+        create_stock_updates
+            .iter_mut()
+            .find(|update| update.inventory_id == req.inventory_item_id)
+            .map(|update| update.delta -= req.quantity);
+
+        // Add new items
+        if !current_items
             .iter()
-            .find(|item| item.inventory_item.id == request.inventory_item_id);
-
-        let delta = request.quantity - current_item_match.map(|item| item.quantity).unwrap_or(0);
-
-        if delta != 0 {
-            stock_updates.push(StockUpdate {
-                inventory_item: InventoryItem::from_db(request.inventory_item_id, &mut db).await?,
-                delta,
+            .any(|item| item.inventory_item.id == req.inventory_item_id)
+        {
+            create_stock_updates.push(CreateStockUpdate {
+                inventory_id: req.inventory_item_id,
+                delta: -req.quantity,
+                order_item_id: None,
+                order_id: Some(id),
+                purchase_item_id: None,
+                purchase_id: None,
+                created_by_user_id: _auth.auth_info.user.id,
             });
         }
     }
 
-    log::info!("2");
+    create_stock_updates.retain(|update| update.delta != 0);
+
+    Ok(ApiReturn(Status::Ok, create_stock_updates))
+}
+
+/// Post one or more items to an order
+/// POST /orders/<id>/items
+#[rocket::post("/orders/<id>/items/update", data = "<req>")]
+pub(super) async fn update_items(
+    id: i32,
+    req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
+    let requests = req.into_inner();
+
+    // Check for duplicate inventory items
+    let mut inventory_item_ids = vec![];
+    for req in requests.iter() {
+        if inventory_item_ids.contains(&req.inventory_item_id) {
+            return Err(ApiError(
+                Status::BadRequest,
+                format!("Duplicate inventory item id {}", req.inventory_item_id),
+            ));
+        }
+
+        inventory_item_ids.push(req.inventory_item_id);
+    }
+
+    // Get current items for this order
+    let current_items: Vec<OrderItem> = sqlx::query_as(
+        r#"
+        SELECT 
+            order_items.id as id,
+            row_to_json(inventory) as inventory,
+            order_items.price as price,
+            order_items.quantity as quantity
+        FROM order_items
+            INNER JOIN inventory ON inventory_id = inventory.id
+        WHERE order_id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::BadRequest, format!("Row with id {} not found", id))
+        }
+        _ => e.into(),
+    })?
+    .into_iter()
+    .map(|row: OrderItemRow| row.into())
+    .collect();
+
+    // Calculate stock deltas
+    let mut create_stock_updates = vec![];
+
+    // Calculate stock deltas assuming that all current items are removed
+    for item in current_items.iter() {
+        create_stock_updates.push(CreateStockUpdate {
+            inventory_id: item.inventory_item.id,
+            delta: item.quantity,
+            order_item_id: Some(item.id),
+            order_id: Some(id),
+            purchase_item_id: None,
+            purchase_id: None,
+            created_by_user_id: _auth.auth_info.user.id,
+        });
+    }
+
+    // Calculate stock deltas for new items
+    for req in requests.iter() {
+        // Find and merge
+        create_stock_updates
+            .iter_mut()
+            .find(|update| update.inventory_id == req.inventory_item_id)
+            .map(|update| update.delta -= req.quantity);
+
+        // Add new items
+        if !current_items
+            .iter()
+            .any(|item| item.inventory_item.id == req.inventory_item_id)
+        {
+            create_stock_updates.push(CreateStockUpdate {
+                inventory_id: req.inventory_item_id,
+                delta: -req.quantity,
+                order_item_id: None,
+                order_id: Some(id),
+                purchase_item_id: None,
+                purchase_id: None,
+                created_by_user_id: _auth.auth_info.user.id,
+            });
+        }
+    }
+
+    create_stock_updates.retain(|update| update.delta != 0);
+
+    log::info!("Stock updates: \n{:#?}", create_stock_updates);
 
     let mut transaction = db.begin().await.map_err(|e| {
         ApiError(
@@ -476,6 +597,40 @@ pub(super) async fn update_items(
             format!("Failed to start transaction: {}", e),
         )
     })?;
+
+    // If there are items in the current
+    // order items that are not in the request,
+    // remove them
+    for current_item in &current_items {
+        if !requests
+            .iter()
+            .any(|req| req.inventory_item_id == current_item.inventory_item.id)
+        {
+            let res = sqlx::query(
+                r#"
+            DELETE FROM order_items
+            WHERE id = $1
+            "#,
+            )
+            .bind(current_item.id)
+            .execute(&mut *transaction)
+            .await;
+
+            if let Err(error) = res {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to delete order item: {}", error),
+                ));
+            }
+        }
+    }
 
     for (i, req) in requests.into_iter().enumerate() {
         if let Some(order_item_id) = req.order_item_id {
@@ -492,8 +647,7 @@ pub(super) async fn update_items(
             .bind(req.price)
             .bind(order_item_id)
             .execute(&mut *transaction)
-            .await
-            ;
+            .await;
 
             if let Err(error) = res {
                 transaction.rollback().await.map_err(|e| {
@@ -511,12 +665,12 @@ pub(super) async fn update_items(
                     ),
                 ));
             }
-
-        log::info!("3");
-
         } else {
             // Do not allow two order items with the same item
-            if current_items.iter().any(|item| item.inventory_item.id == req.inventory_item_id) {
+            if current_items
+                .iter()
+                .any(|item| item.inventory_item.id == req.inventory_item_id)
+            {
                 transaction.rollback().await.map_err(|e| {
                     ApiError(
                         Status::InternalServerError,
@@ -564,13 +718,12 @@ pub(super) async fn update_items(
                     ),
                 ));
             }
-
-            log::info!("4");
         }
     }
 
     // Update stock
-    for update in stock_updates.iter() {
+    let mut stock_updates = vec![];
+    for update in create_stock_updates.iter() {
         let res = sqlx::query(
             r#"
         UPDATE inventory
@@ -579,10 +732,9 @@ pub(super) async fn update_items(
         "#,
         )
         .bind(update.delta)
-        .bind(update.inventory_item.id)
+        .bind(update.inventory_id)
         .execute(&mut *transaction)
-        .await       
-        ;
+        .await;
 
         if let Err(error) = res {
             transaction.rollback().await.map_err(|e| {
@@ -597,6 +749,32 @@ pub(super) async fn update_items(
                 format!("Failed to update stock: {}", error),
             ));
         }
+
+        // Update stock update history
+        let stock_update: StockUpdate = sqlx::query_as(
+            r#"
+            INSERT INTO stock_updates (inventory_id, created_by_user_id, delta, order_item_id, order_id, purchase_item_id, purchase_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+            "#,
+        )
+        .bind(update.inventory_id)
+        .bind(update.created_by_user_id)
+        .bind(update.delta)
+        .bind(update.order_item_id)
+        .bind(update.order_id)
+        .bind(update.purchase_item_id)
+        .bind(update.purchase_id)
+        .fetch_one(&mut *transaction)
+        .await
+        .map_err(|e| {
+            ApiError(
+                Status::InternalServerError,
+                format!("Failed to insert stock update: {}", e),
+            )
+        })?;
+
+        stock_updates.push(stock_update);
     }
 
     transaction.commit().await.map_err(|e| {
@@ -613,7 +791,7 @@ pub(super) async fn update_items(
 pub(super) async fn delete(
     id: i32,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     sqlx::query(
         r#"
@@ -623,7 +801,11 @@ pub(super) async fn delete(
     )
     .bind(id)
     .execute(&mut **db)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => ApiError(Status::NotFound, format!("No order with id {}", id)),
+        _ => e.into(),
+    })?;
 
     Ok(Status::NoContent)
 }

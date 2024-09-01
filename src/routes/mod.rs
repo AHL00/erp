@@ -1,13 +1,16 @@
 pub mod auth;
 pub mod customers;
+pub mod expenses;
 pub mod inventory;
 pub mod orders;
-pub mod search;
 pub mod reports;
+pub mod search;
 
 pub mod public;
 
 use bigdecimal::BigDecimal;
+use chrono::Utc;
+use inventory::InventoryItem;
 use rocket::{
     http::Status,
     response::{self, Responder},
@@ -21,6 +24,8 @@ use sqlx::{
     query::{Query, QueryAs},
     Postgres,
 };
+
+use crate::db::FromDB;
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![
@@ -43,6 +48,7 @@ pub fn routes() -> Vec<rocket::Route> {
         orders::list,
         orders::post,
         orders::update_items,
+        orders::preview_update_items,
         orders::patch,
         orders::delete,
         orders::total,
@@ -53,8 +59,40 @@ pub fn routes() -> Vec<rocket::Route> {
         customers::patch,
         customers::search,
         reports::create_report,
+        expenses::get,
+        expenses::count,
+        expenses::list,
+        expenses::post,
+        expenses::patch,
+        expenses::delete,
         // customers::delete,
     ]
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
+struct StockUpdate {
+    pub id: i32,
+    pub date_time: sqlx::types::chrono::DateTime<Utc>,
+    pub inventory_id: i32,
+    pub created_by_user_id: i32,
+    pub delta: i32,
+    pub order_item_id: Option<i32>,
+    pub order_id: Option<i32>,
+    pub purchase_item_id: Option<i32>,
+    pub purchase_id: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
+#[ts(export)]
+struct CreateStockUpdate {
+    pub inventory_id: i32,
+    pub created_by_user_id: i32,
+    pub delta: i32,
+    pub order_item_id: Option<i32>,
+    pub order_id: Option<i32>,
+    pub purchase_item_id: Option<i32>,
+    pub purchase_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]

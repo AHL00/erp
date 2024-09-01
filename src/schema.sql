@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS inventory_name_ts_idx ON inventory USING GIN (name_ts
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   date_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
-  customer_id INT NOT NULL,
+  customer_id INT,
   created_by_user_id INT NOT NULL,
   amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   retail BOOLEAN NOT NULL DEFAULT FALSE,
@@ -90,3 +90,19 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_by_user_id INT NOT NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS stock_updates (
+    id SERIAL PRIMARY KEY,
+    date_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
+    inventory_id INT NOT NULL,
+    created_by_user_id INT NOT NULL,
+    delta INTEGER NOT NULL,
+    -- NOTE: All of these could be invalid if
+    -- any of them are deleted. 
+    order_item_id INT,
+    order_id INT,
+    purchase_item_id INT,
+    purchase_id INT,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id),
+    FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+)
