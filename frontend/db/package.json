@@ -36,6 +36,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"ts-pattern": "^5.1.1"
+		"ts-pattern": "^5.1.1",
+		"vite-plugin-replace": "^0.1.1"
 	}
 }

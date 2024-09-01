@@ -16,47 +16,47 @@
 
 	<div class="separator"></div>
 
-    <PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']} all_or_any="any">
-	<button class="sidebar-item" on:click={() => redirect('/app/orders')}>
-		<div class="sidebar-icon">
-			<i class="fa fa-clipboard-list"></i>
-		</div>
-		<span class="sidebar-label">Orders</span>
-	</button>
-    </PermissionGuard>
+	<PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']} all_or_any="any">
+		<button class="sidebar-item" on:click={() => redirect('/app/orders')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-clipboard-list"></i>
+			</div>
+			<span class="sidebar-label">Orders</span>
+		</button>
+	</PermissionGuard>
 
 	<div class="separator"></div>
 
-    <PermissionGuard permissions={['INVENTORY_READ']}>
-	<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
-		<div class="sidebar-icon">
-			<i class="fa fa-warehouse"></i>
-		</div>
-		<span class="sidebar-label">Inventory</span>
-	</button>
-    </PermissionGuard>
+	<PermissionGuard permissions={['INVENTORY_READ']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-warehouse"></i>
+			</div>
+			<span class="sidebar-label">Inventory</span>
+		</button>
+	</PermissionGuard>
 
-    <div class="separator"></div>
+	<div class="separator"></div>
 
-    <PermissionGuard permissions={['CUSTOMERS_READ']}>
-	<button class="sidebar-item" on:click={() => redirect('/app/customers')}>
-		<div class="sidebar-icon">
-			<i class="fa fa-users-gear"></i>
-		</div>
-		<span class="sidebar-label">Customers</span>
-	</button>
-    </PermissionGuard>
+	<PermissionGuard permissions={['CUSTOMERS_READ']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/customers')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-users-gear"></i>
+			</div>
+			<span class="sidebar-label">Customers</span>
+		</button>
+	</PermissionGuard>
 
-    <div class="separator"></div>
+	<div class="separator"></div>
 
-    <PermissionGuard permissions={['REPORTS']}>
-	<button class="sidebar-item" on:click={() => redirect('/app/reports')}>
-		<div class="sidebar-icon">
-			<i class="fa fa-file-contract"></i>
-		</div>
-		<span class="sidebar-label">Reports</span>
-	</button>
-    </PermissionGuard>
+	<PermissionGuard permissions={['REPORTS']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/reports')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-file-contract"></i>
+			</div>
+			<span class="sidebar-label">Reports</span>
+		</button>
+	</PermissionGuard>
 
 	<div class="separator"></div>
 
@@ -78,13 +78,17 @@
 			<i class="fa fa-user"></i>
 		</div>
 		<span class="sidebar-label">
-            {#if $auth_info_store === null}
-                ?
-            {:else}
-                {middle_ellipsis($auth_info_store.username, 10)}
-            {/if}
+			{#if $auth_info_store === null}
+				?
+			{:else}
+				{middle_ellipsis($auth_info_store.username, 10)}
+			{/if}
 		</span>
 	</button>
+
+	<div id="version-text" class="text-center text-xs text-gray-500 mt-2">
+		<span>Version __COMMIT_ID__</span>
+	</div>
 </div>
 
 <div class="sidebar-spacer"></div>
@@ -109,6 +113,21 @@
 		height: 100vh;
 		transition: width 0.2s ease-in-out;
 	}
+
+    .sidebar:hover > #version-text {
+        height: fit-content;
+        transition: height 2s ease-in, opacity 0.5s ease-in;
+        opacity: 100%;
+    }
+    
+    .sidebar > #version-text {
+        height: 0px;
+        opacity: 0%;
+        transition: height 0.2s, opacity 0.1s;
+    }
+
+    #version-text {
+    }
 
 	.sidebar:hover {
 		width: 200px;
