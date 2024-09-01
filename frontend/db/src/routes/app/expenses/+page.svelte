@@ -13,8 +13,8 @@
 		filters: [],
 		sorts: [
 			{
-				column: 'id',
-				order: 'ASC'
+				column: 'date_time',
+				order: 'DESC'
 			}
 		]
 	};
@@ -27,7 +27,7 @@
 			api_request_name: null,
 			display_name: 'ID',
 			display_map_fn: null,
-			current_sort: 'ASC',
+			current_sort: null,
 			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit_readonly: true
 		},
@@ -36,7 +36,7 @@
 			api_request_name: null,
 			display_name: 'Date',
 			display_map_fn: (date_time: string) => new Date(date_time).toLocaleString(),
-			current_sort: null,
+			current_sort: 'DESC',
 			edit_type: {
 				type: 'datetime'
 			},
@@ -89,6 +89,7 @@
 		read_perms={['EXPENSES_READ']}
 		write_perms={['EXPENSES_WRITE']}
 		create_post_request={default_item}
+        delete_enabled={true}
 		{columns}
 	></CrudPanel>
 </div>
