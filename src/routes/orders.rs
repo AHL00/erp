@@ -456,7 +456,7 @@ pub(super) async fn preview_update_items(
     // Calculate stock deltas assuming that all current items are removed
     for item in current_items.iter() {
         create_stock_updates.push(CreateStockUpdate {
-            inventory_id: item.inventory_item.id,
+            inventory: item.inventory_item.clone(),
             delta: item.quantity,
             order_item_id: Some(item.id),
             order_id: Some(id),
@@ -471,7 +471,7 @@ pub(super) async fn preview_update_items(
         // Find and merge
         create_stock_updates
             .iter_mut()
-            .find(|update| update.inventory_id == req.inventory_item_id)
+            .find(|update| update.inventory.id == req.inventory_item_id)
             .map(|update| update.delta -= req.quantity);
 
         // Add new items
@@ -480,7 +480,7 @@ pub(super) async fn preview_update_items(
             .any(|item| item.inventory_item.id == req.inventory_item_id)
         {
             create_stock_updates.push(CreateStockUpdate {
-                inventory_id: req.inventory_item_id,
+                inventory: InventoryItem::from_db(req.inventory_item_id, &mut db).await?,
                 delta: -req.quantity,
                 order_item_id: None,
                 order_id: Some(id),
@@ -552,7 +552,7 @@ pub(super) async fn update_items(
     // Calculate stock deltas assuming that all current items are removed
     for item in current_items.iter() {
         create_stock_updates.push(CreateStockUpdate {
-            inventory_id: item.inventory_item.id,
+            inventory: item.inventory_item.clone(),
             delta: item.quantity,
             order_item_id: Some(item.id),
             order_id: Some(id),
@@ -567,7 +567,7 @@ pub(super) async fn update_items(
         // Find and merge
         create_stock_updates
             .iter_mut()
-            .find(|update| update.inventory_id == req.inventory_item_id)
+            .find(|update| update.inventory.id == req.inventory_item_id)
             .map(|update| update.delta -= req.quantity);
 
         // Add new items
@@ -576,7 +576,7 @@ pub(super) async fn update_items(
             .any(|item| item.inventory_item.id == req.inventory_item_id)
         {
             create_stock_updates.push(CreateStockUpdate {
-                inventory_id: req.inventory_item_id,
+                inventory: InventoryItem::from_db(req.inventory_item_id, &mut db).await?,
                 delta: -req.quantity,
                 order_item_id: None,
                 order_id: Some(id),
@@ -732,7 +732,7 @@ pub(super) async fn update_items(
         "#,
         )
         .bind(update.delta)
-        .bind(update.inventory_id)
+        .bind(update.inventory.id)
         .execute(&mut *transaction)
         .await;
 
@@ -758,7 +758,7 @@ pub(super) async fn update_items(
             RETURNING *
             "#,
         )
-        .bind(update.inventory_id)
+        .bind(update.inventory.id)
         .bind(update.created_by_user_id)
         .bind(update.delta)
         .bind(update.order_item_id)

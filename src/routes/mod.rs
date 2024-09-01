@@ -86,7 +86,7 @@ struct StockUpdate {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 struct CreateStockUpdate {
-    pub inventory_id: i32,
+    pub inventory: InventoryItem,
     pub created_by_user_id: i32,
     pub delta: i32,
     pub order_item_id: Option<i32>,

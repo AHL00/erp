@@ -9,6 +9,7 @@
 	import type { OrderPatchRequest } from '$bindings/OrderPatchRequest';
 	import type { OrderItemUpdateRequest } from '$bindings/OrderItemUpdateRequest';
 	import type { StockUpdate } from '$bindings/StockUpdate';
+    import type { CreateStockUpdate } from '$bindings/CreateStockUpdate';
 	import { toast } from '@zerodevx/svelte-toast';
 	import SearchDropdown from '../../../../components/SearchDropdown.svelte';
 	import FullscreenLoader from '../../../../components/FullscreenLoader.svelte';
@@ -135,53 +136,87 @@
 			}
 		}
 
-		api_call(`orders/${order_id}/items/update`, 'POST', update_requests)
-			.then((res) => {
+		api_call(`orders/${order_id}/items/update/preview`, 'POST', update_requests)
+			.then(async (res) => {
 				if (!res) {
-					toast.push('Failed to update order items');
+					toast.push('Failed to get stock update preview');
 					console.error('No response from server');
 					currently_saving_items = false;
 					return;
 				}
 
 				if (res?.ok) {
-					currently_saving_items = false;
+					let stock_updates: CreateStockUpdate[] = await res.json();
 
-					let prepull_editing_items = [...order_items_editing];
+                    let stock_updates_str = stock_updates.map((x) => {
+                        return `[${x.delta}]: ${x.inventory.name} (ID: ${x.inventory.id})`;
+                    }).join('\n');
 
-					// Pull latest order items just to be sure that it was actually updated
-					// If the status was ok, it should be updated, but just to be sure
-					load_items();
+					let confirmed = confirm(`Are you sure you want to save these changes?\n\n${stock_updates_str}`);
 
-					if (
-						compare_order_items(
-							prepull_editing_items.map((x) => x.order_item),
-							order_items
-						)
-					) {
-						toast.push('Failed to update order items');
-						console.error(
-							'Failed to update order items, patch was successful but order items were not updated'
-						);
+					if (!confirmed) {
+						currently_saving_items = false;
 						return;
 					}
 
-					toast.push('Order items saved successfully');
-					currently_saving_items = false;
+					api_call(`orders/${order_id}/items/update`, 'POST', update_requests)
+						.then((res) => {
+							if (!res) {
+								toast.push('Failed to update order items');
+								console.error('No response from server');
+								currently_saving_items = false;
+								return;
+							}
 
-					res
-						.json()
-						.then((data) => {
-							let stock_updates: StockUpdate[] = data;
+							if (res?.ok) {
+								currently_saving_items = false;
 
-							console.log(stock_updates);
+								let prepull_editing_items = [...order_items_editing];
+
+								// Pull latest order items just to be sure that it was actually updated
+								// If the status was ok, it should be updated, but just to be sure
+								load_items();
+
+								if (
+									compare_order_items(
+										prepull_editing_items.map((x) => x.order_item),
+										order_items
+									)
+								) {
+									toast.push('Failed to update order items');
+									console.error(
+										'Failed to update order items, patch was successful but order items were not updated'
+									);
+									return;
+								}
+
+								toast.push('Order items saved successfully');
+								currently_saving_items = false;
+
+								res
+									.json()
+									.then((data) => {
+										let stock_updates: StockUpdate[] = data;
+
+										console.log(stock_updates);
+									})
+									.catch((err) => {
+										console.error(err);
+									});
+							} else {
+								toast.push('Failed to update order items');
+								console.error('Failed to update order items');
+							}
 						})
 						.catch((err) => {
+							toast.push('Failed to update order items');
 							console.error(err);
+							currently_saving_items = false;
 						});
 				} else {
-					toast.push('Failed to update order items');
-					console.error('Failed to update order items');
+					toast.push('Failed to get stock update preview');
+					console.error('Failed to get stock update preview');
+					currently_saving_items = false;
 				}
 			})
 			.catch((err) => {
