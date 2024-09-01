@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   date_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
   amount NUMERIC(10, 2) NOT NULL,
   description TEXT,
+  description_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', description)) STORED,
   created_by_user_id INT NOT NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );

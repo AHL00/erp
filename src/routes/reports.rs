@@ -15,6 +15,7 @@ use crate::{
 };
 
 use super::{
+    expenses::{Expense, ExpenseRow},
     orders::{total, OrderMeta, OrderTotal},
     ApiError,
 };
@@ -67,7 +68,7 @@ pub(super) struct Report {
     start_date: chrono::DateTime<chrono::Utc>,
     end_date: chrono::DateTime<chrono::Utc>,
     orders: Vec<Order>,
-    expenses: Vec<((), ())>,
+    expenses: Vec<Expense>,
     purchases: Vec<((), ())>,
     data: HashMap<ReportRequestType, BigDecimal>,
 }
@@ -187,8 +188,16 @@ pub async fn create_report(
                 .collect()
         })?;
 
-    // TODO
-    let expenses = ();
+    let filters_sql_expenses = filters
+        .iter()
+        .map(|f| match f {
+            ReportFilter::UserId(id) => format!("AND expenses.created_by_user_id = {}", id),
+            _ => "".to_string(),
+        })
+        .collect::<Vec<String>>()
+        .join(" ");
+
+    let expenses: Vec<Expense> = todo!();
 
     // TODO
     let purchases = ();
@@ -233,4 +242,108 @@ pub async fn create_report(
     }
 
     Ok(rocket::serde::json::Json::from(res))
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub(super) enum ExpenseReportFilter {
+    UserId(i32),
+    /// Substring and full text search
+    DescriptionSearch(String),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct ExpenseReportRequest {
+    start_date: chrono::DateTime<chrono::Utc>,
+    end_date: chrono::DateTime<chrono::Utc>,
+    filters: Vec<ExpenseReportFilter>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct ExpenseReport {
+    start_date: chrono::DateTime<chrono::Utc>,
+    end_date: chrono::DateTime<chrono::Utc>,
+    expenses: Vec<Expense>,
+    total_expenses: BigDecimal,
+}
+
+#[rocket::post("/reports/create/expense", data = "<report_request>")]
+#[allow(private_interfaces)]
+pub(super) async fn create_expense_report(
+    mut db: DB,
+    report_request: rocket::serde::json::Json<ExpenseReportRequest>,
+    _auth: AuthGuard<{ UserPermissionEnum::REPORTS as u32 }>,
+) -> Result<rocket::serde::json::Json<ExpenseReport>, ApiError> {
+    let ExpenseReportRequest {
+        start_date,
+        end_date,
+        filters,
+    } = report_request.into_inner();
+
+    let start_date_naive = start_date.naive_utc();
+    let end_date_naive = end_date.naive_utc();
+
+    let mut filters_sql_expenses = filters
+        .iter()
+        .map(|f| match f {
+            ExpenseReportFilter::UserId(id) => format!("\nAND expenses.created_by_user_id = {}", id),
+            _ => "".to_string(),
+        })
+        .collect::<Vec<String>>()
+        .join(" ");
+
+    // text search
+    if filters
+        .iter()
+        .any(|f| matches!(f, ExpenseReportFilter::DescriptionSearch(_)))
+    {
+        filters_sql_expenses += "\nAND description @@ to_tsquery($3)";
+    }
+
+    let expenses_query_string = format!(
+        r#"
+    SELECT
+        expenses.id,
+        expenses.date_time,
+        expenses.description,
+        row_to_json(users) AS created_by_user,
+        expenses.amount
+    FROM expenses
+        INNER JOIN users ON expenses.created_by_user_id = users.id
+    WHERE date_time BETWEEN $1 AND $2
+    {}
+    "#,
+        filters_sql_expenses
+    );
+
+    let mut query = sqlx::query_as::<_, ExpenseRow>(expenses_query_string.as_str())
+        .bind(start_date_naive)
+        .bind(end_date_naive);
+
+    for filter in &filters {
+        match filter {
+            ExpenseReportFilter::DescriptionSearch(search) => {
+                query = query.bind(search);
+            }
+            _ => {}
+        }
+    }
+
+    let expenses: Vec<ExpenseRow> = query
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+
+    // Calculate expenses
+    let total_expenses: BigDecimal = expenses.iter().map(|e| e.amount.clone()).sum();
+
+    // Fill return data
+    Ok(rocket::serde::json::Json(ExpenseReport {
+        start_date,
+        end_date,
+        expenses: expenses.into_iter().map(Expense::from).collect(),
+        total_expenses,
+    }))
 }

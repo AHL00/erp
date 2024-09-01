@@ -59,6 +59,7 @@ pub fn routes() -> Vec<rocket::Route> {
         customers::patch,
         customers::search,
         reports::create_report,
+        reports::create_expense_report,
         expenses::get,
         expenses::count,
         expenses::list,
