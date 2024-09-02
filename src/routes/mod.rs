@@ -5,6 +5,7 @@ pub mod inventory;
 pub mod orders;
 pub mod reports;
 pub mod search;
+pub mod backup;
 
 pub mod public;
 
@@ -67,6 +68,7 @@ pub fn routes() -> Vec<rocket::Route> {
         expenses::post,
         expenses::patch,
         expenses::delete,
+        backup::backup,
         // customers::delete,
     ]
 }
