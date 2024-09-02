@@ -35,6 +35,7 @@
 	export let required: boolean = false;
 	export let validity_message: string = 'Select a value from the dropdown';
 	export let on_change: (val: ResultType) => void = () => {};
+    export let disabled = false;
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -62,6 +63,11 @@
 		on_change(selected);
 		close();
 	}
+
+    export function remove_selected_value() {
+        selected = null;
+        search_input.value = '';
+    }
 
 	function close() {
 		// If closed without selecting, reset the search input
@@ -214,12 +220,13 @@
 </script>
 
 <!-- TODO: BUG: Doesn't activate search if typing fast -->
-<div class="relative w-full">
+<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}">
 	<input
 		type="text"
 		bind:this={search_input}
 		autocomplete="off"
 		id={input_id}
+        disabled={disabled}
 		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto"
 		placeholder={input_placeholder}
 		on:click={() => {

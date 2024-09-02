@@ -7,7 +7,7 @@ import Main from "./Main.svelte"
 
     let current_tab = "orders";
 
-    function capitaliseFirstLetter(string) {
+    function capitaliseFirstLetter(string: string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 </script>

@@ -9,7 +9,7 @@
 	import type { OrderPatchRequest } from '$bindings/OrderPatchRequest';
 	import type { OrderItemUpdateRequest } from '$bindings/OrderItemUpdateRequest';
 	import type { StockUpdate } from '$bindings/StockUpdate';
-    import type { CreateStockUpdate } from '$bindings/CreateStockUpdate';
+	import type { CreateStockUpdate } from '$bindings/CreateStockUpdate';
 	import { toast } from '@zerodevx/svelte-toast';
 	import SearchDropdown from '../../../../components/SearchDropdown.svelte';
 	import FullscreenLoader from '../../../../components/FullscreenLoader.svelte';
@@ -39,7 +39,8 @@
 			retail: null,
 			amount_paid: null,
 			notes: null,
-			customer_id: null
+			customer_id: null,
+            set_customer_id_null: false
 		};
 
 		if (order_meta.notes !== order_meta_editing.notes) {
@@ -50,13 +51,22 @@
 			order_patch_req.amount_paid = order_meta_editing.amount_paid;
 		}
 
-		if (order_meta.customer.id !== order_meta_editing.customer.id) {
+		if (order_meta_editing.customer === null) {
+			order_patch_req.customer_id = null;
+		} else if (
+			order_meta.customer !== null &&
+			order_meta.customer.id !== order_meta_editing.customer.id
+		) {
 			order_patch_req.customer_id = order_meta_editing.customer.id;
 		}
 
 		if (order_meta.retail !== order_meta_editing.retail) {
 			order_patch_req.retail = order_meta_editing.retail;
 		}
+
+        if (order_patch_req.retail) {
+            order_patch_req.set_customer_id_null = true;
+        }
 
 		api_call(`orders/${order_id}`, 'PATCH', order_patch_req)
 			.then((res) => {
@@ -148,11 +158,15 @@
 				if (res?.ok) {
 					let stock_updates: CreateStockUpdate[] = await res.json();
 
-                    let stock_updates_str = stock_updates.map((x) => {
-                        return `[${x.delta}]: ${x.inventory.name} (ID: ${x.inventory.id})`;
-                    }).join('\n');
+					let stock_updates_str = stock_updates
+						.map((x) => {
+							return `[${x.delta}]: ${x.inventory.name} (ID: ${x.inventory.id})`;
+						})
+						.join('\n');
 
-					let confirmed = confirm(`Are you sure you want to save these changes?\n\n${stock_updates_str}`);
+					let confirmed = confirm(
+						`Are you sure you want to save these changes?\n\n${stock_updates_str}`
+					);
 
 					if (!confirmed) {
 						currently_saving_items = false;
@@ -241,8 +255,12 @@
 		// Spread to avoid copying the object as a reference
 		order_meta_editing = { ...x };
 
-		if (oif_customer !== undefined) {
-			oif_customer.set_selected_value(x.customer);
+		if (oif_customer) {
+			if (x.customer) {
+				oif_customer.set_selected_value(x.customer);
+			} else {
+                oif_customer.remove_selected_value();
+            }
 		}
 
 		if (oif_order_type_retail !== undefined && oif_order_type_wholesale !== undefined) {
@@ -437,12 +455,19 @@
 			return false;
 		}
 
+		let customer_same;
+
+		if (!a.customer && !b.customer) {
+			customer_same = true;
+		} else if (!a.customer || !b.customer) {
+			customer_same = false;
+		} else {
+			customer_same = a.customer.id === b.customer.id;
+		}
+
 		// Compare every field except id
 		return (
-			a.amount_paid === b.amount_paid &&
-			a.customer.id === b.customer.id &&
-			a.notes === b.notes &&
-			a.retail === b.retail
+			a.amount_paid === b.amount_paid && customer_same, a.notes === b.notes && a.retail === b.retail
 		);
 	}
 
@@ -526,7 +551,7 @@
 		}
 	}}
 >
-	<PermissionGuard permissions={['ORDERS_READ', 'ORDERS_WRITE']}>
+	<PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']}>
 		<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
 			<div
 				class="h-fit w-full p-3 space-y-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
@@ -570,6 +595,7 @@
 
 					<div class="flex flex-col w-1/2 h-fit space-y-3">
 						<SearchDropdown
+                            disabled={order_meta_editing && order_meta_editing.retail}
 							input_id="customer"
 							input_placeholder="Customer"
 							search_endpoint="customers/search"

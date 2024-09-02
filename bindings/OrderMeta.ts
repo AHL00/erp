@@ -9,4 +9,4 @@ export type OrderMeta = { id: number, date_time: string,
 /**
  * This will be false if the order is retail
  */
-customer: Customer, created_by_user: User, amount_paid: string, retail: boolean, notes: string, };
+customer: Customer | null, created_by_user: User, amount_paid: string, retail: boolean, fulfilled: boolean, notes: string, };

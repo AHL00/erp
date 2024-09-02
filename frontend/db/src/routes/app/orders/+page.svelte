@@ -55,8 +55,8 @@
 			api_name: 'customer',
 			api_request_name: 'customers.name',
 			display_name: 'Customer',
-			display_map_fn: (val: Customer) => {
-				return val.name;
+			display_map_fn: (val: Customer | null) => {
+				return val ? val.name : 'N/A';
 			},
 			current_sort: null,
 			edit_type: { type: 'none' },
@@ -92,6 +92,17 @@
 			current_sort: null,
 			edit_type: { type: 'none' },
 			edit_readonly: true
+		},
+		{
+			api_name: 'fulfilled',
+			api_request_name: null,
+			display_name: 'Fulfilled',
+			display_map_fn: (val: boolean) => {
+				return val ? 'Yes' : 'No';
+			},
+			current_sort: null,
+			edit_type: { type: 'none' },
+			edit_readonly: true
 		}
 	];
 
@@ -104,6 +115,12 @@
 
 	let currently_creating: boolean = false;
 
+	let order_type: string = 'wholesale';
+
+	$: {
+		console.log(order_type);
+	}
+
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
 		currently_creating = true;
@@ -115,17 +132,7 @@
 			return;
 		}
 
-		let customer_id = customer?.id;
-
-		if (!customer_id) {
-			currently_creating = false;
-			return;
-		}
-
-		let order_type = document.querySelector('input[name="order_type"]:checked');
-
-		// @ts-ignore
-		let order_type_val = order_type.value;
+		let customer_id: number | null = customer ? customer.id : null;
 
 		// @ts-ignore
 		let notes = document.querySelector('textarea').value;
@@ -134,8 +141,19 @@
 			amount_paid: '0.0',
 			customer_id: customer_id,
 			notes: notes,
-			retail: order_type_val === 'retail'
+			retail: order_type === 'retail',
+			fulfilled: false
 		};
+
+		if (order_type === 'retail') {
+			order_create_req.customer_id = null;
+		} else {
+			if (!customer_id) {
+				currently_creating = false;
+				toast.push('Please select a customer for wholesale orders');
+				return;
+			}
+		}
 
 		api_call('orders', 'POST', order_create_req)
 			.then((res) => {
@@ -209,6 +227,7 @@
 						form_id="order-create-form"
 						validity_message={'Select a customer from the dropdown'}
 						required={true}
+						disabled={order_type === 'retail'}
 						bind:this={customer_search_dropdown}
 					/>
 					<div class="flex flex-row w-full space-x-3 h-fit">
@@ -222,11 +241,17 @@
 						>
 							<span class="text-md">Order type:</span>
 							<label class="flex flex-row items-center space-x-2">
-								<input type="radio" name="order_type" value="retail" />
+								<input type="radio" name="order_type" value="retail" bind:group={order_type} />
 								<span class="text-md font-thin">Retail</span>
 							</label>
 							<label class="flex flex-row items-center space-x-2">
-								<input type="radio" name="order_type" value="wholesale" checked />
+								<input
+									type="radio"
+									name="order_type"
+									value="wholesale"
+									bind:group={order_type}
+									checked
+								/>
 								<span class="text-md font-thin">Wholesale</span>
 							</label>
 						</div>

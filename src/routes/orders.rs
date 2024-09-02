@@ -23,10 +23,11 @@ pub(super) struct OrderMeta {
     pub id: i32,
     pub date_time: sqlx::types::chrono::DateTime<chrono::Utc>,
     /// This will be false if the order is retail
-    pub customer: Customer,
+    pub customer: Option<Customer>,
     pub created_by_user: User,
     pub amount_paid: sqlx::types::BigDecimal,
     pub retail: bool,
+    pub fulfilled: bool,
     pub notes: String,
 }
 
@@ -42,10 +43,11 @@ pub(super) struct Order {
 pub(super) struct OrderMetaRow {
     id: i32,
     date_time: chrono::DateTime<chrono::Utc>,
-    customer: sqlx_core::types::Json<Customer>,
+    customer: Option<sqlx_core::types::Json<Customer>>,
     created_by_user: sqlx_core::types::Json<UserRow>,
     amount_paid: sqlx::types::BigDecimal,
     retail: bool,
+    fulfilled: bool,
     notes: String,
 }
 
@@ -56,9 +58,10 @@ impl From<OrderMetaRow> for OrderMeta {
         Self {
             id: row.id,
             date_time: row.date_time,
-            customer: row.customer.0,
+            customer: row.customer.map(|c| c.0),
             created_by_user: row.created_by_user.0.into(),
             amount_paid: row.amount_paid,
+            fulfilled: row.fulfilled,
             retail: row.retail,
             notes: row.notes,
         }
@@ -80,11 +83,12 @@ pub(super) async fn get(
             orders.date_time,
             orders.amount_paid,
             orders.retail,
+            orders.fulfilled,
             orders.notes,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
-            INNER JOIN customers ON orders.customer_id = customers.id
+            LEFT JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
         WHERE orders.id = $1
         "#,
@@ -214,10 +218,11 @@ pub(super) async fn list(
             orders.amount_paid,
             orders.retail,
             orders.notes,
+            orders.fulfilled,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
-            INNER JOIN customers ON orders.customer_id = customers.id
+            LEFT JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
         {}
         {}
@@ -264,16 +269,18 @@ pub(super) struct OrderItemUpdateRequest {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct OrderPostRequest {
-    pub customer_id: i32,
+    pub customer_id: Option<i32>,
     pub retail: bool,
     pub notes: String,
     pub amount_paid: sqlx::types::BigDecimal,
+    pub fulfilled: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
 pub(super) struct OrderPatchRequest {
     pub customer_id: Option<i32>,
+    pub set_customer_id_null: bool,
     pub retail: Option<bool>,
     pub notes: Option<String>,
     pub amount_paid: Option<sqlx::types::BigDecimal>,
@@ -291,8 +298,8 @@ pub(super) async fn post(
 
     let id: (i32,) = sqlx::query_as(
         r#"
-        INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, notes)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, notes, fulfilled)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
         "#,
     )
@@ -301,6 +308,7 @@ pub(super) async fn post(
     .bind(req.amount_paid)
     .bind(req.retail)
     .bind(req.notes)
+    .bind(req.fulfilled)
     .fetch_one(&mut **db)
     .await?;
 
@@ -398,6 +406,27 @@ pub(super) async fn patch(
         ),
         _ => e.into(),
     })?;
+
+    // Inefficient, but it's the easiest way
+    if req.set_customer_id_null {
+        sqlx::query(
+            r#"
+            UPDATE orders
+            SET customer_id = NULL
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .execute(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ApiError(
+                Status::BadRequest,
+                format!("Order with id {} not found", id),
+            ),
+            _ => e.into(),
+        })?;
+    }
 
     Ok(Status::NoContent)
 }
@@ -691,16 +720,13 @@ pub(super) async fn update_items(
     // order items that are not in the request,
     // remove them
     for current_item in &current_items {
-        if !requests
-            .iter()
-            .any(|req| {
-                if let Some(order_item_id) = req.order_item_id {
-                    order_item_id == current_item.id
-                } else {
-                    false
-                }
-            })
-        {
+        if !requests.iter().any(|req| {
+            if let Some(order_item_id) = req.order_item_id {
+                order_item_id == current_item.id
+            } else {
+                false
+            }
+        }) {
             log::info!("Deleting item: {:#?}", current_item);
             let res = sqlx::query(
                 r#"

@@ -134,10 +134,11 @@ pub async fn create_report(
             orders.amount_paid,
             orders.retail,
             orders.notes,
+            orders.fulfilled,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
-            INNER JOIN customers ON orders.customer_id = customers.id
+            LEFT JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
         WHERE date_time BETWEEN $1 AND $2
         {}
@@ -310,10 +311,11 @@ pub(super) async fn create_order_report(
             orders.amount_paid,
             orders.retail,
             orders.notes,
+            orders.fulfilled,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
-            INNER JOIN customers ON orders.customer_id = customers.id
+            LEFT JOIN customers ON orders.customer_id = customers.id
             INNER JOIN users ON orders.created_by_user_id = users.id
         WHERE date_time BETWEEN $1 AND $2
         {}

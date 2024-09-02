@@ -207,12 +207,12 @@
 											{order.created_by_user.username}
 										</div>
 									</div>
-                                    <div class="flex flex-col">
-                                        <div class="font-bold">Customer</div>
-                                        <div>
-                                            {order.customer.name}
-                                        </div>
-                                    </div>
+									<div class="flex flex-col">
+										<div class="font-bold">Customer</div>
+										<div>
+											{order.customer ? order.customer.name : 'N/A'}
+										</div>
+									</div>
 									<div class="flex flex-col">
 										<div class="font-bold">Date</div>
 										<div>
@@ -231,6 +231,18 @@
 										<div class="font-bold">Paid</div>
 										<div>
 											{order.amount_paid}
+										</div>
+									</div>
+									<div class="flex flex-col">
+										<div class="font-bold">Fulfilled</div>
+										<div>
+											{order.fulfilled ? 'Yes' : 'No'}
+										</div>
+									</div>
+									<div class="flex flex-col">
+										<div class="font-bold">Retail</div>
+										<div>
+											{order.retail ? 'Yes' : 'No'}
 										</div>
 									</div>
 								</div>
