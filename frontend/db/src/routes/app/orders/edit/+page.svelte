@@ -60,10 +60,26 @@
 			order_patch_req.customer_id = order_meta_editing.customer.id;
 		}
 
+        // This means wholesale, a customer is chosen.
+        if (order_meta_editing.customer) {
+            // If both are non-null and don't match, update
+            if (order_meta.customer) {
+                if (order_meta.customer.id !== order_meta_editing.customer.id) {
+                    order_patch_req.customer_id = order_meta_editing.customer.id;
+                }
+            }
+
+            // If the original customer was null, update
+            if (!order_meta.customer) {
+                order_patch_req.customer_id = order_meta_editing.customer.id;
+            }
+        }
+
 		if (order_meta.retail !== order_meta_editing.retail) {
 			order_patch_req.retail = order_meta_editing.retail;
 		}
 
+        // This means retail, remove customer no matter what
         if (order_patch_req.retail) {
             order_patch_req.set_customer_id_null = true;
         }
