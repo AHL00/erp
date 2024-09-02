@@ -6,10 +6,9 @@
 	import type { ExpenseReport } from '$bindings/ExpenseReport';
 	import type { Expense } from '$bindings/Expense';
 
-	import Loader from '../../../../components/Loader.svelte';
+	import Loader from '../../../components/Loader.svelte';
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
-	import SearchDropdown from '../../../../components/SearchDropdown.svelte';
 	import type { User } from '$bindings/User';
 
 	let data: ExpenseReportRequest = {
