@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS orders (
   amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   retail BOOLEAN NOT NULL DEFAULT FALSE,
   notes TEXT,
+  fulfilled BOOLEAN NOT NULL DEFAULT FALSE,
   FOREIGN KEY (customer_id) REFERENCES customers(id),
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );

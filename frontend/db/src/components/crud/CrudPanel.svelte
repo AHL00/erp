@@ -545,7 +545,7 @@
 			<!-- Table controls -->
 			<div class="inline-flex px-2 pt-3 pb-2 justify-start">
 				<PermissionGuard permissions={write_perms}>
-					{#if edit_override === null}
+					{#if edit_override === null && false}
 						<div class="mx-1">
 							<button
 								type="button"

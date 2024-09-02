@@ -1,10 +1,11 @@
 <script lang="ts">
     import Expense from "./Expense.svelte";
 import Main from "./Main.svelte"
+	import Orders from "./Orders.svelte";
 
-    const tabs = ["finance", "expenses", "balance"];
+    const tabs = ["expenses", "orders"];
 
-    let current_tab = "finance";
+    let current_tab = "orders";
 
     function capitaliseFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -43,10 +44,8 @@ import Main from "./Main.svelte"
     {#if current_tab === 'expenses'}
         <Expense/>
     {/if}
-    {#if current_tab === 'balance'}
-        <div>
-            <h1>Balance</h1>
-        </div>
+    {#if current_tab === 'orders'}
+        <Orders/>
     {/if}
 </div>
 

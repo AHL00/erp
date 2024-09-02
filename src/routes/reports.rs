@@ -58,8 +58,8 @@ pub(super) enum ReportFilter {
 pub(super) struct ReportRequest {
     start_date: chrono::DateTime<chrono::Utc>,
     end_date: chrono::DateTime<chrono::Utc>,
-    filters: Vec<ReportFilter>,
     report_types: Vec<ReportRequestType>,
+    filters: Vec<ReportFilter>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
@@ -246,6 +246,155 @@ pub async fn create_report(
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
+pub(super) enum OrderReportFilter {
+    UserId(i32),
+    CustomerId(i32),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct OrderReportRequest {
+    start_date: chrono::DateTime<chrono::Utc>,
+    end_date: chrono::DateTime<chrono::Utc>,
+    filters: Vec<OrderReportFilter>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub(super) struct OrderReport {
+    start_date: chrono::DateTime<chrono::Utc>,
+    end_date: chrono::DateTime<chrono::Utc>,
+    orders: Vec<Order>,
+    total_revenue: BigDecimal,
+    total_receivable: BigDecimal,
+}
+
+#[rocket::post("/reports/create/order", data = "<report_request>")]
+#[allow(private_interfaces)]
+pub(super) async fn create_order_report(
+    mut db: DB,
+    report_request: rocket::serde::json::Json<OrderReportRequest>,
+    _auth: AuthGuard<{ UserPermissionEnum::REPORTS as u32 }>,
+) -> Result<rocket::serde::json::Json<OrderReport>, ApiError> {
+    let OrderReportRequest {
+        start_date,
+        end_date,
+        filters,
+    } = report_request.into_inner();
+
+    let start_date_naive = start_date.naive_utc();
+    let end_date_naive = end_date.naive_utc();
+
+    let mut filters_sql_order_meta = filters
+        .iter()
+        .map(|f| match f {
+            OrderReportFilter::UserId(id) => format!("AND orders.created_by_user_id = {}", id),
+            OrderReportFilter::CustomerId(id) => format!("AND orders.customer_id = {}", id),
+        })
+        .collect::<Vec<String>>()
+        .join(" ");
+
+    #[derive(Debug, FromRow)]
+    struct OrderMetaRowWithItems {
+        #[sqlx(flatten)]
+        order_meta: OrderMetaRow,
+        items: sqlx_core::types::Json<Vec<OrderItemRow>>,
+    }
+
+    let orders_query_string = format!(
+        r#"
+    WITH order_meta AS (
+        SELECT 
+            orders.id,
+            orders.date_time,
+            orders.amount_paid,
+            orders.retail,
+            orders.notes,
+            row_to_json(customers) AS customer,
+            row_to_json(users) AS created_by_user
+        FROM orders
+            INNER JOIN customers ON orders.customer_id = customers.id
+            INNER JOIN users ON orders.created_by_user_id = users.id
+        WHERE date_time BETWEEN $1 AND $2
+        {}
+    )
+    SELECT
+        order_meta.*,
+        -- COALESCE is used to return an empty array if there are no items
+        COALESCE(
+            (
+                SELECT json_agg(
+                    json_build_object(
+                        'id', order_items.id,
+                        'inventory', row_to_json(inventory),
+                        'price', order_items.price,
+                        'quantity', order_items.quantity
+                    )
+                )
+                FROM order_items
+                    INNER JOIN inventory ON order_items.inventory_id = inventory.id
+                WHERE order_items.order_id = order_meta.id
+                {}
+            ), '[]'
+        ) AS items
+    FROM order_meta
+    "#,
+        filters_sql_order_meta, ""
+    );
+
+    let data: Vec<(OrderMeta, Vec<OrderItem>)> = sqlx::query_as(orders_query_string.as_str())
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))
+        .map(|rows: Vec<OrderMetaRowWithItems>| {
+            rows.into_iter()
+                .map(|row| {
+                    (
+                        OrderMeta::from(row.order_meta),
+                        row.items
+                            .0
+                            .into_iter()
+                            .map(|item| OrderItem::from(item))
+                            .collect(),
+                    )
+                })
+                .collect()
+        })?;
+
+    let mut total_revenue = BigDecimal::from(0);
+    let mut total_receivable = BigDecimal::from(0);
+    let mut orders = vec![];
+    for (order_meta, order_items) in data {
+        let order_total: BigDecimal = order_items
+            .iter()
+            .map(|item| &item.price * BigDecimal::from(item.quantity))
+            .sum();
+
+        let receivable = (&order_total - &order_meta.amount_paid).max(BigDecimal::from(0));
+        total_revenue += order_total;
+        total_receivable += receivable;
+
+        let order = Order {
+            meta: order_meta,
+            items: order_items,
+        };
+
+        orders.push(order);
+    }
+
+    Ok(rocket::serde::json::Json(OrderReport {
+        start_date,
+        end_date,
+        orders,
+        total_revenue,
+        total_receivable,
+    }))
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
 pub(super) enum ExpenseReportFilter {
     UserId(i32),
     /// Substring and full text search
@@ -288,7 +437,9 @@ pub(super) async fn create_expense_report(
     let mut filters_sql_expenses = filters
         .iter()
         .map(|f| match f {
-            ExpenseReportFilter::UserId(id) => format!("\nAND expenses.created_by_user_id = {}", id),
+            ExpenseReportFilter::UserId(id) => {
+                format!("\nAND expenses.created_by_user_id = {}", id)
+            }
             _ => "".to_string(),
         })
         .collect::<Vec<String>>()

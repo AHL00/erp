@@ -2,4 +2,4 @@
 import type { ReportFilter } from "./ReportFilter";
 import type { ReportRequestType } from "./ReportRequestType";
 
-export type ReportRequest = { start_date: string, end_date: string, filters: Array<ReportFilter>, report_types: Array<ReportRequestType>, };
+export type ReportRequest = { start_date: string, end_date: string, report_types: Array<ReportRequestType>, filters: Array<ReportFilter>, };

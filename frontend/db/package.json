@@ -37,6 +37,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"svelte-collapsible": "^0.3.0",
 		"ts-pattern": "^5.1.1"
 	}
 }
