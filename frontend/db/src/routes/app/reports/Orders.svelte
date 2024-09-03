@@ -176,9 +176,6 @@
 			<div class="flex flex-col space-y-3 w-full h-full">
 				<div class="flex flex-col space-y-3 w-full h-fit">
 					<CollapsibleCard>
-						<!-- <h1 slot="header" class="text-xl font-bold">
-							{report.orders.length} order{#if report.orders.length > 1}s{/if}
-						</h1> -->
 						<div
 							slot="header"
 							class="flex flex-row space-x-3 w-full h-fit collapsible-div-main"

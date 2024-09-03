@@ -69,6 +69,7 @@ pub fn routes() -> Vec<rocket::Route> {
         expenses::patch,
         expenses::delete,
         backup::backup,
+        // backup::restore,
         // customers::delete,
     ]
 }

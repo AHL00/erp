@@ -67,84 +67,90 @@
 	}
 </script>
 
-<PermissionGuard permissions={['ADMIN']}>
-	<div class="user-management">
-		<h1 class="title">User Management</h1>
+<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
+	<PermissionGuard permissions={['ADMIN']}>
+		<div class="w-full flex flex-row h-fit space-x-3">
+			<div
+				class="h-fit w-full p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+			>
+				<h1 class="title">User Management</h1>
 
-		<!-- Users list -->
-		<div style="overflow-y: auto; outline">
-			<table class="table is-fullwidth is-hoverable is-striped">
-				<thead>
-					<tr>
-						<th>Username</th>
-						<th>Permissions</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each users_list as user}
-						<tr>
-							<td>{user.username}</td>
-							<td>{user.permissions.join(', ')}</td>
-							<td>
-								<button class="button is-danger" on:click={() => delete_user(user.username)}
-									>Delete</button
-								>
-							</td>
-						</tr>
-						<!-- There will never be no users, therefore if users_list is empty, it means that the request is still loading -->
-					{:else}
-						<tr>
-							<td colspan="2">
-								<div class="skeleton-block"></div>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+				<!-- Users list -->
+				<div style="overflow-y: auto; outline">
+					<table class="table is-fullwidth is-hoverable is-striped">
+						<thead>
+							<tr>
+								<th>Username</th>
+								<th>Permissions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each users_list as user}
+								<tr>
+									<td>{user.username}</td>
+									<td>{user.permissions.join(', ')}</td>
+									<td>
+										<button class="button is-danger" on:click={() => delete_user(user.username)}
+											>Delete</button
+										>
+									</td>
+								</tr>
+								<!-- There will never be no users, therefore if users_list is empty, it means that the request is still loading -->
+							{:else}
+								<tr>
+									<td colspan="2">
+										<div class="skeleton-block"></div>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+
+				<div style="height: 2rem;"></div>
+
+				<!-- Add user -->
+				<div class="add-user">
+					<h2 class="subtitle">Add User</h2>
+					<div class="field">
+						<label class="label">Username</label>
+						<div class="control">
+							<input class="input" type="text" bind:value={username} />
+						</div>
+					</div>
+					<div class="field">
+						<label class="label">Password</label>
+						<div class="control">
+							<input class="input" type="password" bind:value={password} />
+						</div>
+					</div>
+					<div class="field">
+						<label class="label">Permissions</label>
+						<div class="control">
+							{#each permission_variants as permission}
+								<label class="checkbox">
+									<input type="checkbox" bind:group={permissions} value={permission} />
+									{permission}
+								</label>
+							{/each}
+						</div>
+					</div>
+					<div class="field">
+						<div class="control">
+							<button
+								class="button is-primary"
+								on:click={() => create_user(username, password, permissions)}
+							>
+								Add User
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
-		<div style="height: 2rem;"></div>
-
-		<!-- Add user -->
-		<div class="add-user">
-			<h2 class="subtitle">Add User</h2>
-			<div class="field">
-				<label class="label">Username</label>
-				<div class="control">
-					<input class="input" type="text" bind:value={username} />
-				</div>
-			</div>
-			<div class="field">
-				<label class="label">Password</label>
-				<div class="control">
-					<input class="input" type="password" bind:value={password} />
-				</div>
-			</div>
-			<div class="field">
-				<label class="label">Permissions</label>
-				<div class="control">
-					{#each permission_variants as permission}
-						<label class="checkbox">
-							<input type="checkbox" bind:group={permissions} value={permission} />
-							{permission}
-						</label>
-					{/each}
-				</div>
-			</div>
-			<div class="field">
-				<div class="control">
-					<button
-						class="button is-primary"
-						on:click={() => create_user(username, password, permissions)}
-					>
-						Add User
-					</button>
-				</div>
-			</div>
+		<div slot="denied">
+			<h1 class="title">You are not authorized to view this page</h1>
 		</div>
-	</div>
-
-	<div slot="denied">
-		<h1 class="title">You are not authorized to view this page</h1>
-	</div>
-</PermissionGuard>
+	</PermissionGuard>
+</div>

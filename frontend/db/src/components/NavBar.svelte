@@ -79,8 +79,18 @@
 			<span class="sidebar-label">Admin</span>
 		</button>
 
-		<div class="separator"></div>
 	</PermissionGuard>
+
+    <div class="separator"></div>
+
+    <PermissionGuard permissions={['MANAGE_DB']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/manage_db')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-database"></i>
+			</div>
+			<span class="sidebar-label">Database</span>
+		</button>
+    </PermissionGuard>
 
 	<div class="separator mt-auto"></div>
 

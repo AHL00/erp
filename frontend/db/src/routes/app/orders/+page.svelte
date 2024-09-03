@@ -117,10 +117,6 @@
 
 	let order_type: string = 'wholesale';
 
-	$: {
-		console.log(order_type);
-	}
-
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
 		currently_creating = true;
