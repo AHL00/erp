@@ -101,6 +101,7 @@ pub(super) async fn count(
 #[rocket::post("/inventory/list", data = "<req>")]
 pub(super) async fn list(
     mut db: DB,
+    #[allow(unused)]
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
     req: Json<ListRequest>,
 ) -> Result<Json<Vec<InventoryItem>>, ApiError> {
@@ -149,7 +150,8 @@ pub(super) async fn list(
 pub(super) async fn get(
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::INVENTORY_READ as u32 }>,
 ) -> Result<Json<InventoryItem>, ApiError> {
     let item = sqlx::query_as(
         r#"
@@ -178,7 +180,8 @@ pub(super) async fn get(
 pub(super) async fn post(
     item: Json<InventoryItemPostRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
 
@@ -207,7 +210,8 @@ pub(super) async fn patch(
     item: Json<InventoryItemPatchRequest>,
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = item.into_inner();
 
@@ -274,7 +278,8 @@ pub(super) async fn patch(
 pub(super) async fn search(
     req: Json<SearchRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_READ as u32 }>,
 ) -> Result<Json<Vec<InventoryItem>>, ApiError> {
     let req = req.into_inner();
 

@@ -1,9 +1,9 @@
 use rocket::http::Status;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Acquire};
+use sqlx::prelude::FromRow;
 
 use crate::{
-    db::{FromDB, DB},
+    db::DB,
     routes::{
         auth::{AuthGuard, UserRow},
         ListRequest,
@@ -11,7 +11,7 @@ use crate::{
     types::permissions::UserPermissionEnum,
 };
 
-use super::{auth::User, inventory::InventoryItem, ApiError, ApiReturn, SqlType};
+use super::{auth::User, ApiError, ApiReturn, SqlType};
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
 #[ts(export)]
@@ -149,7 +149,8 @@ pub(super) struct ExpensePostRequest {
 #[rocket::post("/expenses", data = "<expense>")]
 pub(super) async fn post(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
     expense: rocket::serde::json::Json<ExpensePostRequest>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let req = expense.into_inner();
@@ -163,7 +164,7 @@ pub(super) async fn post(
     )
     .bind(&req.description)
     .bind(&req.amount)
-    .bind(_auth.auth_info.user.id)
+    .bind(auth.auth_info.user.id)
     .fetch_one(&mut **db)
     .await?;
 
@@ -180,7 +181,8 @@ pub(super) struct ExpensePatchRequest {
 #[rocket::patch("/expenses/<id>", data = "<expense>")]
 pub(super) async fn patch(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
     id: i32,
     expense: rocket::serde::json::Json<ExpensePatchRequest>,
 ) -> Result<Status, ApiError> {
@@ -242,7 +244,8 @@ pub(super) async fn patch(
 #[rocket::delete("/expenses/<id>")]
 pub(super) async fn delete(
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    #[allow(unused)]
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
     id: i32,
 ) -> Result<Status, ApiError> {
     sqlx::query("DELETE FROM expenses WHERE id = $1")

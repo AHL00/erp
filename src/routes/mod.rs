@@ -6,6 +6,7 @@ pub mod orders;
 pub mod reports;
 pub mod search;
 pub mod backup;
+pub mod settings;
 
 pub mod public;
 
@@ -25,8 +26,6 @@ use sqlx::{
     query::{Query, QueryAs},
     Postgres,
 };
-
-use crate::db::FromDB;
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![
@@ -69,6 +68,10 @@ pub fn routes() -> Vec<rocket::Route> {
         expenses::patch,
         expenses::delete,
         backup::backup,
+        settings::get_all,
+        settings::get,
+        settings::get_multiple,
+        settings::set,
         // backup::restore,
         // customers::delete,
     ]

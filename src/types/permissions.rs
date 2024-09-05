@@ -17,6 +17,7 @@ pub enum UserPermissionEnum {
     EXPENSES_WRITE = 0b0010_0000_0000,
     REPORTS = 0b0100_0000_0000,
     MANAGE_DB = 0b1000_0000_0000,
+    SETTINGS = 0b0001_0000_0000_0000,
     ADMIN = 0xFFFF_FFFF,
 }
 
@@ -35,6 +36,7 @@ const PERMISSION_VARIANTS: &'static [UserPermissionEnum] = &[
     UserPermissionEnum::EXPENSES_WRITE,
     UserPermissionEnum::REPORTS,
     UserPermissionEnum::MANAGE_DB,
+    UserPermissionEnum::SETTINGS,
     UserPermissionEnum::ADMIN,
 ];
 

@@ -92,7 +92,19 @@
 		</button>
     </PermissionGuard>
 
+    <div class="separator"></div>
+
+    <PermissionGuard permissions={['SETTINGS']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/settings')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-sliders"></i>
+			</div>
+			<span class="sidebar-label">Settings</span>
+		</button>
+    </PermissionGuard>
+
 	<div class="separator mt-auto"></div>
+
 
 	<button class="sidebar-item" on:click={logout}>
 		<div class="sidebar-icon">

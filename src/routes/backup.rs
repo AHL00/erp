@@ -1,15 +1,9 @@
-use rocket::{futures::StreamExt, http::Status, outcome};
-use sqlx::Acquire;
-
-use crate::{
-    db::{self, DB},
-    types::permissions::UserPermissionEnum,
-};
+use crate::types::permissions::UserPermissionEnum;
 
 use super::{auth::AuthGuard, ApiError};
 
 #[rocket::get("/db/backup")]
-pub async fn backup(
+pub(super) async fn backup(
     _auth: AuthGuard<{ UserPermissionEnum::MANAGE_DB as u32 }>,
 ) -> Result<String, ApiError> {
     let db_url = std::env::var("ROCKET_DATABASES");

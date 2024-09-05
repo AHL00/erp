@@ -107,4 +107,10 @@ CREATE TABLE IF NOT EXISTS stock_updates (
     purchase_id INT,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id),
     FOREIGN KEY (inventory_id) REFERENCES inventory(id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+    id SERIAL PRIMARY KEY,
+    key TEXT UNIQUE NOT NULL,
+    value JSON NOT NULL
+);

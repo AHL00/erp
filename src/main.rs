@@ -3,6 +3,7 @@ use rocket_db_pools::Database;
 
 pub mod db;
 pub mod env;
+pub mod settings;
 pub mod routes;
 
 pub mod types;

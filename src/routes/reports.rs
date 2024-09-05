@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bigdecimal::BigDecimal;
-use rocket::{http::Status, time::Date};
+use rocket::http::Status;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
@@ -9,14 +9,14 @@ use crate::{
     db::DB,
     routes::{
         auth::AuthGuard,
-        orders::{get_order_total, Order, OrderItem, OrderItemRow, OrderMetaRow},
+        orders::{Order, OrderItem, OrderItemRow, OrderMetaRow},
     },
     types::permissions::UserPermissionEnum,
 };
 
 use super::{
     expenses::{Expense, ExpenseRow},
-    orders::{total, OrderMeta, OrderTotal},
+    orders::OrderMeta,
     ApiError,
 };
 
