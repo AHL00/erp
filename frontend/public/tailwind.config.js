@@ -14,7 +14,7 @@ export default {
 				'custom-light': '#f9f9f9',
 				'custom-lighter': '#ffffff',
 				'custom-light-shadow': '#dddddd',
-				'custom-light-outline': '#f0f0f0',
+				'custom-light-outline': '#e5e5e5',
 				'custom-text-light': '#181818',
 				'custom-text-light-darker': '#121212',
 				'custom-text-light-lighter': '#888888'
