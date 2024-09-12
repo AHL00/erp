@@ -112,5 +112,7 @@ CREATE TABLE IF NOT EXISTS stock_updates (
 CREATE TABLE IF NOT EXISTS settings (
     id SERIAL PRIMARY KEY,
     key TEXT UNIQUE NOT NULL,
-    value JSON NOT NULL
+    long_name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    value JSONB NOT NULL
 );

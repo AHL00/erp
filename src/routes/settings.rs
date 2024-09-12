@@ -2,7 +2,9 @@ use rocket::{http::Status, serde::json::Json};
 
 use crate::{
     db::DB,
-    settings::{ensure_settings_exist, get_setting, get_settings, set_setting, Setting, SettingRow},
+    settings::{
+        ensure_settings_exist, get_setting, get_settings, set_setting, Setting, SettingRow,
+    },
 };
 
 use super::ApiError;
@@ -11,7 +13,7 @@ use super::ApiError;
 pub(super) async fn get_all(mut db: DB) -> Result<Json<Vec<Setting>>, ApiError> {
     let settings = sqlx::query_as::<_, SettingRow>(
         r#"
-        SELECT key, value
+        SELECT key, long_name, description, value
         FROM settings
         ORDER BY key
         "#,
@@ -38,7 +40,7 @@ pub(super) async fn get_all(mut db: DB) -> Result<Json<Vec<Setting>>, ApiError> 
 
     let settings = sqlx::query_as::<_, SettingRow>(
         r#"
-        SELECT key, value
+        SELECT key, long_name, description, value
         FROM settings
         ORDER BY key
         "#,
@@ -56,7 +58,7 @@ pub(super) async fn get_all(mut db: DB) -> Result<Json<Vec<Setting>>, ApiError> 
 }
 
 #[rocket::get("/settings/get_one/<key>")]
-pub(super) async fn get(key: String, mut db: DB) -> Result<Json<Setting>, ApiError> {
+pub(super) async fn get(key: &str, mut db: DB) -> Result<Json<Setting>, ApiError> {
     let setting = get_setting(&mut db, key).await?;
 
     if let Some(setting) = setting {
@@ -77,11 +79,7 @@ pub(super) async fn get_multiple(
     settings: Json<MultipleSettingsRequest>,
     mut db: DB,
 ) -> Result<Json<Vec<Setting>>, ApiError> {
-    let keys = settings
-        .0
-         .keys
-        .into_iter()
-        .collect::<Vec<_>>();
+    let keys = settings.0.keys.into_iter().collect::<Vec<_>>();
 
     let settings = get_settings(&mut db, keys).await?;
 
@@ -89,10 +87,7 @@ pub(super) async fn get_multiple(
 }
 
 #[rocket::post("/settings/set", data = "<setting>")]
-pub(super) async fn set(
-    setting: Json<Setting>,
-    mut db: DB,
-) -> Result<(), ApiError> {
+pub(super) async fn set(setting: Json<Setting>, mut db: DB) -> Result<(), ApiError> {
     set_setting(&mut db, setting.0.into()).await?;
 
     Ok(())

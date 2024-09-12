@@ -1,51 +1,100 @@
-use std::sync::LazyLock;
-
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 
 use crate::db::DB;
 
-fn default_settings() -> Vec<(&'static str, SettingType)> {
+fn default_settings() -> Vec<Setting> {
     vec![
-        ("Business Name", SettingType::Text("___".to_string())),
-        ("Business Address", SettingType::Text("___".to_string())),
-        ("Business Phone Numbers", SettingType::TextVec(vec![])),
-        ("Currency Prefix", SettingType::Text("".to_string())),
-        ("Currency Suffix", SettingType::Text("".to_string())),
-        ("Currency Decimal Places", SettingType::Int(2)),
-        (
-            "Currency Decimal Separator",
-            SettingType::Text(".".to_string()),
-        ),
-        (
-            "Currency Thousand Separator",
-            SettingType::Text(",".to_string()),
-        ),
+        Setting {
+            key: "business_name".to_string(),
+            long_name: "Business Name".to_string(),
+            description: None,
+            value: SettingValue::Text("___".to_string()),
+        },
+        Setting {
+            key: "business_address".to_string(),
+            long_name: "Business Address".to_string(),
+            description: None,
+            value: SettingValue::Text("___".to_string()),
+        },
+        Setting {
+            key: "business_phone_numbers".to_string(),
+            long_name: "Business Phone Numbers".to_string(),
+            description: None,
+            value: SettingValue::TextVec(vec![]),
+        },
+        Setting {
+            key: "currency_prefix".to_string(),
+            long_name: "Currency Prefix".to_string(),
+            description: None,
+            value: SettingValue::Text("".to_string()),
+        },
+        Setting {
+            key: "currency_suffix".to_string(),
+            long_name: "Currency Suffix".to_string(),
+            description: None,
+            value: SettingValue::Text("".to_string()),
+        },
+        Setting {
+            key: "currency_decimal_places".to_string(),
+            long_name: "Currency Decimal Places".to_string(),
+            description: None,
+            value: SettingValue::Int(2),
+        },
+        Setting {
+            key: "currency_decimal_separator".to_string(),
+            long_name: "Currency Decimal Separator".to_string(),
+            description: None,
+            value: SettingValue::Text(".".to_string()),
+        },
+        Setting {
+            key: "currency_thousand_separator".to_string(),
+            long_name: "Currency Thousand Separator".to_string(),
+            description: None,
+            value: SettingValue::Text(",".to_string()),
+        },
+        Setting {
+            key: "logo_high_resolution".to_string(),
+            long_name: "Logo High Resolution".to_string(),
+            description: None,
+            value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_high_res.txt").to_string()),
+        },
+        Setting {
+            key: "logo_low_resolution".to_string(),
+            long_name: "Logo Low Resolution".to_string(),
+            description: None,
+            value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_low_res.txt").to_string()),
+        },
     ]
 }
 
 #[derive(Serialize, Deserialize, Debug, ts_rs::TS)]
 #[ts(export)]
-pub enum SettingType {
+pub enum SettingValue {
     Boolean(bool),
     Text(String),
     Int(i32),
     Float(f32),
     UnsignedInt(u32),
     Decimal(BigDecimal),
+    ImageBase64URI(String),
     TextVec(Vec<String>),
 }
 
 #[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
 pub struct SettingRow {
-    key: String,
-    value: sqlx::types::Json<SettingType>,
+    pub key: String,
+    pub long_name: String,
+    pub description: Option<String>,
+    pub value: sqlx::types::Json<SettingValue>,
 }
 
 impl From<Setting> for SettingRow {
     fn from(setting: Setting) -> Self {
         Self {
             key: setting.key,
+            long_name: setting.long_name,
+            description: setting.description,
             value: sqlx::types::Json(setting.value),
         }
     }
@@ -55,36 +104,19 @@ impl From<Setting> for SettingRow {
 #[ts(export)]
 pub struct Setting {
     pub key: String,
-    pub value: SettingType,
+    pub long_name: String,
+    pub description: Option<String>,
+    pub value: SettingValue,
 }
 
 impl From<SettingRow> for Setting {
     fn from(row: SettingRow) -> Self {
         Self {
             key: row.key,
+            long_name: row.long_name,
+            description: row.description,
             value: row.value.0,
         }
-    }
-}
-
-impl SettingRow {
-    pub fn new(key: &str, value: SettingType) -> Self {
-        Self {
-            key: key.to_string(),
-            value: sqlx::types::Json(value),
-        }
-    }
-
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    pub fn value(&self) -> &SettingType {
-        &self.value
-    }
-
-    pub fn value_json(&self) -> &sqlx::types::Json<SettingType> {
-        &self.value
     }
 }
 
@@ -110,18 +142,21 @@ async fn create_default_settings(db: &mut DB) -> Result<(), sqlx::Error> {
 
     let default_settings = default_settings();
 
-    for (key, value) in default_settings {
-        let setting = SettingRow::new(key, value);
+    for setting in default_settings {
+        let setting_row = SettingRow::from(setting);
+
         sqlx::query(
             r#"
-            INSERT INTO settings (key, value)
-            VALUES ($1, $2)
+            INSERT INTO settings (key, long_name, description, value)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (key) DO UPDATE
-            SET value = $2
+            SET value = $4
             "#,
         )
-        .bind(setting.key())
-        .bind(setting.value_json())
+        .bind(setting_row.key)
+        .bind(setting_row.long_name)
+        .bind(setting_row.description)
+        .bind(setting_row.value)
         .execute(&mut ***db)
         .await?;
     }
@@ -129,12 +164,12 @@ async fn create_default_settings(db: &mut DB) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub async fn get_setting(db: &mut DB, key: String) -> Result<Option<Setting>, sqlx::Error> {
+pub async fn get_setting(db: &mut DB, key: &str) -> Result<Option<Setting>, sqlx::Error> {
     ensure_settings_exist(db).await?;
 
     let setting = sqlx::query_as::<_, SettingRow>(
         r#"
-        SELECT key, value
+        SELECT key, long_name, description, value
         FROM settings
         WHERE key = $1
         "#,
@@ -151,7 +186,7 @@ pub async fn get_settings(db: &mut DB, keys: Vec<String>) -> Result<Vec<Setting>
 
     let query_str = &format!(
         r#"
-    SELECT key, value
+    SELECT key, long_name, description, value
     FROM settings
     WHERE key IN ({})
     ORDER BY key
@@ -179,7 +214,7 @@ pub async fn get_all_settings(db: &mut DB) -> Result<Vec<Setting>, sqlx::Error> 
 
     let settings = sqlx::query_as::<_, SettingRow>(
         r#"
-        SELECT key, value
+        SELECT key, long_name, description, value
         FROM settings
         ORDER BY key
         "#,
@@ -195,21 +230,23 @@ pub async fn set_setting(db: &mut DB, setting: SettingRow) -> Result<(), sqlx::E
 
     sqlx::query(
         r#"
-        INSERT INTO settings (key, value)
-        VALUES ($1, $2)
+        INSERT INTO settings (key, long_name, description, value)
+        VALUES ($1, $2, $3, $4)
         ON CONFLICT (key) DO UPDATE
-        SET value = $2
+        SET value = $4
         "#,
     )
-    .bind(setting.key())
-    .bind(setting.value_json())
+    .bind(setting.key)
+    .bind(setting.long_name)
+    .bind(setting.description)
+    .bind(setting.value)
     .execute(&mut ***db)
     .await?;
 
     Ok(())
 }
 
-pub async fn delete_setting(db: &mut DB, key: String) -> Result<(), sqlx::Error> {
+pub async fn delete_setting(db: &mut DB, key: &str) -> Result<(), sqlx::Error> {
     ensure_settings_exist(db).await?;
 
     sqlx::query(
