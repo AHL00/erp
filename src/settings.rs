@@ -10,13 +10,18 @@ fn default_settings() -> Vec<Setting> {
             key: "business_name".to_string(),
             long_name: "Business Name".to_string(),
             description: None,
-            value: SettingValue::Text("___".to_string()),
+            value: SettingValue::Text("Business Name".to_string()),
         },
         Setting {
             key: "business_address".to_string(),
             long_name: "Business Address".to_string(),
             description: None,
-            value: SettingValue::Text("___".to_string()),
+            value: SettingValue::Text("123 Business Avenue".to_string()),
+        },Setting {
+            key: "business_email".to_string(),
+            long_name: "Business Email".to_string(),
+            description: None,
+            value: SettingValue::Text("business@gmail.com".to_string()),
         },
         Setting {
             key: "business_phone_numbers".to_string(),
@@ -57,15 +62,21 @@ fn default_settings() -> Vec<Setting> {
         Setting {
             key: "logo_high_resolution".to_string(),
             long_name: "Logo High Resolution".to_string(),
-            description: None,
+            description: Some("High resolution logo used in places like invoices. 512x512 recommended.".to_string()),
             value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_high_res.txt").to_string()),
         },
         Setting {
             key: "logo_low_resolution".to_string(),
             long_name: "Logo Low Resolution".to_string(),
-            description: None,
+            description: Some("Low resolution logo used in places like browser icons. 128x128 recommended.".to_string()),
             value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_low_res.txt").to_string()),
         },
+        Setting {
+            key: "theme_color".to_string(),
+            long_name: "Theme Color".to_string(),
+            description: Some("Primary theme color in hex".to_string()),
+            value: SettingValue::Text("#d3d3d3".to_string()),
+        }
     ]
 }
 

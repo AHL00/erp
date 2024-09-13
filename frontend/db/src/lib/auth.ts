@@ -83,7 +83,7 @@ export async function refreshAuthStatus(): Promise<boolean> {
 					// This means the user is not logged in
 					auth_info_store.set(null);
 					auth_status_store.set(auth_status.NOT_AUTHENTICATED);
-					goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
+					goto('/login?redirect=' + encodeURIComponent(window.location.href));
 					resolve(false);
 				} else {
 					// If there's an error, it's probably safe to log out. This still leaves the cookie.
@@ -93,7 +93,7 @@ export async function refreshAuthStatus(): Promise<boolean> {
 						'Failed to fetch auth status for unknown reason: HTTP code ' + response?.status
 					);
 					// Redirect to login page
-					goto('/login?redirect=' + encodeURIComponent(window.location.pathname));
+					goto('/login?redirect=' + encodeURIComponent(window.location.href));
 					resolve(false);
 				}
 			})

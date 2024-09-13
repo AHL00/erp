@@ -4,6 +4,7 @@
 	import NavBar from '../../components/NavBar.svelte';
 	import Loader from '../../components/Loader.svelte';
 	import FullscreenLoader from '../../components/FullscreenLoader.svelte';
+	import { showNavbar } from '../../stores/navbarStore';
 
 	// let authenticated = false
 	// while (!authenticated) {
@@ -56,6 +57,9 @@
 	// }
 
 	onMount(() => {
+        // Enable by default
+        showNavbar.set(true);
+
 		refreshAuthStatus();
 
 		auth_status_store.subscribe((status) => {
@@ -98,7 +102,9 @@
 <FullscreenLoader blur_background={true} custom_classes="rounded-2xl" bind:this={loader} />
 {#if $auth_info_store !== null && $auth_status_store === auth_status.AUTHENTICATED}
 	<div style="display: flex; flex-direction: row; height: 100vh;">
-		<NavBar />
+        {#if $showNavbar}
+            <NavBar />
+        {/if}
 
 		<div class="flex-grow">
 			<slot />
