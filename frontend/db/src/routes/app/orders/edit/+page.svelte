@@ -16,11 +16,13 @@
 	import PermissionGuard from '../../../../components/PermissionGuard.svelte';
 	import type { Customer } from '$bindings/Customer';
 	import type { InventoryItem } from '$bindings/InventoryItem';
-    
+
 	import { showNavbar } from '../../../../stores/navbarStore';
-    onMount(async () => {
+	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
+	import { beforeNavigate } from '$app/navigation';
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	let query_params = new URLSearchParams(window.location.search);
 	let loader: FullscreenLoader;
@@ -532,6 +534,17 @@
 
 	let save_button: HTMLButtonElement;
 
+	beforeNavigate(({ cancel }) => {
+		if (!save_button.disabled) {
+			// Remind user they have unsaved changes
+			let confirmed = confirm('You have unsaved changes, are you sure you want to leave?');
+			if (confirmed) {
+			} else {
+				cancel();
+			}
+		}
+	});
+
 	$: {
 		// If error, retry fetching order
 		if (loading_info_retry) {
@@ -799,7 +812,7 @@
 												data.order_item.price = value.price;
 												data.order_item.inventory_item = value;
 
-                                                console.log("on change")
+												console.log('on change');
 											}}
 											on_initial_value={(value) => {}}
 										/>
@@ -879,7 +892,7 @@
 
 			<!-- Bottom section -->
 			<div
-				class="w-full h-fit p-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-col"
+				class="w-full h-fit p-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark mb-3 flex flex-row justify-start items-end space-x-3"
 			>
 				{#if currently_saving_items}
 					<div class="w-full h-full absolute left-0 z-30">
@@ -891,18 +904,56 @@
 							text={'Saving order items'}
 						/>
 					</div>
-				{:else if !compare_order_meta(order_meta, order_meta_editing) || !compare_order_items( order_items, order_items_editing.map((x) => x.order_item) )}
-					<button
-						form="order-edit-form"
-						type="submit"
-						id="save-order-button"
-						bind:this={save_button}
-						class="bg-green-500 text-white px-2 py-1 rounded-md"
-					>
-						<i class="fas fa-save"></i>
-						Save
-					</button>
 				{/if}
+
+				<button
+					id="view-order-button"
+					class="bg-green-500 text-white px-2 py-1 rounded-md"
+					on:click={() => {
+						window.location.href = `/app/orders/invoice?id=${order_id}`;
+					}}
+				>
+					<i class="fas fa-file-invoice pr-1"></i>
+					View invoice
+				</button>
+
+				<button
+					form="order-edit-form"
+					type="submit"
+					id="save-order-button"
+					bind:this={save_button}
+					class="bg-green-500
+                    text-white px-2 py-1 rounded-md
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    "
+					disabled={!(
+						!compare_order_meta(order_meta, order_meta_editing) ||
+						!compare_order_items(
+							order_items,
+							order_items_editing.map((x) => x.order_item)
+						) ||
+						currently_saving_meta ||
+						currently_saving_items
+					)}
+				>
+					<i class="fas fa-save pr-1"></i>
+					Save
+				</button>
+
+				<div class="flex flex-col flex-grow justify-center items-end space-y-1">
+					<span
+						class="text-md text-custom-text-light-darker dark:text-custom-text-dark-lighter font-bold"
+						>Total</span
+					>
+
+					<CurrencySpan
+						custom_class="text-2xl"
+						value={order_items_editing.reduce(
+							(acc, x) => acc + parseFloat(x.order_item.price) * x.order_item.quantity,
+							0
+						)}
+					/>
+				</div>
 			</div>
 		</div>
 	</PermissionGuard>
