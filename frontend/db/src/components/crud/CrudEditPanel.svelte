@@ -71,8 +71,8 @@
 		let malformed = false;
 
 		for (let column of columns) {
-			if (column.edit_readonly) continue;
-			if (column.edit_type.type == 'none') continue;
+			if (column.readonly) continue;
+			if (column.type.type == 'none') continue;
 
 			let value = data[column.api_name];
 
@@ -80,8 +80,8 @@
 			// @ts-ignore
 			if (value == current_editing_item[column.api_name]) continue;
 
-			if (column.edit_type.type == 'number') {
-				let num = column.edit_type.data.integer
+			if (column.type.type == 'number') {
+				let num = column.type.data.integer
 					? parseInt(value as string)
 					: parseFloat(value as string);
 
@@ -91,63 +91,63 @@
 					return;
 				}
 
-				if (column.edit_type.data.integer && !Number.isInteger(num)) {
+				if (column.type.data.integer && !Number.isInteger(num)) {
 					toast.push(`${column.display_name} must be a whole number`);
 					saving_loading_counter--;
 					return;
 				}
 
-				if (column.edit_type.data.range[1] != null && num > column.edit_type.data.range[1]) {
+				if (column.type.data.range[1] != null && num > column.type.data.range[1]) {
 					toast.push(
-						`${column.display_name} must be less than or equal to ${column.edit_type.data.range[1]}`
+						`${column.display_name} must be less than or equal to ${column.type.data.range[1]}`
 					);
 					saving_loading_counter--;
 					return;
 				}
 
-				if (column.edit_type.data.range[0] != null && num < column.edit_type.data.range[0]) {
+				if (column.type.data.range[0] != null && num < column.type.data.range[0]) {
 					toast.push(
-						`${column.display_name} must be greater than or equal to ${column.edit_type.data.range[0]}`
+						`${column.display_name} must be greater than or equal to ${column.type.data.range[0]}`
 					);
 					saving_loading_counter--;
 					return;
 				}
 
-				if (num % column.edit_type.data.step != 0) {
-					toast.push(`${column.display_name} must be a multiple of ${column.edit_type.data.step}`);
+				if (num % column.type.data.step != 0) {
+					toast.push(`${column.display_name} must be a multiple of ${column.type.data.step}`);
 					saving_loading_counter--;
 					return;
 				}
 
 				request[column.api_name] = num;
-			} else if (column.edit_type.type == 'string') {
+			} else if (column.type.type == 'string') {
 				let value_str = value as string;
 
-				if (value_str.length < column.edit_type.data.length_range[0]) {
+				if (value_str.length < column.type.data.length_range[0]) {
 					toast.push(
-						`${column.display_name} must be at least ${column.edit_type.data.length_range[0]} characters long`
+						`${column.display_name} must be at least ${column.type.data.length_range[0]} characters long`
 					);
 					saving_loading_counter--;
 					return;
 				}
 
 				if (
-					column.edit_type.data.length_range[1] != null &&
-					value_str.length > column.edit_type.data.length_range[1]
+					column.type.data.length_range[1] != null &&
+					value_str.length > column.type.data.length_range[1]
 				) {
 					toast.push(
-						`${column.display_name} must be at most ${column.edit_type.data.length_range[1]} characters long`
+						`${column.display_name} must be at most ${column.type.data.length_range[1]} characters long`
 					);
 					saving_loading_counter--;
 					return;
 				}
 
 				if (
-					column.edit_type.data.regex != null &&
-					!new RegExp(column.edit_type.data.regex).test(value_str)
+					column.type.data.regex != null &&
+					!new RegExp(column.type.data.regex).test(value_str)
 				) {
 					toast.push(
-						`${column.display_name} must match the pattern ${column.edit_type.data.regex}`
+						`${column.display_name} must match the pattern ${column.type.data.regex}`
 					);
 					saving_loading_counter--;
 					return;
@@ -223,37 +223,37 @@
 			<!-- TODO: Reset buttons beside each field -->
 
 			{#each columns as column, j}
-				{#if column.edit_type.type != 'none'}
+				{#if column.type.type != 'none'}
 					<div class="flex flex-row space-x-2">
 						<label for={column.api_name}>{column.display_name}</label>
-						{#if column.edit_type.type == 'number'}
+						{#if column.type.type == 'number'}
 							<input
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
 								class="flex-grow"
 								type="number"
 								name={column.api_name}
-								readonly={column.edit_readonly}
-								disabled={column.edit_readonly}
+								readonly={column.readonly}
+								disabled={column.readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
-								min={column.edit_type.data.range[0]}
-								max={column.edit_type.data.range[1]}
-								step={column.edit_type.data.step}
+								min={column.type.data.range[0]}
+								max={column.type.data.range[1]}
+								step={column.type.data.step}
 							/>
-						{:else if column.edit_type.type == 'datetime'}
+						{:else if column.type.type == 'datetime'}
 							<input
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
 								class="flex-grow"
 								type="datetime-local"
 								name={column.api_name}
-								readonly={column.edit_readonly}
-								disabled={column.edit_readonly}
+								readonly={column.readonly}
+								disabled={column.readonly}
 								value={// @ts-ignore
 								utc_date_to_local(get_column_value(column.api_name))}
 							/>
-						{:else if column.edit_type.type == 'string'}
+						{:else if column.type.type == 'string'}
 							<input
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
@@ -261,42 +261,42 @@
 								type="text"
 								autocomplete="off"
 								name={column.api_name}
-								readonly={column.edit_readonly}
-								disabled={column.edit_readonly}
+								readonly={column.readonly}
+								disabled={column.readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
-								minlength={column.edit_type.data.length_range[0]}
-								maxlength={column.edit_type.data.length_range[1]}
-								pattern={column.edit_type.data.regex}
-								required={column.edit_type.data.length_range[0] > 0}
+								minlength={column.type.data.length_range[0]}
+								maxlength={column.type.data.length_range[1]}
+								pattern={column.type.data.regex}
+								required={column.type.data.length_range[0] > 0}
 							/>
-						{:else if column.edit_type.type == 'textarea'}
+						{:else if column.type.type == 'textarea'}
 							<textarea
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
 								class="flex-grow"
 								name={column.api_name}
-								readonly={column.edit_readonly}
-								disabled={column.edit_readonly}
+								readonly={column.readonly}
+								disabled={column.readonly}
 								value={// @ts-ignore
 								get_column_value(column.api_name)}
-								minlength={column.edit_type.data.length_range[0]}
-								maxlength={column.edit_type.data.length_range[1]}
-								required={column.edit_type.data.length_range[0] > 0}
+								minlength={column.type.data.length_range[0]}
+								maxlength={column.type.data.length_range[1]}
+								required={column.type.data.length_range[0] > 0}
 							></textarea>
-						{:else if column.edit_type.type == 'checkbox'}
+						{:else if column.type.type == 'checkbox'}
 							<input
 								id="{api_endpoint}-{column.api_name}-input"
 								form="edit-{api_endpoint}-form"
-								readonly={column.edit_readonly}
-								disabled={column.edit_readonly}
+								readonly={column.readonly}
+								disabled={column.readonly}
 								type="checkbox"
 								name={column.api_name}
 								checked={// @ts-ignore
 								get_column_value(column.api_name)}
 							/>
 						{/if}
-						{#if !column.edit_readonly}
+						{#if !column.readonly}
 							<button
 								on:click={() =>
 									// @ts-ignore

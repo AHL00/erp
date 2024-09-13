@@ -1,6 +1,7 @@
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import { refreshAuthStatus } from "./auth";
+import { get_setting } from "./backend";
 
 
 /// Redirect to a new page

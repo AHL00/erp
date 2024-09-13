@@ -1,5 +1,7 @@
 <!-- A generic CRUD page that can edit any specified object on the API. -->
 <script lang="ts" generics="EntryType extends { id: number }">
+	import CurrencySpan from '../currency/CurrencySpan.svelte';
+
 	import { api_call } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { UserPermissionEnum } from '$bindings/UserPermissionEnum';
@@ -381,6 +383,21 @@
 	let page_select_input: HTMLInputElement;
 
 	export let delete_enabled: boolean = false;
+
+	function verify_float(value: any): number | null {
+		if (typeof value === 'number') {
+			return value;
+		}
+
+		if (typeof value === 'string') {
+			try {
+				return parseFloat(value);
+			} catch {
+				return null;
+			}
+		}
+		return null;
+	}
 </script>
 
 <!-- TODO: Allow custom edit panel, make it fit in any space with flex-grow -->
@@ -512,6 +529,23 @@
 										<td class="p-2">
 											{#if column.display_map_fn !== null}
 												{column.display_map_fn(get_field_of_item(item, column.api_name))}
+											{:else if column.type.type == 'currency'}
+												{@const currency_value = verify_float(
+													get_field_of_item(item, column.api_name)
+												)}
+												{#if currency_value === null}
+													<span class="text-red-500">[Invalid currency]</span>
+												{:else}
+													<CurrencySpan value={currency_value} />
+												{/if}
+											{:else if column.type.type == 'datetime'}
+												{new Date(get_field_of_item(item, column.api_name)).toLocaleString()}
+											{:else if column.type.type == 'checkbox'}
+												<input
+													type="checkbox"
+													checked={get_field_of_item(item, column.api_name)}
+													disabled
+												/>
 											{:else}
 												{get_field_of_item(item, column.api_name)}
 											{/if}

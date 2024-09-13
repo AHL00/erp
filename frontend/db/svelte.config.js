@@ -19,7 +19,11 @@ const config = {
 		}),
 		alias: {
 			$bindings: '../../bindings',
-		}
+		},
+        prerender: {
+            crawl: false,
+            entries: [],
+        },
 	}
 };
 

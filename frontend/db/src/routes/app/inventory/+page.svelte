@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
 	import { type InventoryItem } from '$bindings/InventoryItem';
-    import { type InventoryItemPostRequest } from '$bindings/InventoryItemPostRequest';
+	import { type InventoryItemPostRequest } from '$bindings/InventoryItemPostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
@@ -28,8 +28,9 @@
 			display_name: 'ID',
 			display_map_fn: null,
 			current_sort: 'ASC',
-			edit_type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
-			edit_readonly: true
+			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'name',
@@ -37,14 +38,15 @@
 			display_name: 'Name',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: {
+			type: {
 				type: 'string',
 				data: {
 					length_range: [1, 255],
 					regex: null
 				}
 			},
-			edit_readonly: false
+			edit: true,
+			readonly: false
 		},
 		{
 			api_name: 'price',
@@ -52,15 +54,11 @@
 			display_name: 'Price',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: {
-				type: 'number',
-				data: {
-					integer: false,
-					range: [0, null],
-					step: 1
-				}
+			type: {
+				type: 'currency'
 			},
-			edit_readonly: false
+			edit: true,
+			readonly: false
 		},
 		{
 			api_name: 'stock',
@@ -68,15 +66,17 @@
 			display_name: 'Stock',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: {
+			type: {
 				type: 'number',
 				data: {
 					integer: true,
-					range: [0, null],
+					range: [null, null],
 					step: 1
 				}
 			},
-			edit_readonly: false
+			edit: true,
+
+			readonly: false
 		},
 		{
 			api_name: 'quantity_per_box',
@@ -84,7 +84,7 @@
 			display_name: 'Qty/Box',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: {
+			type: {
 				type: 'number',
 				data: {
 					integer: true,
@@ -92,7 +92,8 @@
 					step: 1
 				}
 			},
-			edit_readonly: false
+			edit: true,
+			readonly: false
 		}
 	];
 

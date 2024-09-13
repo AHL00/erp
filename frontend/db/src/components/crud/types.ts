@@ -22,14 +22,15 @@ export interface CrudEditTypeTextarea {
 	/// Inclusive, set 0 to make field optional
 	length_range: [number, number | null];
 
-    regex: string | null;
+	regex: string | null;
 
-    resize: 'none' | 'both' | 'horizontal' | 'vertical';
+	resize: 'none' | 'both' | 'horizontal' | 'vertical';
 }
 
-export type CrudEditType =
+export type CrudValueType =
 	| { type: 'string'; data: CrudEditTypeString }
 	| { type: 'number'; data: CrudEditTypeNumber }
+	| { type: 'currency' }
 	| { type: 'select'; data: CrudEditTypeSelect<any> }
 	| { type: 'checkbox' }
 	| { type: 'date' }
@@ -38,20 +39,20 @@ export type CrudEditType =
 	| { type: 'file' }
 	| { type: 'image' }
 	| { type: 'password' }
-	| { type: 'none' }
-	| { type: 'textarea'; data: CrudEditTypeTextarea };
-    
+	| { type: 'textarea'; data: CrudEditTypeTextarea }
+	| { type: 'use_display_map_fn_and_no_edit' };
 export interface CrudColumn {
-    /// The name in structs returned by the API
+	/// The name in structs returned by the API
 	api_name: string;
-    /// This is the name used in things such as list request
-    /// If null, will use api_name
-    api_request_name: string | null;
-    /// If null, the column will not be displayed
+	/// This is the name used in things such as list request
+	/// If null, will use api_name
+	api_request_name: string | null;
+	/// If null, the column will not be displayed
 	display_name: string | null;
-    /// Allows custom formatting and processing of the data before displaying it
-    display_map_fn: ((value: any) => string) | null;
+	/// Allows custom formatting and processing of the data before displaying it
+	display_map_fn: ((value: any) => string) | null;
 	current_sort: SortOrder | null;
-	edit_type: CrudEditType;
-    edit_readonly: boolean;
+	type: CrudValueType;
+	edit: boolean;
+	readonly: boolean;
 }

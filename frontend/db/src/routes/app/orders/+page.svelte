@@ -36,31 +36,35 @@
 			display_name: 'ID',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'date_time',
 			api_request_name: null,
 			display_name: 'Date',
-			display_map_fn: (val: string) => {
-				let date = new Date(val);
-				return date.toLocaleString();
-			},
+			display_map_fn: null,
 			current_sort: 'DESC',
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'datetime' },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'customer',
 			api_request_name: 'customers.name',
 			display_name: 'Customer',
 			display_map_fn: (val: Customer | null) => {
-				return val ? val.name : 'N/A';
+				if (!val) {
+					return 'N/A';
+				}
+
+				return val.name;
 			},
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'use_display_map_fn_and_no_edit' },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'created_by_user',
@@ -70,8 +74,9 @@
 				return val.username;
 			},
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'use_display_map_fn_and_no_edit' },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'amount_paid',
@@ -79,8 +84,11 @@
 			display_name: 'Amount paid',
 			display_map_fn: null,
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: {
+				type: 'currency'
+			},
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'retail',
@@ -90,19 +98,19 @@
 				return val ? 'Retail' : 'Wholesale';
 			},
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'checkbox' },
+			edit: true,
+			readonly: true
 		},
 		{
 			api_name: 'fulfilled',
 			api_request_name: null,
 			display_name: 'Fulfilled',
-			display_map_fn: (val: boolean) => {
-				return val ? 'Yes' : 'No';
-			},
+			display_map_fn: null,
 			current_sort: null,
-			edit_type: { type: 'none' },
-			edit_readonly: true
+			type: { type: 'checkbox' },
+			edit: true,
+			readonly: false
 		}
 	];
 
