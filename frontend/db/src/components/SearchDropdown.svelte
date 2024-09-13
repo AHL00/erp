@@ -24,7 +24,7 @@
 	// It must be a POST request accepting the type SearchRequest as the body.
 	export let search_endpoint: string;
 	export let search_perms: UserPermissionEnum[] = [];
-    /// NOTE: This is just a type indicator
+	/// NOTE: This is just a type indicator
 	export let search_results: ResultType[] = [];
 	export let search_column: string;
 	export let search_count: number;
@@ -35,7 +35,8 @@
 	export let required: boolean = false;
 	export let validity_message: string = 'Select a value from the dropdown';
 	export let on_change: (val: ResultType) => void = () => {};
-    export let disabled = false;
+	export let on_initial_value: (val: ResultType) => void = () => {};
+	export let disabled = false;
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -46,28 +47,41 @@
 
 	let selected: ResultType | null = null;
 
-	function select(idx: number) {
+	/// If initial set, on_change will not be called. on_initial_value will be called instead.
+	function select(idx: number, initial = false) {
 		selected = search_results[idx];
 
 		// Set the search input to the selected value
 		search_input.value = display_map_fn(selected);
-		on_change(selected);
+
+		if (initial) {
+			on_initial_value(selected);
+		} else {
+			on_change(selected);
+		}
 
 		close();
 	}
 
-	export function set_selected_value(value: ResultType) {
+    /// Set the selected value
+    /// If initial is true, on_initial_value will be called instead of on_change
+    /// This is useful to not trigger unwanted behaviour when setting the initial value
+	export function set_selected_value(value: ResultType, initial = false) {
 		selected = value;
 		search_input.value = display_map_fn(selected);
 
-		on_change(selected);
+		if (initial) {
+			on_initial_value(selected);
+		} else {
+			on_change(selected);
+		}
 		close();
 	}
 
-    export function remove_selected_value() {
-        selected = null;
-        search_input.value = '';
-    }
+	export function remove_selected_value() {
+		selected = null;
+		search_input.value = '';
+	}
 
 	function close() {
 		// If closed without selecting, reset the search input
@@ -197,12 +211,12 @@
 		window.addEventListener('click', click_listener);
 
 		if (initial_value !== null) {
-			set_selected_value(initial_value);
+			set_selected_value(initial_value, true);
 		}
 	});
 
 	onDestroy(() => {
-        window.removeEventListener('keydown', keydown_listener);
+		window.removeEventListener('keydown', keydown_listener);
 		window.removeEventListener('click', click_listener);
 	});
 
@@ -226,7 +240,7 @@
 		bind:this={search_input}
 		autocomplete="off"
 		id={input_id}
-        disabled={disabled}
+		{disabled}
 		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto"
 		placeholder={input_placeholder}
 		on:click={() => {

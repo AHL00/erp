@@ -40,7 +40,7 @@
 			amount_paid: null,
 			notes: null,
 			customer_id: null,
-            set_customer_id_null: false
+			set_customer_id_null: false
 		};
 
 		if (order_meta.notes !== order_meta_editing.notes) {
@@ -60,29 +60,29 @@
 			order_patch_req.customer_id = order_meta_editing.customer.id;
 		}
 
-        // This means wholesale, a customer is chosen.
-        if (order_meta_editing.customer) {
-            // If both are non-null and don't match, update
-            if (order_meta.customer) {
-                if (order_meta.customer.id !== order_meta_editing.customer.id) {
-                    order_patch_req.customer_id = order_meta_editing.customer.id;
-                }
-            }
+		// This means wholesale, a customer is chosen.
+		if (order_meta_editing.customer) {
+			// If both are non-null and don't match, update
+			if (order_meta.customer) {
+				if (order_meta.customer.id !== order_meta_editing.customer.id) {
+					order_patch_req.customer_id = order_meta_editing.customer.id;
+				}
+			}
 
-            // If the original customer was null, update
-            if (!order_meta.customer) {
-                order_patch_req.customer_id = order_meta_editing.customer.id;
-            }
-        }
+			// If the original customer was null, update
+			if (!order_meta.customer) {
+				order_patch_req.customer_id = order_meta_editing.customer.id;
+			}
+		}
 
 		if (order_meta.retail !== order_meta_editing.retail) {
 			order_patch_req.retail = order_meta_editing.retail;
 		}
 
-        // This means retail, remove customer no matter what
-        if (order_patch_req.retail) {
-            order_patch_req.set_customer_id_null = true;
-        }
+		// This means retail, remove customer no matter what
+		if (order_patch_req.retail) {
+			order_patch_req.set_customer_id_null = true;
+		}
 
 		api_call(`orders/${order_id}`, 'PATCH', order_patch_req)
 			.then((res) => {
@@ -275,8 +275,8 @@
 			if (x.customer) {
 				oif_customer.set_selected_value(x.customer);
 			} else {
-                oif_customer.remove_selected_value();
-            }
+				oif_customer.remove_selected_value();
+			}
 		}
 
 		if (oif_order_type_retail !== undefined && oif_order_type_wholesale !== undefined) {
@@ -611,7 +611,7 @@
 
 					<div class="flex flex-col w-1/2 h-fit space-y-3">
 						<SearchDropdown
-                            disabled={order_meta_editing && order_meta_editing.retail}
+							disabled={order_meta_editing && order_meta_editing.retail}
 							input_id="customer"
 							input_placeholder="Customer"
 							search_endpoint="customers/search"
@@ -793,7 +793,10 @@
 
 												data.order_item.price = value.price;
 												data.order_item.inventory_item = value;
+
+                                                console.log("on change")
 											}}
+											on_initial_value={(value) => {}}
 										/>
 									</td>
 									<td>
