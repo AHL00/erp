@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { login, auth_info_store } from '$lib/auth';
+	import { login, auth_info_store, LoginStatus } from '$lib/auth';
 	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { api_call, get_setting } from '$lib/backend';
+	import { toast } from '@zerodevx/svelte-toast';
 
 	let username = '';
 	let password = '';
@@ -11,21 +12,30 @@
 		// Handle login here
 		let login_promise = login(username, password);
 
-		login_promise.then(() => {
-			console.log('Checking auth status');
-			if (get(auth_info_store) !== null) {
-				// Redirect to app which will check for auth
-				// TODO: Redirect to the page the user was trying to access
-				let url_params = new URLSearchParams(window.location.search);
-				let redirect = url_params.get('redirect');
-				// TODO: Just redirect to /app cause redirecting to orders/edit for example breaks loader stuff for some reason. Easier just to
-				// redirect to /app and let the app handle the redirect
-				console.log('Redirecting to', redirect);
+		login_promise.then((status) => {
+			if (status == LoginStatus.SUCCESS) {
+				console.log('Checking auth status');
+				if (get(auth_info_store) !== null) {
+					// Redirect to app which will check for auth
+					// TODO: Redirect to the page the user was trying to access
+					let url_params = new URLSearchParams(window.location.search);
+					let redirect = url_params.get('redirect');
+					// TODO: Just redirect to /app cause redirecting to orders/edit for example breaks loader stuff for some reason. Easier just to
+					// redirect to /app and let the app handle the redirect
+					console.log('Redirecting to', redirect);
 
-				window.location.href = redirect ? redirect : '/app';
+					window.location.href = redirect ? redirect : '/app';
+				} else {
+					toast.push('Login failed');
+				}
+			} else if (status == LoginStatus.FAILED_TO_REACH_SERVER) {
+				toast.push('Failed to reach server');
+			} else if (status == LoginStatus.INCORRECT_CREDENTIALS) {
+				toast.push('Username or password is incorrect');
+			} else if (status == LoginStatus.SERVER_ERROR) {
+				toast.push('Internal server error');
 			} else {
-				// TODO: Show error message
-				alert('Login failed');
+				toast.push('Login failed');
 			}
 		});
 	}
@@ -55,14 +65,16 @@
 			console.error(err + ', using default favicon instead.');
 		});
 
-    let business_name = ``;
+	let business_name = ``;
 
-    get_setting('business_name').then((res) => {
-        // @ts-ignore
-        business_name = res["Text"];
-    }).catch((err) => {
-        console.error(err);
-    });
+	get_setting('business_name')
+		.then((res) => {
+			// @ts-ignore
+			business_name = res['Text'];
+		})
+		.catch((err) => {
+			console.error(err);
+		});
 </script>
 
 <div class="h-screen w-screen flex items-center">
@@ -74,15 +86,10 @@
         m-auto px-7 pt-9 pb-7"
 	>
 		<div class="h-full w-full flex flex-col items-center place-content-between space-y-10">
-            <div class="flex flex-col items-center space-y-4">
-                <object
-                    data={logo_url}
-                    type="image/png"
-                    class="w-36 h-36 rounded-xl"
-                    aria-label="Logo"
-                >
-                </object>
-                <h1 class="text-2xl font-bold text-center">{business_name}</h1>
+			<div class="flex flex-col items-center space-y-4">
+				<object data={logo_url} type="image/png" class="w-36 h-36 rounded-xl" aria-label="Logo">
+				</object>
+				<h1 class="text-2xl font-bold text-center">{business_name}</h1>
 			</div>
 			<!-- <h1 class="text-2xl font-bold text-center">Login</h1> -->
 			<form class="w-full flex-col space-y-5" on:submit|preventDefault={handleSubmit}>
@@ -115,8 +122,7 @@
                         border
                         hover:bg-custom-light dark:hover:bg-custom-darker
                         hover:scale-105 transform transition duration-200 ease-in-out
-                        "
-						>Login</button
+                        ">Login</button
 					>
 				</div>
 			</form>
