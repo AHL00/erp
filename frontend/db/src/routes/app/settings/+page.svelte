@@ -251,6 +251,11 @@
 											// @ts-ignore
 											const file = e.target.files[0];
 											const reader = new FileReader();
+                                            let size_limit_kb = 1024;
+                                            if (file.size > size_limit_kb * 1024) {
+                                                toast.push(`Image size too large, max size: ${size_limit_kb}KB`);
+                                                return;
+                                            }
 											reader.onload = (e) => {
 												// @ts-ignore
 												setting.value['ImageBase64URI'] = e.target.result;
