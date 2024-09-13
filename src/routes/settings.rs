@@ -5,9 +5,10 @@ use crate::{
     settings::{
         ensure_settings_exist, get_setting, get_settings, set_setting, Setting, SettingRow,
     },
+    types::permissions::UserPermissionEnum,
 };
 
-use super::ApiError;
+use super::{auth::AuthGuard, ApiError};
 
 #[rocket::get("/settings/get_all")]
 pub(super) async fn get_all(mut db: DB) -> Result<Json<Vec<Setting>>, ApiError> {
@@ -87,7 +88,11 @@ pub(super) async fn get_multiple(
 }
 
 #[rocket::post("/settings/set", data = "<setting>")]
-pub(super) async fn set(setting: Json<Setting>, mut db: DB) -> Result<(), ApiError> {
+pub(super) async fn set(
+    setting: Json<Setting>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::SETTINGS as u32 }>,
+) -> Result<(), ApiError> {
     set_setting(&mut db, setting.0.into()).await?;
 
     Ok(())

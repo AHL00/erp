@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::DB;
 
+// TODO: Write description for the module
 fn default_settings() -> Vec<Setting> {
     vec![
         Setting {
@@ -39,7 +40,7 @@ fn default_settings() -> Vec<Setting> {
             key: "currency_decimal_places".to_string(),
             long_name: "Currency Decimal Places".to_string(),
             description: None,
-            value: SettingValue::Int(2),
+            value: SettingValue::UnsignedInt(2),
         },
         Setting {
             key: "currency_decimal_separator".to_string(),
@@ -79,6 +80,19 @@ pub enum SettingValue {
     Decimal(BigDecimal),
     ImageBase64URI(String),
     TextVec(Vec<String>),
+}
+
+#[derive(Serialize, Deserialize, Debug, ts_rs::TS)]
+#[ts(export)]
+pub enum SettingValueType {
+    Boolean,
+    Text,
+    Int,
+    Float,
+    UnsignedInt,
+    Decimal,
+    ImageBase64URI,
+    TextVec,
 }
 
 #[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
