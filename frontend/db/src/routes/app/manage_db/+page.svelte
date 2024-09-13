@@ -4,6 +4,12 @@
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 	import { api_call } from '$lib/backend';
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
 	let creating_backup = false;
 	async function createBackup() {
 		creating_backup = true;

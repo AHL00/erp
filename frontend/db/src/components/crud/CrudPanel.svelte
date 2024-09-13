@@ -22,6 +22,15 @@
 	export let objects_list: EntryType[];
 	export let crud_endpoint: string;
 
+	type CustomButton = {
+		text: string;
+		callback: (entry: EntryType) => void;
+		font_awesome_icon: string;
+		permissions: UserPermissionEnum[];
+	};
+
+	export let custom_buttons: CustomButton[] = [];
+
 	export let custom_margins: string = 'm-0';
 
 	export let read_perms: [UserPermissionEnum];
@@ -462,6 +471,11 @@
 									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> Delete </th>
 								{/if}
 							</PermissionGuard>
+							{#each custom_buttons as button}
+								<PermissionGuard permissions={button.permissions}>
+									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> {button.text} </th>
+								</PermissionGuard>
+							{/each}
 							{#each columns as column, index}
 								<th
 									class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"
@@ -524,6 +538,20 @@
 												</button>
 											</td>
 										{/if}
+										{#each custom_buttons as button}
+											<PermissionGuard permissions={button.permissions}>
+												<td class="p-2">
+													<button
+														class="font-bold"
+														on:click={() => {
+															button.callback(item);
+														}}
+													>
+														<i class="{button.font_awesome_icon} ml-2 opacity-80"></i>
+													</button>
+												</td>
+											</PermissionGuard>
+										{/each}
 									</PermissionGuard>
 									{#each columns as column}
 										<td class="p-2">

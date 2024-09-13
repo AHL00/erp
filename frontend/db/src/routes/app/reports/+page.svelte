@@ -3,6 +3,12 @@
 import Main from "./Main.svelte"
 	import Orders from "./Orders.svelte";
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
     const tabs = ["expenses", "orders"];
 
     let current_tab = "orders";

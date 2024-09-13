@@ -5,6 +5,12 @@
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
 	let customers_list_req: ListRequest = {
 		range: {
 			count: 100,

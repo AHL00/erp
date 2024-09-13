@@ -4,6 +4,12 @@
 	import { api_call } from '$lib/backend';
 	import { type ListUserData } from '$bindings/ListUserData';
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
 	let users_list: ListUserData[] = [];
 
 	refresh_users();

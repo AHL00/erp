@@ -9,6 +9,12 @@
 	let settings_edit: Setting[] = [];
 	let loading = true;
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
 	async function fetchSettings() {
 		try {
 			const response = await api_call('/settings/get_all', 'GET', null);

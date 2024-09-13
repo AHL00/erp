@@ -16,6 +16,11 @@
 	import PermissionGuard from '../../../../components/PermissionGuard.svelte';
 	import type { Customer } from '$bindings/Customer';
 	import type { InventoryItem } from '$bindings/InventoryItem';
+    
+	import { showNavbar } from '../../../../stores/navbarStore';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
 
 	let query_params = new URLSearchParams(window.location.search);
 	let loader: FullscreenLoader;

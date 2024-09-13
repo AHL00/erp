@@ -12,6 +12,12 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 
+    import { showNavbar } from '../../../stores/navbarStore';
+	import { onMount } from 'svelte';
+    onMount(async () => {
+		showNavbar.set(true);
+    });
+
 	let order_list_req: ListRequest = {
 		range: {
 			count: 25,
@@ -283,6 +289,16 @@
 					redirect(`/app/orders/edit?id=${item_id}`);
 				}}
 				delete_enabled={true}
+                custom_buttons={[
+                    {
+                        callback: (order) => {
+                            redirect(`/app/orders/invoice?id=${order.id}`);
+                        },
+                        text: 'Invoice',
+                        permissions: ['ORDER_READ'],
+                        font_awesome_icon: 'fas fa-file-invoice'
+                    }
+                ]}
 				{columns}
 			></CrudPanel>
 		</div>
