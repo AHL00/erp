@@ -286,7 +286,7 @@
 					{#if order?.notes && order?.notes.length > 0}
 						<div class="flex flex-col flex-grow space-y-1">
 							<span class="text-sm text-zinc-800 font-sans font-bold">Note</span>
-							<span class="text-md text-black font-sans font-light w-1/3">{order?.notes}</span>
+							<span class="text-md text-black font-sans font-light w-7/12">{order?.notes}</span>
 						</div>
 					{/if}
 					<div class="flex flex-col items-end space-y-1">
