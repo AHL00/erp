@@ -16,7 +16,6 @@ use super::{
     CreateStockUpdate, SqlType, StockUpdate,
 };
 
-/// TODO: Allow customer to be None when retail is true
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
 #[ts(export)]
 pub(super) struct OrderMeta {
@@ -27,6 +26,9 @@ pub(super) struct OrderMeta {
     pub created_by_user: User,
     pub amount_paid: sqlx::types::BigDecimal,
     pub retail: bool,
+    pub retail_customer_name: Option<String>,
+    pub retail_customer_phone: Option<String>,
+    pub retail_customer_address: Option<String>,
     pub fulfilled: bool,
     pub notes: String,
 }
@@ -47,6 +49,9 @@ pub(super) struct OrderMetaRow {
     created_by_user: sqlx_core::types::Json<UserRow>,
     amount_paid: sqlx::types::BigDecimal,
     retail: bool,
+    retail_customer_name: Option<String>,
+    retail_customer_phone: Option<String>,
+    retail_customer_address: Option<String>,
     fulfilled: bool,
     notes: String,
 }
@@ -63,6 +68,9 @@ impl From<OrderMetaRow> for OrderMeta {
             amount_paid: row.amount_paid,
             fulfilled: row.fulfilled,
             retail: row.retail,
+            retail_customer_name: row.retail_customer_name,
+            retail_customer_phone: row.retail_customer_phone,
+            retail_customer_address: row.retail_customer_address,
             notes: row.notes,
         }
     }
@@ -83,6 +91,9 @@ pub(super) async fn get(
             orders.date_time,
             orders.amount_paid,
             orders.retail,
+            orders.retail_customer_name,
+            orders.retail_customer_phone,
+            orders.retail_customer_address,
             orders.fulfilled,
             orders.notes,
             row_to_json(customers) AS customer,
@@ -217,6 +228,9 @@ pub(super) async fn list(
             orders.date_time,
             orders.amount_paid,
             orders.retail,
+            orders.retail_customer_name,
+            orders.retail_customer_phone,
+            orders.retail_customer_address,
             orders.notes,
             orders.fulfilled,
             row_to_json(customers) AS customer,
@@ -271,6 +285,9 @@ pub(super) struct OrderItemUpdateRequest {
 pub(super) struct OrderPostRequest {
     pub customer_id: Option<i32>,
     pub retail: bool,
+    pub retail_customer_name: Option<String>,
+    pub retail_customer_phone: Option<String>,
+    pub retail_customer_address: Option<String>,
     pub notes: String,
     pub amount_paid: sqlx::types::BigDecimal,
     pub fulfilled: bool,
@@ -282,6 +299,10 @@ pub(super) struct OrderPatchRequest {
     pub customer_id: Option<i32>,
     pub set_customer_id_null: bool,
     pub retail: Option<bool>,
+    pub retail_customer_name: Option<String>,
+    pub retail_customer_phone: Option<String>,
+    pub retail_customer_address: Option<String>,
+    pub set_retail_customer_null: bool,
     pub notes: Option<String>,
     pub amount_paid: Option<sqlx::types::BigDecimal>,
 }
@@ -298,8 +319,8 @@ pub(super) async fn post(
 
     let id: (i32,) = sqlx::query_as(
         r#"
-        INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, notes, fulfilled)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO orders (customer_id, created_by_user_id, amount_paid, retail, retail_customer_name, retail_customer_phone, retail_customer_address, notes, fulfilled)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id
         "#,
     )
@@ -307,6 +328,9 @@ pub(super) async fn post(
     .bind(user_id)
     .bind(req.amount_paid)
     .bind(req.retail)
+    .bind(req.retail_customer_name)
+    .bind(req.retail_customer_phone)
+    .bind(req.retail_customer_address)
     .bind(req.notes)
     .bind(req.fulfilled)
     .fetch_one(&mut **db)
@@ -351,11 +375,21 @@ pub(super) async fn patch(
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 
+    let mut transaction = db.begin().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to start transaction: {}", e),
+        )
+    })?;
+
     let mut current_param_index = 1;
 
     let columns = vec![
         req.customer_id.as_ref().map(|_| "customer_id"),
         req.retail.as_ref().map(|_| "retail"),
+        req.retail_customer_name.as_ref().map(|_| "retail_customer_name"),
+        req.retail_customer_phone.as_ref().map(|_| "retail_customer_phone"),
+        req.retail_customer_address.as_ref().map(|_| "retail_customer_address"),
         req.notes.as_ref().map(|_| "notes"),
         req.amount_paid.as_ref().map(|_| "amount_paid"),
     ]
@@ -372,6 +406,9 @@ pub(super) async fn patch(
     let set_binds = vec![
         req.customer_id.as_ref().map(|v| SqlType::Int(v.clone())),
         req.retail.as_ref().map(|v| SqlType::Boolean(v.clone())),
+        req.retail_customer_name.as_ref().map(|v| SqlType::String(v.clone())),
+        req.retail_customer_phone.as_ref().map(|v| SqlType::String(v.clone())),
+        req.retail_customer_address.as_ref().map(|v| SqlType::String(v.clone())),
         req.notes.as_ref().map(|v| SqlType::String(v.clone())),
         req.amount_paid
             .as_ref()
@@ -399,7 +436,7 @@ pub(super) async fn patch(
 
     query = query.bind(id);
 
-    query.execute(&mut **db).await.map_err(|e| match e {
+    query.execute(&mut *transaction).await.map_err(|e| match e {
         sqlx::Error::RowNotFound => ApiError(
             Status::BadRequest,
             format!("Order with id {} not found", id),
@@ -417,7 +454,7 @@ pub(super) async fn patch(
             "#,
         )
         .bind(id)
-        .execute(&mut **db)
+        .execute(&mut *transaction)
         .await
         .map_err(|e| match e {
             sqlx::Error::RowNotFound => ApiError(
@@ -427,6 +464,33 @@ pub(super) async fn patch(
             _ => e.into(),
         })?;
     }
+
+    if req.set_retail_customer_null {
+        sqlx::query(
+            r#"
+            UPDATE orders
+            SET retail_customer_name = NULL, retail_customer_phone = NULL, retail_customer_address = NULL
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ApiError(
+                Status::BadRequest,
+                format!("Order with id {} not found", id),
+            ),
+            _ => e.into(),
+        })?;
+    }
+
+    transaction.commit().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to commit transaction: {}", e),
+        )
+    })?;
 
     Ok(Status::NoContent)
 }

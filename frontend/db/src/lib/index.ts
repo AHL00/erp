@@ -16,6 +16,12 @@ export function redirect(url: string) {
     refreshAuthStatus();
 }
 
+export function open_in_new_tab(url: string) {
+    if (!browser) return;
+
+    window.open(url, '_blank');
+}
+
 export function middle_ellipsis(text: string, max_length: number) {
     if (text.length <= max_length) {
         return text;

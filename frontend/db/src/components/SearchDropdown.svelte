@@ -37,6 +37,7 @@
 	export let on_change: (val: ResultType) => void = () => {};
 	export let on_initial_value: (val: ResultType) => void = () => {};
 	export let disabled = false;
+    export let classes = "";
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -234,7 +235,7 @@
 </script>
 
 <!-- TODO: BUG: Doesn't activate search if typing fast -->
-<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}">
+<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}">
 	<input
 		type="text"
 		bind:this={search_input}

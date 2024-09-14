@@ -25,9 +25,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    #[cfg(debug_assertions)]
-    log::info!("CORS options: {:#?}", cors_options);
-
     let rocket = rocket::build()
         .mount(env::api_root(), routes::routes())
         .mount(
@@ -36,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .attach(cors_options.to_cors().unwrap())
         .attach(DatabaseConnection::init());
-
+    
     let rocket = if env::public_dir().len() > 0 {
         log::info!("Serving static files from: {}", env::public_dir());
         rocket.mount("/", rocket::fs::FileServer::from(env::public_dir()))

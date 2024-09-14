@@ -20,6 +20,7 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
 	import { beforeNavigate } from '$app/navigation';
+	import { open_in_new_tab } from '$lib';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -46,8 +47,14 @@
 			retail: null,
 			amount_paid: null,
 			notes: null,
+
 			customer_id: null,
-			set_customer_id_null: false
+			set_customer_id_null: false,
+
+			retail_customer_address: null,
+			retail_customer_name: null,
+			retail_customer_phone: null,
+			set_retail_customer_null: false
 		};
 
 		if (order_meta.notes !== order_meta_editing.notes) {
@@ -89,7 +96,15 @@
 		// This means retail, remove customer no matter what
 		if (order_patch_req.retail) {
 			order_patch_req.set_customer_id_null = true;
-		}
+
+            // Set retail customer info
+            order_patch_req.retail_customer_address = order_meta_editing.retail_customer_address;
+            order_patch_req.retail_customer_name = order_meta_editing.retail_customer_name;
+            order_patch_req.retail_customer_phone = order_meta_editing.retail_customer_phone;
+		} else {
+            // If wholesale, remove retail customer info
+            order_patch_req.set_retail_customer_null = true;
+        }
 
 		api_call(`orders/${order_id}`, 'PATCH', order_patch_req)
 			.then((res) => {
@@ -273,6 +288,10 @@
 	let oif_order_type_wholesale: HTMLInputElement;
 	let oif_amount_paid: HTMLInputElement;
 	let oif_notes: HTMLTextAreaElement;
+
+	let oif_retail_customer_address: HTMLTextAreaElement;
+	let oif_retail_customer_name: HTMLInputElement;
+	let oif_retail_customer_phone: HTMLInputElement;
 
 	function set_oifs(x: OrderMeta) {
 		// Spread to avoid copying the object as a reference
@@ -490,7 +509,12 @@
 
 		// Compare every field except id
 		return (
-			a.amount_paid === b.amount_paid && customer_same, a.notes === b.notes && a.retail === b.retail
+			a.amount_paid === b.amount_paid && customer_same,
+			a.notes === b.notes &&
+				a.retail === b.retail &&
+				a.retail_customer_address === b.retail_customer_address &&
+				a.retail_customer_name === b.retail_customer_name &&
+				a.retail_customer_phone === b.retail_customer_phone
 		);
 	}
 
@@ -628,37 +652,67 @@
 					{/if}
 
 					<div class="flex flex-col w-1/2 h-fit space-y-3">
-						<SearchDropdown
-							disabled={order_meta_editing && order_meta_editing.retail}
-							input_id="customer"
-							input_placeholder="Customer"
-							search_endpoint="customers/search"
-							search_perms={['CUSTOMERS_READ']}
-							search_results={customer_search_results}
-							display_map_fn={customer_display_map_fn}
-							search_column="name"
-							search_count={10}
-							form_id="order-edit-form"
-							validity_message={'Select a customer from the dropdown'}
-							required={true}
-							on_change={(value) => {
-								if (order_meta_editing !== undefined) {
-									order_meta_editing.customer = value;
-								}
-							}}
-							bind:this={oif_customer}
-						>
-							<!-- Show customer info here, should be found in oif_customer.selected_value -->
-							<div class="flex flex-col space-y-2 p-2">
-								<span class="text-lg">Customer info</span>
-								<span class="text-md">Name: {oif_customer.selected_value()?.name}</span>
-								<span class="text-md">Phone: {oif_customer.selected_value()?.phone}</span>
-								<span class="text-md">Address: {oif_customer.selected_value()?.address}</span>
-								{#if oif_customer.selected_value()?.notes !== null}
-									<span class="text-md">Notes: {oif_customer.selected_value()?.notes}</span>
-								{/if}
-							</div>
-						</SearchDropdown>
+						{#if order_meta_editing}
+							{#if !order_meta_editing.retail}
+								<SearchDropdown
+									classes={order_meta_editing.retail ? 'hidden!' : ''}
+									input_id="customer"
+									input_placeholder="Customer"
+									search_endpoint="customers/search"
+									search_perms={['CUSTOMERS_READ']}
+									search_results={customer_search_results}
+									display_map_fn={customer_display_map_fn}
+									search_column="name"
+									search_count={10}
+									form_id="order-edit-form"
+									validity_message={'Select a customer from the dropdown'}
+									required={true}
+									initial_value={order_meta_editing.customer}
+									on_change={(value) => {
+										if (order_meta_editing !== undefined) {
+											order_meta_editing.customer = value;
+										}
+									}}
+									bind:this={oif_customer}
+								>
+									<!-- Show customer info here, should be found in oif_customer.selected_value -->
+									<div class="flex flex-col space-y-2 p-2">
+										<span class="text-lg">Customer info</span>
+										<span class="text-md">Name: {oif_customer.selected_value()?.name}</span>
+										<span class="text-md">Phone: {oif_customer.selected_value()?.phone}</span>
+										<span class="text-md">Address: {oif_customer.selected_value()?.address}</span>
+										{#if oif_customer.selected_value()?.notes !== null}
+											<span class="text-md">Notes: {oif_customer.selected_value()?.notes}</span>
+										{/if}
+									</div>
+								</SearchDropdown>
+							{:else}
+								<div class="flex flex-col w-full space-y-3 h-fit">
+									<div class="flex flex-row w-full space-x-3 h-fit">
+										<input
+											class="w-7/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
+											placeholder="Retail customer"
+											required
+											bind:this={oif_retail_customer_name}
+											bind:value={order_meta_editing.retail_customer_name}
+										/>
+										<input
+											class="w-5/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
+											placeholder="Phone"
+											required
+											bind:this={oif_retail_customer_phone}
+											bind:value={order_meta_editing.retail_customer_phone}
+										/>
+									</div>
+									<textarea
+										class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+										placeholder="Address"
+										bind:this={oif_retail_customer_address}
+										bind:value={order_meta_editing.retail_customer_address}
+									></textarea>
+								</div>
+							{/if}
+						{/if}
 						<div class="flex flex-row w-full space-x-3 h-fit">
 							<textarea
 								class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
@@ -910,7 +964,7 @@
 					id="view-order-button"
 					class="bg-green-500 text-white px-2 py-1 rounded-md"
 					on:click={() => {
-						window.location.href = `/app/orders/invoice?id=${order_id}`;
+						open_in_new_tab(`/app/orders/invoice?id=${order_id}`);
 					}}
 				>
 					<i class="fas fa-file-invoice pr-1"></i>

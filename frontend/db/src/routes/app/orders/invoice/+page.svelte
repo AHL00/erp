@@ -115,11 +115,11 @@
 
 <svelte:head>
 	<PermissionGuard permissions={['ORDER_READ']}>
-		<title
-			>Invoice #{order_id}
-			{new Date(order?.date_time).toLocaleDateString()}
-			{order?.customer?.name}</title
-		>
+        {#if order?.retail}
+            <title>Invoice #{order_id} Retail {new Date(order?.date_time).toLocaleDateString()} {order?.retail_customer_name}</title>
+        {:else}
+            <title>Invoice #{order_id} {new Date(order?.date_time).toLocaleDateString()} {order?.customer?.name}</title>
+        {/if}
 		<title slot="denied">Permission Denied</title>
 	</PermissionGuard>
 </svelte:head>
@@ -163,8 +163,29 @@
 				<div class="flex flex-row justify-between w-full h-fit py-3 break-inside-avoid">
 					<div class="flex flex-col space-y-2">
 						{#if order?.retail}
-							<span class="text-md text-black font-sans font-light">TODO: Retail customer info</span
-							>
+							<!-- <span class="text-md text-black font-sans font-light">
+                                TODO: Retail customer info</span
+							> -->
+							<div class="flex flex-col">
+								<span class="text-md text-zinc-700 font-sans font-bold">Bill To</span>
+								<span class="text-xl text-black font-sans font-light"
+									>{order?.retail_customer_name}</span
+								>
+							</div>
+							{#if order?.retail_customer_address && order?.retail_customer_address.length > 0}
+								<div class="flex flex-col">
+									<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
+									<span class="text-sm text-black font-sans font-light"
+										>{order?.retail_customer_address}</span
+									>
+								</div>
+							{/if}
+							<div class="flex flex-col">
+								<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
+								<span class="text-sm text-black font-sans font-light"
+									>{order?.retail_customer_phone}</span
+								>
+							</div>
 						{:else}
 							<div class="flex flex-col">
 								<span class="text-md text-zinc-700 font-sans font-bold">Bill To</span>
@@ -184,23 +205,18 @@
 						{/if}
 					</div>
 					<div class="flex flex-col items-end space-y-2">
-						{#if order?.retail}
-							<span class="text-md text-black font-sans font-light">TODO: Retail customer info</span
+						<div class="flex flex-col items-end">
+							<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
+							<span class="text-sm text-black font-sans font-light"
+								>{new Date(order?.date_time).toLocaleDateString()}</span
 							>
-						{:else}
-							<div class="flex flex-col items-end">
-								<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
-								<span class="text-sm text-black font-sans font-light"
-									>{new Date(order?.date_time).toLocaleDateString()}</span
-								>
-							</div>
-							<div class="flex flex-col items-end">
-								<span class="text-xs text-zinc-700 font-sans font-bold">Type</span>
-								<span class="text-sm text-black font-sans font-light"
-									>{order?.retail ? 'Retail' : 'Wholesale'}</span
-								>
-							</div>
-						{/if}
+						</div>
+						<div class="flex flex-col items-end">
+							<span class="text-xs text-zinc-700 font-sans font-bold">Type</span>
+							<span class="text-sm text-black font-sans font-light"
+								>{order?.retail ? 'Retail' : 'Wholesale'}</span
+							>
+						</div>
 					</div>
 				</div>
 				<hr />

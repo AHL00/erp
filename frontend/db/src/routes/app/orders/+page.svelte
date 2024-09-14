@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { redirect } from '$lib';
+	import { open_in_new_tab, redirect } from '$lib';
 	import type { ListRequest } from '$bindings/ListRequest';
 	import type { OrderMeta } from '$bindings/OrderMeta';
 	import type { CrudColumn } from '../../../components/crud/types';
@@ -12,11 +12,11 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	let order_list_req: ListRequest = {
 		range: {
@@ -131,27 +131,50 @@
 
 	let order_type: string = 'wholesale';
 
+	let retail_customer_name: HTMLInputElement | undefined;
+	let retail_customer_phone: HTMLInputElement | undefined;
+	let retail_customer_address: HTMLTextAreaElement | undefined;
+
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
 		currently_creating = true;
 
-		let customer = customer_search_dropdown.selected_value();
+		let customer;
 
-		if (!customer_search_dropdown.reportValidity()) {
-			currently_creating = false;
-			return;
+		if (customer_search_dropdown) {
+            if (!customer_search_dropdown.reportValidity()) {
+                currently_creating = false;
+                return;
+            }
+
+            customer = customer_search_dropdown.selected_value();
+		} else {
+			customer = null;
 		}
-
-		let customer_id: number | null = customer ? customer.id : null;
 
 		// @ts-ignore
 		let notes = document.querySelector('textarea').value;
+
+		let customer_id: number | null = customer ? customer.id : null;
+
+		let retail_customer_address_val = retail_customer_address?.value ?? null;
+		let retail_customer_name_val = retail_customer_name?.value ?? null;
+		let retail_customer_phone_val = retail_customer_phone?.value ?? null;
+
+		if (order_type === 'wholesale') {
+			retail_customer_address_val = null;
+			retail_customer_name_val = null;
+			retail_customer_phone_val = null;
+		}
 
 		let order_create_req: OrderPostRequest = {
 			amount_paid: '0.0',
 			customer_id: customer_id,
 			notes: notes,
 			retail: order_type === 'retail',
+			retail_customer_name: retail_customer_name_val,
+			retail_customer_phone: retail_customer_phone_val,
+			retail_customer_address: retail_customer_address_val,
 			fulfilled: false
 		};
 
@@ -225,21 +248,44 @@
 					id="order-create-form"
 					on:submit={create_submit_callback}
 				>
-					<SearchDropdown
-						input_id="customer"
-						input_placeholder="Customer"
-						search_endpoint="customers/search"
-						search_perms={['CUSTOMERS_READ']}
-						search_results={customer_search_results}
-						display_map_fn={customer_display_map_fn}
-						search_column="name"
-						search_count={10}
-						form_id="order-create-form"
-						validity_message={'Select a customer from the dropdown'}
-						required={true}
-						disabled={order_type === 'retail'}
-						bind:this={customer_search_dropdown}
-					/>
+					{#if order_type === 'wholesale'}
+						<SearchDropdown
+							input_id="customer"
+							input_placeholder="Customer"
+							search_endpoint="customers/search"
+							search_perms={['CUSTOMERS_READ']}
+							search_results={customer_search_results}
+							display_map_fn={customer_display_map_fn}
+							search_column="name"
+							search_count={10}
+							form_id="order-create-form"
+							validity_message={'Select a customer from the dropdown'}
+							required={true}
+							bind:this={customer_search_dropdown}
+						/>
+					{:else}
+						<div class="flex flex-col w-full space-y-3 h-fit">
+							<div class="flex flex-row w-full space-x-3 h-fit">
+								<input
+									class="w-7/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
+									placeholder="Retail customer"
+									required
+                                    bind:this={retail_customer_name}
+								/>
+								<input
+									class="w-5/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
+									placeholder="Phone"
+									required
+                                    bind:this={retail_customer_phone}
+								/>
+							</div>
+							<textarea
+								class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+								placeholder="Address"
+                                bind:this={retail_customer_address}
+							></textarea>
+						</div>
+					{/if}
 					<div class="flex flex-row w-full space-x-3 h-fit">
 						<textarea
 							class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
@@ -289,16 +335,16 @@
 					redirect(`/app/orders/edit?id=${item_id}`);
 				}}
 				delete_enabled={true}
-                custom_buttons={[
-                    {
-                        callback: (order) => {
-                            redirect(`/app/orders/invoice?id=${order.id}`);
-                        },
-                        text: 'Invoice',
-                        permissions: ['ORDER_READ'],
-                        font_awesome_icon: 'fas fa-file-invoice'
-                    }
-                ]}
+				custom_buttons={[
+					{
+						callback: (order) => {
+							open_in_new_tab(`/app/orders/invoice?id=${order.id}`);
+						},
+						text: 'Invoice',
+						permissions: ['ORDER_READ'],
+						font_awesome_icon: 'fas fa-file-invoice'
+					}
+				]}
 				{columns}
 			></CrudPanel>
 		</div>
