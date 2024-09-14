@@ -223,7 +223,7 @@
 	};
 </script>
 
-<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
+<div class="flex flex-col w-full h-screen min-h-0 items-center p-3 space-y-3 overflow-hidden">
 	<PermissionGuard permissions={['ORDER_WRITE']}>
 		<div class="w-full flex flex-row h-fit space-x-3">
 			<div
@@ -321,7 +321,7 @@
 	</PermissionGuard>
 	<PermissionGuard permissions={['ORDER_READ']}>
 		<div
-			class="w-full rounded-lg p-1 h-full shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+			class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
 		>
 			<span class="text-2xl m-3">Past orders</span>
 			<CrudPanel

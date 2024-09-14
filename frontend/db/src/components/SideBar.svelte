@@ -44,11 +44,10 @@
 </script>
 
 <!-- min-h-0 prevents the flex-grow from overflowing the parent container -->
-<div class="flex flex-row flex-grow min-h-0">
+<!-- <div class="flex flex-row flex-grow min-h-0"> -->
 	<div
 		bind:this={content_div}
-		style="--width: {width}"
-		class="flex-grow content-div"
+		class="flex-grow content-div min-h-0"
 		on:click={() => {
 			if (close_on_click_outside && currently_open) {
 				// If the click was within 200ms of the sidebar being opened, don't close it
@@ -57,6 +56,7 @@
 				close_callback();
 			}
 		}}
+        aria-hidden={currently_open}
 	>
 		<slot name="content" />
 	</div>
@@ -68,7 +68,7 @@
 	>
 		<slot name="sidebar" />
 	</div>
-</div>
+<!-- </div> -->
 
 {#if false}
 	<!-- Gets rid of unused css getting optimised out -->
