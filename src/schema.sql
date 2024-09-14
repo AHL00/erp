@@ -35,6 +35,7 @@ CREATE TABLE
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('english', name)) STORED,
+        description TEXT NOT NULL,
         price NUMERIC(10, 2) NOT NULL,
         stock INTEGER NOT NULL,
         quantity_per_box INTEGER NOT NULL

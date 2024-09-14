@@ -15,6 +15,7 @@ use super::{ApiError, ApiReturn};
 pub(super) struct InventoryItem {
     pub id: i32,
     pub name: String,
+    pub description: String,
     /// A decimal number with a precision of 2 decimal places
     pub price: BigDecimal,
     pub stock: i32,
@@ -45,6 +46,7 @@ impl FromDB for InventoryItem {
 #[ts(export)]
 pub(super) struct InventoryItemPatchRequest {
     pub name: Option<String>,
+    pub description: Option<String>,
     /// A decimal number with a precision of 2 decimal places
     pub price: Option<BigDecimal>,
     pub stock: Option<i32>,
@@ -55,6 +57,7 @@ pub(super) struct InventoryItemPatchRequest {
 #[ts(export)]
 pub(super) struct InventoryItemPostRequest {
     pub name: String,
+    pub description: String,
     /// A decimal number with a precision of 2 decimal places
     pub price: BigDecimal,
     pub stock: i32,
@@ -187,12 +190,13 @@ pub(super) async fn post(
 
     let id: (i32,) = sqlx::query_as(
         r#"
-        INSERT INTO inventory (name, price, stock, quantity_per_box)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO inventory (name, description, price, stock, quantity_per_box)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
         "#,
     )
     .bind(&item.name)
+    .bind(&item.description)
     .bind(&item.price)
     .bind(item.stock)
     .bind(item.quantity_per_box)
@@ -219,6 +223,7 @@ pub(super) async fn patch(
 
     let columns = vec![
         req.name.as_ref().map(|_| "name"),
+        req.description.as_ref().map(|_| "description"),
         req.price.as_ref().map(|_| "price"),
         req.stock.as_ref().map(|_| "stock"),
         req.quantity_per_box.as_ref().map(|_| "quantity_per_box"),
@@ -235,6 +240,7 @@ pub(super) async fn patch(
 
     let set_binds = vec![
         req.name.as_ref().map(|v| SqlType::String(v.clone())),
+        req.description.as_ref().map(|v| SqlType::String(v.clone())),
         req.price.as_ref().map(|v| SqlType::BigDecimal(v.clone())),
         req.stock.as_ref().map(|v| SqlType::Int(v.clone())),
         req.quantity_per_box

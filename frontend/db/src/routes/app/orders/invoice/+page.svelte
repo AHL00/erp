@@ -115,11 +115,18 @@
 
 <svelte:head>
 	<PermissionGuard permissions={['ORDER_READ']}>
-        {#if order?.retail}
-            <title>Invoice #{order_id} Retail {new Date(order?.date_time).toLocaleDateString()} {order?.retail_customer_name}</title>
-        {:else}
-            <title>Invoice #{order_id} {new Date(order?.date_time).toLocaleDateString()} {order?.customer?.name}</title>
-        {/if}
+		{#if order?.retail}
+			<title
+				>Invoice #{order_id} Retail {new Date(order?.date_time).toLocaleDateString()}
+				{order?.retail_customer_name}</title
+			>
+		{:else}
+			<title
+				>Invoice #{order_id}
+				{new Date(order?.date_time).toLocaleDateString()}
+				{order?.customer?.name}</title
+			>
+		{/if}
 		<title slot="denied">Permission Denied</title>
 	</PermissionGuard>
 </svelte:head>
@@ -225,18 +232,16 @@
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
-								<th class=" px-4 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th
-								>
-								<th class=" px-4 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
 									>Qty/Box</th
 								>
-								<th class=" px-4 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
 									>Quantity</th
 								>
-								<th class=" px-4 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
-									>Price</th
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Price</th
 								>
-								<th class=" px-4 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
 									>Amount</th
 								>
 							</tr>
@@ -244,17 +249,28 @@
 						<tbody>
 							{#each order_items as item}
 								<tr>
-									<td class="px-4 py-2 text-sm text-black font-sans font-light"
-										>{item.inventory_item.name}</td
+									<td
+										class="px-2 flex flex-col {item.inventory_item.description.length > 0
+											? 'pt-2 pb-0'
+											: 'py-2'}"
 									>
-									<td class="px-4 py-2 text-sm text-black font-sans font-light"
+										<span class="text-sm text-black font-sans font-light">
+											{item.inventory_item.name}
+										</span>
+										{#if item.inventory_item.description}
+											<span class="text-xs text-zinc-700 font-sans font-light">
+												{item.inventory_item.description}
+											</span>
+										{/if}
+									</td>
+									<td class="px-2 py-2 text-sm text-black font-sans font-light"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-4 py-2 text-sm text-black font-sans font-light">{item.quantity}</td>
-									<td class="px-4 py-2 text-sm text-black font-sans font-light">
+									<td class="px-2 py-2 text-sm text-black font-sans font-light">{item.quantity}</td>
+									<td class="px-2 py-2 text-sm text-black font-sans font-light">
 										<CurrencySpan value={parseFloat(item.price)} />
 									</td>
-									<td class="px-4 py-2 text-sm text-black font-sans font-light">
+									<td class="px-2 py-2 text-sm text-black font-sans font-light">
 										<CurrencySpan value={parseFloat(item.price) * item.quantity} />
 									</td>
 								</tr>

@@ -54,6 +54,22 @@
 			edit: true,
 			readonly: false
 		},
+        {
+            api_name: 'description',
+            api_request_name: null,
+            display_name: 'Description',
+            display_map_fn: null,
+            current_sort: null,
+            type: {
+                type: 'string',
+                data: {
+                    length_range: [0, null],
+                    regex: null
+                }
+            },
+            edit: true,
+            readonly: false
+        },
 		{
 			api_name: 'price',
 			api_request_name: null,
