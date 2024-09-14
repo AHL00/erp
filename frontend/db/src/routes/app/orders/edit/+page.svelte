@@ -89,22 +89,20 @@
 			}
 		}
 
-		if (order_meta.retail !== order_meta_editing.retail) {
-			order_patch_req.retail = order_meta_editing.retail;
-		}
+		order_patch_req.retail = order_meta_editing.retail;
 
 		// This means retail, remove customer no matter what
 		if (order_patch_req.retail) {
 			order_patch_req.set_customer_id_null = true;
 
-            // Set retail customer info
-            order_patch_req.retail_customer_address = order_meta_editing.retail_customer_address;
-            order_patch_req.retail_customer_name = order_meta_editing.retail_customer_name;
-            order_patch_req.retail_customer_phone = order_meta_editing.retail_customer_phone;
+			// Set retail customer info
+			order_patch_req.retail_customer_address = order_meta_editing.retail_customer_address;
+			order_patch_req.retail_customer_name = order_meta_editing.retail_customer_name;
+			order_patch_req.retail_customer_phone = order_meta_editing.retail_customer_phone;
 		} else {
-            // If wholesale, remove retail customer info
-            order_patch_req.set_retail_customer_null = true;
-        }
+			// If wholesale, remove retail customer info
+			order_patch_req.set_retail_customer_null = true;
+		}
 
 		api_call(`orders/${order_id}`, 'PATCH', order_patch_req)
 			.then((res) => {
