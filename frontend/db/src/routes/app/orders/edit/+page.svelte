@@ -830,11 +830,11 @@
 					<table class="w-full border-separate border-spacing-x-3 border-spacing-y-1">
 						<thead>
 							<tr>
-								<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark">Item</th>
-								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Quantity</th>
-								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Price</th>
-								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Total</th>
-								<th class="p-2 z-20 w-1/12 bg-custom-lighter dark:bg-custom-dark">Actions</th>
+								<th class="p-2 z-20 w-max bg-custom-lighter dark:bg-custom-dark">Item</th>
+								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark">Qty</th>
+								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Price</th>
+								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Total</th>
+								<!-- <th class="z-20 bg-custom-lighter dark:bg-custom-dark"></th> -->
 							</tr>
 						</thead>
 						<tbody>
@@ -915,16 +915,18 @@
 											disabled
 										/>
 									</td>
-									<td>
-										<button
-											class="bg-red-500 text-white px-2 py-1 rounded-md"
-											on:click={() => {
-												// Remove the item from the array
-												order_items_editing = order_items_editing.filter((_, index) => index !== i);
-											}}
-										>
-											<i class="fas fa-trash"></i>
-										</button>
+									<td class="w-8">
+                                        <div class="h-full w-full flex flex-row justify-center items-center space-x-2">
+                                            <button
+                                                class="bg-red-500 text-white px-2 py-1 rounded-md"
+                                                on:click={() => {
+                                                    // Remove the item from the array
+                                                    order_items_editing = order_items_editing.filter((_, index) => index !== i);
+                                                }}
+                                            >
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
 									</td>
 								</tr>
 							{/each}

@@ -37,7 +37,7 @@
 	export let on_change: (val: ResultType) => void = () => {};
 	export let on_initial_value: (val: ResultType) => void = () => {};
 	export let disabled = false;
-    export let classes = "";
+	export let classes = '';
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -64,9 +64,9 @@
 		close();
 	}
 
-    /// Set the selected value
-    /// If initial is true, on_initial_value will be called instead of on_change
-    /// This is useful to not trigger unwanted behaviour when setting the initial value
+	/// Set the selected value
+	/// If initial is true, on_initial_value will be called instead of on_change
+	/// This is useful to not trigger unwanted behaviour when setting the initial value
 	export function set_selected_value(value: ResultType, initial = false) {
 		selected = value;
 		search_input.value = display_map_fn(selected);
@@ -235,7 +235,9 @@
 </script>
 
 <!-- TODO: BUG: Doesn't activate search if typing fast -->
-<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}">
+<div
+	class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}"
+>
 	<input
 		type="text"
 		bind:this={search_input}
@@ -243,19 +245,14 @@
 		id={input_id}
 		{disabled}
 		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto"
-		placeholder={input_placeholder}
-		on:click={() => {
-			// Toggle the dropdown
-			if (dropdown_div.classList.contains('hidden')) {
-				dropdown_div.classList.remove('hidden');
+		on:focusin={() => {
+			dropdown_div.classList.remove('hidden');
 
-				// Reset the search results
-				search_input.value = '';
-				search_results = [];
-			} else {
-				close();
-			}
+			// Reset the search results
+			search_input.value = '';
+			search_results = [];
 		}}
+
 		on:input={typing_handler}
 	/>
 
