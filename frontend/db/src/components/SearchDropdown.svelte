@@ -238,23 +238,26 @@
 <div
 	class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}"
 >
-	<input
-		type="text"
-		bind:this={search_input}
-		autocomplete="off"
-		id={input_id}
-		{disabled}
-		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto"
-		on:focusin={() => {
-			dropdown_div.classList.remove('hidden');
+    <div class="relative w-full">
+        <input
+            type="text"
+            bind:this={search_input}
+            autocomplete="off"
+            id={input_id}
+            {disabled}
+            placeholder="{input_placeholder}"
+            class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
+            on:focusin={() => {
+                dropdown_div.classList.remove('hidden');
 
-			// Reset the search results
-			search_input.value = '';
-			search_results = [];
-		}}
-
-		on:input={typing_handler}
-	/>
+                // Reset the search results
+                search_input.value = '';
+                search_results = [];
+            }}
+            on:input={typing_handler}
+        />
+        <i class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"></i>
+    </div>
 
 	<div
 		bind:this={dropdown_div}
