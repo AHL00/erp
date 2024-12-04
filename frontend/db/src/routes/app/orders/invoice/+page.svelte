@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { Order } from '$bindings/Order';
@@ -16,11 +16,16 @@
 	let order: Order | null = null;
 	let order_items: OrderItem[] = [];
 	let loading = true;
+    let filling_data_count = 0;
+
+	let should_print = false;
+
+	const query_params = new URLSearchParams(window.location.search);
+	should_print = query_params.get('print') === 'true';
 
 	onMount(async () => {
 		showNavbar.set(false);
 
-		const query_params = new URLSearchParams(window.location.search);
 		order_id = query_params.get('id');
 		if (order_id) {
 			await fetchOrder(order_id);
@@ -30,44 +35,72 @@
 	});
 
 	let logo_high_res_uri = '';
+    filling_data_count++;
 	get_setting('logo_high_resolution')
 		.then((res) => {
 			// @ts-ignore
 			logo_high_res_uri = res['ImageBase64URI'];
+            filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch logo');
+            filling_data_count--;
 		});
 
 	let business_name: string | null = null;
+    filling_data_count++;
 	get_setting('business_name')
 		.then((res) => {
 			// @ts-ignore
 			business_name = res['Text'];
+            filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business name');
+            filling_data_count--;
 		});
 
 	let business_address: string | null = null;
+    filling_data_count++;
 	get_setting('business_address')
 		.then((res) => {
 			// @ts-ignore
 			business_address = res['Text'];
+            filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business address');
+            filling_data_count--;
 		});
 
 	let business_phone_nums: string[] | null = null;
+    filling_data_count++;
 	get_setting('business_phone_numbers')
 		.then((res) => {
 			// @ts-ignore
 			business_phone_nums = res['TextVec'];
+            filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business phone numbers');
+            filling_data_count--;
 		});
+
+    $: {
+        console.log(filling_data_count);
+    }
+	$: {
+		if (should_print && order && filling_data_count === 0) {
+            console.log('printing');
+			setTimeout(() => {
+				window.print();
+				window.onafterprint = () => {
+                    console.log('after print');
+					window.close();
+				};
+			}, 1000);
+		}
+	}
 
 	async function fetchOrder(id: string) {
 		try {
@@ -286,7 +319,9 @@
 					{#if order?.notes && order?.notes.length > 0}
 						<div class="flex flex-col flex-grow space-y-1">
 							<span class="text-sm text-zinc-800 font-sans font-bold">Note</span>
-							<span class="text-md text-black font-sans font-light w-7/12 whitespace-pre-line">{order?.notes}</span>
+							<span class="text-md text-black font-sans font-light w-7/12 whitespace-pre-line"
+								>{order?.notes}</span
+							>
 						</div>
 					{/if}
 					<div class="flex flex-col items-end space-y-1">
@@ -309,5 +344,9 @@
 <style>
 	* {
 		border-color: #bbbbbb;
+	}
+
+	@page {
+		size: A4;
 	}
 </style>

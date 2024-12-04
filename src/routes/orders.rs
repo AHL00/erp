@@ -1,6 +1,6 @@
 use rocket::http::Status;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Acquire};
+use sqlx::{FromRow, Acquire};
 
 use crate::{
     db::{FromDB, DB},

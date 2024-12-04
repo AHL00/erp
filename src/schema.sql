@@ -25,6 +25,7 @@ CREATE TABLE
     IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
+        name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('english', name)) STORED,
         phone VARCHAR(255),
         address TEXT,
         notes TEXT
@@ -71,6 +72,7 @@ CREATE TABLE
             supplier_id INT NOT NULL,
             created_by_user_id INT NOT NULL,
             amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            notes TEXT,
             FOREIGN KEY (supplier_id) REFERENCES suppliers (id),
             FOREIGN KEY (created_by_user_id) REFERENCES users (id)
     );
@@ -92,8 +94,8 @@ CREATE TABLE
     IF NOT EXISTS purchase_items (
         id SERIAL PRIMARY KEY,
         inventory_id INT NOT NULL,
+        price NUMERIC(10, 2) NOT NULL, -- price at the time of purchase, which should not be edited
         quantity INT NOT NULL,
-        price NUMERIC(10, 2) NOT NULL,
         purchase_id INT NOT NULL,
         FOREIGN KEY (purchase_id) REFERENCES purchases (id),
         FOREIGN KEY (inventory_id) REFERENCES inventory (id)

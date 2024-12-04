@@ -1,7 +1,9 @@
 pub mod auth;
+pub mod suppliers;
 pub mod customers;
 pub mod expenses;
 pub mod inventory;
+pub mod purchases;
 pub mod orders;
 pub mod reports;
 pub mod search;
@@ -58,6 +60,12 @@ pub fn routes() -> Vec<rocket::Route> {
         customers::post,
         customers::patch,
         customers::search,
+        suppliers::get,
+        suppliers::count,
+        suppliers::list,
+        suppliers::post,
+        suppliers::patch,
+        suppliers::search,
         reports::create_report,
         reports::create_expense_report,
         reports::create_order_report,

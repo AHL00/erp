@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { type ListRequest } from '$bindings/ListRequest';
-	import { type Customer } from '$bindings/Customer';
-	import { type CustomerPostRequest } from '$bindings/CustomerPostRequest';
+	import { type Supplier } from '$bindings/Supplier';
+	import { type SupplierPostRequest } from '$bindings/SupplierPostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
-	let customers_list_req: ListRequest = {
+	let suppliers_list_req: ListRequest = {
 		range: {
 			count: 100,
 			offset: 0
@@ -25,7 +25,7 @@
 		]
 	};
 
-	let customers_list: Customer[] = [];
+	let suppliers_list: Supplier[] = [];
 
 	let columns: CrudColumn[] = [
 		{
@@ -111,8 +111,8 @@
 		}
 	];
 
-	let create_default: CustomerPostRequest = {
-		name: 'New Customer',
+	let create_default: SupplierPostRequest = {
+		name: 'New Supplier',
 		phone: '',
 		address: '',
 		notes: ''
@@ -121,11 +121,11 @@
 
 <div class="flex flex-col h-full">
 	<CrudPanel
-		list_request={customers_list_req}
-		objects_list={customers_list}
-		crud_endpoint="customers"
-		read_perms={['CUSTOMERS_READ']}
-		write_perms={['CUSTOMERS_WRITE']}
+		list_request={suppliers_list_req}
+		objects_list={suppliers_list}
+		crud_endpoint="suppliers"
+		read_perms={['SUPPLIERS_READ']}
+		write_perms={['SUPPLIERS_WRITE']}
 		create_post_request={create_default}
 		{columns}
 	></CrudPanel>

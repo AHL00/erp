@@ -27,6 +27,17 @@
 
 	<div class="separator"></div>
 
+    <PermissionGuard permissions={['PURCHASE_READ', 'PURCHASE_WRITE']} all_or_any="any">
+		<button class="sidebar-item" on:click={() => redirect('/app/purchases')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-clipboard-list"></i>
+			</div>
+			<span class="sidebar-label">Purchases</span>
+		</button>
+	</PermissionGuard>
+
+	<div class="separator"></div>
+
     <PermissionGuard permissions={['EXPENSES_READ', 'EXPENSES_WRITE']} all_or_any="any">
         <button class="sidebar-item" on:click={() => redirect('/app/expenses')}>
             <div class="sidebar-icon">
@@ -52,9 +63,20 @@
 	<PermissionGuard permissions={['CUSTOMERS_READ']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/customers')}>
 			<div class="sidebar-icon">
-				<i class="fa fa-users-gear"></i>
+				<i class="fa fa-people-carry-box"></i>
 			</div>
 			<span class="sidebar-label">Customers</span>
+		</button>
+	</PermissionGuard>
+
+    <div class="separator"></div>
+
+	<PermissionGuard permissions={['SUPPLIERS_READ']}>
+		<button class="sidebar-item" on:click={() => redirect('/app/suppliers')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-truck"></i>
+			</div>
+			<span class="sidebar-label">Suppliers</span>
 		</button>
 	</PermissionGuard>
 

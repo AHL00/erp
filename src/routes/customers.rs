@@ -170,14 +170,14 @@ pub(super) struct CustomerPatchRequest {
     pub notes: Option<String>,
 }
 
-#[rocket::patch("/customers/<id>", data = "<item>")]
+#[rocket::patch("/customers/<id>", data = "<req>")]
 pub(super) async fn patch(
-    item: Json<CustomerPatchRequest>,
+    req: Json<CustomerPatchRequest>,
     id: i32,
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
-    let req = item.into_inner();
+    let req = req.into_inner();
 
     let mut current_param = 1;
 
