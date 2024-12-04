@@ -53,6 +53,8 @@ export interface CrudColumn {
 	display_map_fn: ((value: any) => string) | null;
 	current_sort: SortOrder | null;
 	type: CrudValueType;
+    /// Show in the edit panel
 	edit: boolean;
+    /// Disable editing in the edit panel even if shown
 	readonly: boolean;
 }

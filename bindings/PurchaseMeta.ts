@@ -2,4 +2,4 @@
 import type { Supplier } from "./Supplier";
 import type { User } from "./User";
 
-export type PurchaseMeta = { id: number, created_by_user: User, supplier: Supplier, date_time: string, };
+export type PurchaseMeta = { id: number, created_by_user: User, supplier: Supplier, date_time: string, amount_paid: string, notes: string, };

@@ -1,6 +1,6 @@
 use rocket::http::Status;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Acquire};
+use sqlx::{Acquire, FromRow};
 
 use crate::{
     db::{FromDB, DB},
@@ -12,8 +12,10 @@ use crate::{
 };
 
 use super::{
-    auth::User, customers::Customer, inventory::InventoryItem, ApiError, ApiReturn,
-    CreateStockUpdate, SqlType, StockUpdate,
+    auth::{AuthCookie, User},
+    customers::Customer,
+    inventory::InventoryItem,
+    ApiError, ApiReturn, SqlType, StockUpdate, StockUpdateFactory,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
@@ -45,8 +47,8 @@ pub(super) struct Order {
 pub(super) struct OrderMetaRow {
     id: i32,
     date_time: chrono::DateTime<chrono::Utc>,
-    customer: Option<sqlx_core::types::Json<Customer>>,
-    created_by_user: sqlx_core::types::Json<UserRow>,
+    customer: Option<sqlx::types::Json<Customer>>,
+    created_by_user: sqlx::types::Json<UserRow>,
     amount_paid: sqlx::types::BigDecimal,
     retail: bool,
     retail_customer_name: Option<String>,
@@ -173,14 +175,10 @@ pub(super) async fn count(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<i64>, ApiError> {
-    let count: (i64,) = sqlx::query_as(
-        r#"
-        SELECT count(*) FROM orders
-        "#,
-    )
-    .fetch_one(&mut **db)
-    .await
-    .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
+    let count: (i64,) = sqlx::query_as("SELECT count(*) FROM orders")
+        .fetch_one(&mut **db)
+        .await
+        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))?;
 
     Ok(rocket::serde::json::Json(count.0))
 }
@@ -351,11 +349,9 @@ pub(super) async fn total(
 }
 
 pub(super) async fn get_order_total(order_id: i32, db: &mut DB) -> Result<OrderTotal, ApiError> {
-    let total: (sqlx::types::BigDecimal,) = sqlx::query_as(
+    let total: (OrderTotal,) = sqlx::query_as(
         r#"
-        SELECT sum(price * quantity) as total
-        FROM order_items
-        WHERE order_id = $1
+        SELECT sum(price * quantity) as total FROM order_items WHERE order_id = $1
         "#,
     )
     .bind(order_id)
@@ -387,9 +383,15 @@ pub(super) async fn patch(
     let columns = vec![
         req.customer_id.as_ref().map(|_| "customer_id"),
         req.retail.as_ref().map(|_| "retail"),
-        req.retail_customer_name.as_ref().map(|_| "retail_customer_name"),
-        req.retail_customer_phone.as_ref().map(|_| "retail_customer_phone"),
-        req.retail_customer_address.as_ref().map(|_| "retail_customer_address"),
+        req.retail_customer_name
+            .as_ref()
+            .map(|_| "retail_customer_name"),
+        req.retail_customer_phone
+            .as_ref()
+            .map(|_| "retail_customer_phone"),
+        req.retail_customer_address
+            .as_ref()
+            .map(|_| "retail_customer_address"),
         req.notes.as_ref().map(|_| "notes"),
         req.amount_paid.as_ref().map(|_| "amount_paid"),
     ]
@@ -406,9 +408,15 @@ pub(super) async fn patch(
     let set_binds = vec![
         req.customer_id.as_ref().map(|v| SqlType::Int(v.clone())),
         req.retail.as_ref().map(|v| SqlType::Boolean(v.clone())),
-        req.retail_customer_name.as_ref().map(|v| SqlType::String(v.clone())),
-        req.retail_customer_phone.as_ref().map(|v| SqlType::String(v.clone())),
-        req.retail_customer_address.as_ref().map(|v| SqlType::String(v.clone())),
+        req.retail_customer_name
+            .as_ref()
+            .map(|v| SqlType::String(v.clone())),
+        req.retail_customer_phone
+            .as_ref()
+            .map(|v| SqlType::String(v.clone())),
+        req.retail_customer_address
+            .as_ref()
+            .map(|v| SqlType::String(v.clone())),
         req.notes.as_ref().map(|v| SqlType::String(v.clone())),
         req.amount_paid
             .as_ref()
@@ -436,13 +444,16 @@ pub(super) async fn patch(
 
     query = query.bind(id);
 
-    query.execute(&mut *transaction).await.map_err(|e| match e {
-        sqlx::Error::RowNotFound => ApiError(
-            Status::BadRequest,
-            format!("Order with id {} not found", id),
-        ),
-        _ => e.into(),
-    })?;
+    query
+        .execute(&mut *transaction)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => ApiError(
+                Status::BadRequest,
+                format!("Order with id {} not found", id),
+            ),
+            _ => e.into(),
+        })?;
 
     // Inefficient, but it's the easiest way
     if req.set_customer_id_null {
@@ -495,26 +506,80 @@ pub(super) async fn patch(
     Ok(Status::NoContent)
 }
 
+async fn calculate_stock_deltas(
+    requests: &Vec<OrderItemUpdateRequest>,
+    current_items: &Vec<OrderItem>,
+    order_id: i32,
+    auth_info: &AuthCookie,
+    db: &mut DB,
+) -> Result<Vec<StockUpdateFactory>, ApiError> {
+    let mut stock_update_factories = vec![];
+
+    // Calculate stock deltas assuming that all current items are removed
+    for item in current_items.iter() {
+        stock_update_factories.push(StockUpdateFactory {
+            inventory: item.inventory_item.clone(),
+            delta: item.quantity,
+            order_item_id: Some(item.id),
+            order_id: Some(order_id),
+            purchase_item_id: None,
+            purchase_id: None,
+            created_by_user_id: auth_info.user.id,
+        });
+    }
+
+    // Calculate stock deltas for new items
+    for req in requests.iter() {
+        // Find and merge
+        stock_update_factories
+            .iter_mut()
+            .find(|update| update.inventory.id == req.inventory_item_id)
+            .map(|update| update.delta -= req.quantity);
+
+        // Add new items
+        if !current_items
+            .iter()
+            .any(|item| item.inventory_item.id == req.inventory_item_id)
+        {
+            stock_update_factories.push(StockUpdateFactory {
+                inventory: InventoryItem::from_db(req.inventory_item_id, db).await?,
+                delta: -req.quantity,
+                // No item id because it's a new item. We don't know the id yet.
+                order_item_id: None,
+                order_id: Some(order_id),
+                purchase_item_id: None,
+                purchase_id: None,
+                created_by_user_id: auth_info.user.id,
+            });
+        }
+    }
+
+    // Remove items with 0 delta
+    stock_update_factories.retain(|update| update.delta != 0);
+
+    Ok(stock_update_factories)
+}
+
 #[rocket::post("/orders/<id>/items/update/preview", data = "<req>")]
 pub(super) async fn preview_update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
-) -> Result<ApiReturn<Vec<CreateStockUpdate>>, ApiError> {
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+) -> Result<ApiReturn<Vec<StockUpdateFactory>>, ApiError> {
     let requests = req.into_inner();
 
     // Check for duplicate inventory items
-    let mut inventory_item_ids = vec![];
+    let mut seen_item_ids = std::collections::HashSet::new();
     for req in requests.iter() {
-        if inventory_item_ids.contains(&req.inventory_item_id) {
+        if seen_item_ids.contains(&req.inventory_item_id) {
             return Err(ApiError(
                 Status::BadRequest,
                 format!("Duplicate inventory item id {}", req.inventory_item_id),
             ));
         }
 
-        inventory_item_ids.push(req.inventory_item_id);
+        seen_item_ids.insert(req.inventory_item_id);
     }
 
     // Get current items for this order
@@ -544,59 +609,30 @@ pub(super) async fn preview_update_items(
     .collect();
 
     // Calculate stock deltas
-    let mut create_stock_updates = vec![];
+    let stock_updates =
+        calculate_stock_deltas(&requests, &current_items, id, &auth.auth_info, &mut db)
+            .await
+            .map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to calculate stock deltas: {:?}", e),
+                )
+            })?;
 
-    // Calculate stock deltas assuming that all current items are removed
-    for item in current_items.iter() {
-        create_stock_updates.push(CreateStockUpdate {
-            inventory: item.inventory_item.clone(),
-            delta: item.quantity,
-            order_item_id: Some(item.id),
-            order_id: Some(id),
-            purchase_item_id: None,
-            purchase_id: None,
-            created_by_user_id: _auth.auth_info.user.id,
-        });
-    }
-
-    // Calculate stock deltas for new items
-    for req in requests.iter() {
-        // Find and merge
-        create_stock_updates
-            .iter_mut()
-            .find(|update| update.inventory.id == req.inventory_item_id)
-            .map(|update| update.delta -= req.quantity);
-
-        // Add new items
-        if !current_items
-            .iter()
-            .any(|item| item.inventory_item.id == req.inventory_item_id)
-        {
-            create_stock_updates.push(CreateStockUpdate {
-                inventory: InventoryItem::from_db(req.inventory_item_id, &mut db).await?,
-                delta: -req.quantity,
-                order_item_id: None,
-                order_id: Some(id),
-                purchase_item_id: None,
-                purchase_id: None,
-                created_by_user_id: _auth.auth_info.user.id,
-            });
-        }
-    }
-
-    create_stock_updates.retain(|update| update.delta != 0);
-
-    Ok(ApiReturn(Status::Ok, create_stock_updates))
+    Ok(ApiReturn(Status::Ok, stock_updates))
 }
 
-/// Post one or more items to an order
+/// Update all the items in an order
+/// If an item is not in the request, it will be removed
+/// If an item is in the request, it will be updated
+/// If an item is not in the current items, it will be added
 /// POST /orders/<id>/items
 #[rocket::post("/orders/<id>/items/update", data = "<req>")]
 pub(super) async fn update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
     let requests = req.into_inner();
 
@@ -640,49 +676,15 @@ pub(super) async fn update_items(
     .collect();
 
     // Calculate stock deltas
-    let mut create_stock_updates = vec![];
-
-    // Calculate stock deltas assuming that all current items are removed
-    for item in current_items.iter() {
-        create_stock_updates.push(CreateStockUpdate {
-            inventory: item.inventory_item.clone(),
-            delta: item.quantity,
-            order_item_id: Some(item.id),
-            order_id: Some(id),
-            purchase_item_id: None,
-            purchase_id: None,
-            created_by_user_id: _auth.auth_info.user.id,
-        });
-    }
-
-    // Calculate stock deltas for new items
-    for req in requests.iter() {
-        // Find and merge
-        create_stock_updates
-            .iter_mut()
-            .find(|update| update.inventory.id == req.inventory_item_id)
-            .map(|update| update.delta -= req.quantity);
-
-        // Add new items
-        if !current_items
-            .iter()
-            .any(|item| item.inventory_item.id == req.inventory_item_id)
-        {
-            create_stock_updates.push(CreateStockUpdate {
-                inventory: InventoryItem::from_db(req.inventory_item_id, &mut db).await?,
-                delta: -req.quantity,
-                order_item_id: None,
-                order_id: Some(id),
-                purchase_item_id: None,
-                purchase_id: None,
-                created_by_user_id: _auth.auth_info.user.id,
-            });
-        }
-    }
-
-    create_stock_updates.retain(|update| update.delta != 0);
-
-    log::info!("Stock updates: \n{:#?}", create_stock_updates);
+    let stock_update_factories =
+        calculate_stock_deltas(&requests, &current_items, id, &auth.auth_info, &mut db)
+            .await
+            .map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to calculate stock deltas: {:?}", e),
+                )
+            })?;
 
     let mut transaction = db.begin().await.map_err(|e| {
         ApiError(
@@ -749,10 +751,10 @@ pub(super) async fn update_items(
             // Insert new item
             let id: Result<(i32,), _> = sqlx::query_as(
                 r#"
-        INSERT INTO order_items (order_id, inventory_id, quantity, price)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id
-        "#,
+                INSERT INTO order_items (order_id, inventory_id, quantity, price)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+                "#,
             )
             .bind(id)
             .bind(req.inventory_item_id)
@@ -820,7 +822,7 @@ pub(super) async fn update_items(
 
     // Update stock
     let mut stock_updates = vec![];
-    for update in create_stock_updates.iter() {
+    for update_factory in stock_update_factories.iter() {
         let res = sqlx::query(
             r#"
         UPDATE inventory
@@ -828,8 +830,8 @@ pub(super) async fn update_items(
         WHERE id = $2
         "#,
         )
-        .bind(update.delta)
-        .bind(update.inventory.id)
+        .bind(update_factory.delta)
+        .bind(update_factory.inventory.id)
         .execute(&mut *transaction)
         .await;
 
@@ -855,13 +857,13 @@ pub(super) async fn update_items(
             RETURNING *
             "#,
         )
-        .bind(update.inventory.id)
-        .bind(update.created_by_user_id)
-        .bind(update.delta)
-        .bind(update.order_item_id)
-        .bind(update.order_id)
-        .bind(update.purchase_item_id)
-        .bind(update.purchase_id)
+        .bind(update_factory.inventory.id)
+        .bind(update_factory.created_by_user_id)
+        .bind(update_factory.delta)
+        .bind(update_factory.order_item_id)
+        .bind(update_factory.order_id)
+        .bind(update_factory.purchase_item_id)
+        .bind(update_factory.purchase_id)
         .fetch_one(&mut *transaction)
         .await
         .map_err(|e| {
@@ -881,7 +883,7 @@ pub(super) async fn update_items(
         )
     })?;
 
-    Ok(ApiReturn(Status::Created, stock_updates))
+    Ok(ApiReturn(Status::Ok, stock_updates))
 }
 
 #[rocket::delete("/orders/<id>")]

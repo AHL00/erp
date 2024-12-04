@@ -54,6 +54,16 @@ pub fn routes() -> Vec<rocket::Route> {
         orders::patch,
         orders::delete,
         orders::total,
+        purchases::get,
+        purchases::get_items,
+        purchases::count,
+        purchases::list,
+        purchases::post,
+        purchases::update_items,
+        purchases::preview_update_items,
+        purchases::patch,
+        purchases::delete,
+        purchases::total,
         customers::get,
         customers::count,
         customers::list,
@@ -101,7 +111,7 @@ struct StockUpdate {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
 #[ts(export)]
-struct CreateStockUpdate {
+struct StockUpdateFactory {
     pub inventory: InventoryItem,
     pub created_by_user_id: i32,
     pub delta: i32,
@@ -142,6 +152,15 @@ struct ListFilter {
 
 // TODO: Overhaul all routes to use this error type
 pub struct ApiError(pub Status, pub String);
+
+impl std::fmt::Debug for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ApiError")
+            .field("status", &self.0)
+            .field("message", &self.1)
+            .finish()
+    }
+}
 
 impl<'r> Responder<'r, 'static> for ApiError {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
