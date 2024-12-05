@@ -1,7 +1,19 @@
 <script lang="ts">
 	import { middle_ellipsis, redirect } from '$lib';
 	import { logout, auth_info_store } from '$lib/auth';
+	import { get_setting } from '$lib/backend';
 	import PermissionGuard from './PermissionGuard.svelte';
+
+    let logo: string | null = null;
+
+    get_setting("logo_low_resolution")
+        .then((res) => {
+            // @ts-ignore
+            logo = res.ImageBase64URI;
+        })
+        .catch((err) => {
+            console.error(err);
+        });
 </script>
 
 <div
@@ -9,7 +21,11 @@
 >
 	<button class="sidebar-item" on:click={() => redirect('/app')}>
 		<div class="sidebar-icon">
-			<i class="fa fa-home"></i>
+            {#if logo}
+                <img src={logo} alt="Logo" class="sidebar-logo h-9 w-9 m-auto" />
+            {:else}
+                <i class="fa fa-home"></i>
+            {/if}
 		</div>
 		<span class="sidebar-label">Home</span>
 	</button>
