@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 	import { type Setting } from '$bindings/Setting';
-	import { api_call } from '$lib/backend';
+	import { api_call, SETTINGS_CACHE_PREFIX } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { SettingValue } from '$bindings/SettingValue';
 
@@ -9,11 +9,11 @@
 	let settings_edit: Setting[] = [];
 	let loading = true;
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	async function fetchSettings() {
 		try {
@@ -37,8 +37,6 @@
 	}
 
 	fetchSettings();
-
-	function getSettingValueType(value: SettingValue) {}
 
 	function compareSettingValues(a: SettingValue, b: SettingValue): boolean {
 		if (typeof a !== typeof b) {
@@ -78,14 +76,24 @@
 				}
 			}
 
-            return true;
+			return true;
 		}
 
-        return a_val === b_val;
+		return a_val === b_val;
 	}
+
+	let saving_indexes: Set<number> = new Set();
+
+	// Looping add to set random number every second
+	setInterval(() => {
+		saving_indexes.add(Math.floor(Math.random() * 10));
+        saving_indexes = saving_indexes;
+	}, 1000);
 
 	function save_setting(idx: number) {
 		const setting = settings_edit[idx];
+		saving_indexes.add(idx);
+		saving_indexes = saving_indexes;
 
 		api_call(`/settings/set/`, 'POST', setting)
 			.then((res) => {
@@ -93,16 +101,28 @@
 					if (res.status === 200) {
 						toast.push('Setting saved');
 						settings[idx] = JSON.parse(JSON.stringify(setting));
+
+						// Update cached settings
+						sessionStorage.setItem(
+							`${SETTINGS_CACHE_PREFIX}${setting.key}`,
+							JSON.stringify(settings[idx].value)
+						);
 					} else {
 						throw new Error(`Response status: ${res.status}`);
 					}
 				} else {
 					throw new Error('No response');
 				}
+
+				saving_indexes.delete(idx);
+				saving_indexes = saving_indexes;
 			})
 			.catch((err) => {
 				console.error('Failed to save setting:', err);
 				toast.push('Failed to save setting');
+
+				saving_indexes.delete(idx);
+				saving_indexes = saving_indexes;
 			});
 	}
 </script>
@@ -257,11 +277,11 @@
 											// @ts-ignore
 											const file = e.target.files[0];
 											const reader = new FileReader();
-                                            let size_limit_kb = 1024;
-                                            if (file.size > size_limit_kb * 1024) {
-                                                toast.push(`Image size too large, max size: ${size_limit_kb}KB`);
-                                                return;
-                                            }
+											let size_limit_kb = 1024;
+											if (file.size > size_limit_kb * 1024) {
+												toast.push(`Image size too large, max size: ${size_limit_kb}KB`);
+												return;
+											}
 											reader.onload = (e) => {
 												// @ts-ignore
 												setting.value['ImageBase64URI'] = e.target.result;
@@ -313,7 +333,11 @@
 										save_setting(i);
 									}}
 								>
-									<i class="fas fa-save ml-2 opacity-80"></i>
+									{#if saving_indexes.has(i)}
+										<i class="fas fa-spinner animate-spin ml-2 opacity-80"></i>
+									{:else}
+										<i class="fas fa-save ml-2 opacity-80"></i>
+									{/if}
 								</button>
 							{/if}
 						</div>

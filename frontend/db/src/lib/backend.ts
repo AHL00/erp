@@ -41,7 +41,15 @@ export async function api_call(path: string, method: Method, body: any) {
 	});
 }
 
+export const SETTINGS_CACHE_PREFIX = 'cached_setting_';
+
 export async function get_setting(key: string) {
+    let cached = sessionStorage.getItem(`${SETTINGS_CACHE_PREFIX}${key}`);
+    if (cached) {
+        console.log("Returning cached setting", key);
+        return JSON.parse(cached) as SettingValue;
+    }
+
 	try {
 		const response = await api_call(`settings/get_one/${key}`, 'GET', null);
 	
@@ -52,6 +60,7 @@ export async function get_setting(key: string) {
         if (response.status === 200) {
             let data = await response.json();
             let settings_value: SettingValue = data.value;
+            sessionStorage.setItem(`${SETTINGS_CACHE_PREFIX}${key}`, JSON.stringify(settings_value));
             return settings_value;
         } else {
             throw new Error(`HTTP status ${response.status}`);

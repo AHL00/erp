@@ -72,6 +72,6 @@
 	{:then formatted}
 		<span class={custom_class}>{formatted}</span>
 	{:catch error}
-		<span class="text-red-500">[Formatting Error]</span>
+		<span class="text-red-500">[Formatting Error ({value})]</span>
 	{/await}
 </span>

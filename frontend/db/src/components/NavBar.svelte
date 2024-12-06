@@ -4,16 +4,16 @@
 	import { get_setting } from '$lib/backend';
 	import PermissionGuard from './PermissionGuard.svelte';
 
-    let logo: string | null = null;
+	let logo: string | null = null;
 
-    get_setting("logo_low_resolution")
-        .then((res) => {
-            // @ts-ignore
-            logo = res.ImageBase64URI;
-        })
-        .catch((err) => {
-            console.error(err);
-        });
+	get_setting('logo_low_resolution')
+		.then((res) => {
+			// @ts-ignore
+			logo = res.ImageBase64URI;
+		})
+		.catch((err) => {
+			console.error(err);
+		});
 </script>
 
 <div
@@ -21,11 +21,11 @@
 >
 	<button class="sidebar-item" on:click={() => redirect('/app')}>
 		<div class="sidebar-icon">
-            {#if logo}
-                <img src={logo} alt="Logo" class="sidebar-logo h-9 w-9 m-auto" />
-            {:else}
-                <i class="fa fa-home"></i>
-            {/if}
+			{#if logo}
+				<img src={logo} alt="Logo" class="sidebar-logo h-9 w-9 m-auto" />
+			{:else}
+				<i class="fa fa-home"></i>
+			{/if}
 		</div>
 		<span class="sidebar-label">Home</span>
 	</button>
@@ -43,10 +43,10 @@
 
 	<div class="separator"></div>
 
-    <PermissionGuard permissions={['PURCHASE_READ', 'PURCHASE_WRITE']} all_or_any="any">
+	<PermissionGuard permissions={['PURCHASE_READ', 'PURCHASE_WRITE']} all_or_any="any">
 		<button class="sidebar-item" on:click={() => redirect('/app/purchases')}>
 			<div class="sidebar-icon">
-				<i class="fa fa-clipboard-list"></i>
+				<i class="fa fa-cart-shopping"></i>
 			</div>
 			<span class="sidebar-label">Purchases</span>
 		</button>
@@ -54,10 +54,10 @@
 
 	<div class="separator"></div>
 
-    <PermissionGuard permissions={['EXPENSES_READ', 'EXPENSES_WRITE']} all_or_any="any">
-        <button class="sidebar-item" on:click={() => redirect('/app/expenses')}>
-            <div class="sidebar-icon">
-                <i class="fa fa-money-check-dollar"></i>
+	<PermissionGuard permissions={['EXPENSES_READ', 'EXPENSES_WRITE']} all_or_any="any">
+		<button class="sidebar-item" on:click={() => redirect('/app/expenses')}>
+			<div class="sidebar-icon">
+				<i class="fa fa-money-check-dollar"></i>
 			</div>
 			<span class="sidebar-label">Expenses</span>
 		</button>
@@ -85,7 +85,7 @@
 		</button>
 	</PermissionGuard>
 
-    <div class="separator"></div>
+	<div class="separator"></div>
 
 	<PermissionGuard permissions={['SUPPLIERS_READ']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/suppliers')}>
@@ -116,39 +116,37 @@
 			</div>
 			<span class="sidebar-label">Admin</span>
 		</button>
-
 	</PermissionGuard>
 
-    <div class="separator"></div>
+	<div class="separator"></div>
 
-    <PermissionGuard permissions={['MANAGE_DB']}>
+	<PermissionGuard permissions={['MANAGE_DB']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/manage_db')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-database"></i>
 			</div>
 			<span class="sidebar-label">Database</span>
 		</button>
-    </PermissionGuard>
+	</PermissionGuard>
 
-    <div class="separator"></div>
+	<div class="separator"></div>
 
-    <PermissionGuard permissions={['SETTINGS']}>
+	<PermissionGuard permissions={['SETTINGS']}>
 		<button class="sidebar-item" on:click={() => redirect('/app/settings')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-sliders"></i>
 			</div>
 			<span class="sidebar-label">Settings</span>
 		</button>
-    </PermissionGuard>
+	</PermissionGuard>
 
 	<div class="separator mt-auto"></div>
-
 
 	<button class="sidebar-item" on:click={logout}>
 		<div class="sidebar-icon">
 			<i class="fa fa-user"></i>
 		</div>
-		<span class="sidebar-label">
+		<span class="sidebar-label flex flex-row justify-center">
 			{#if $auth_info_store === null}
 				?
 			{:else}
@@ -185,20 +183,24 @@
 		transition: width 0.2s ease-in-out;
 	}
 
-    .sidebar:hover > #version-text {
-        height: fit-content;
-        transition: height 2s ease-in, opacity 0.5s ease-in;
-        opacity: 100%;
-    }
-    
-    .sidebar > #version-text {
-        height: 0px;
-        opacity: 0%;
-        transition: height 0.2s, opacity 0.1s;
-    }
+	.sidebar:hover > #version-text {
+		height: fit-content;
+		transition:
+			height 2s ease-in,
+			opacity 0.5s ease-in;
+		opacity: 100%;
+	}
 
-    #version-text {
-    }
+	.sidebar > #version-text {
+		height: 0px;
+		opacity: 0%;
+		transition:
+			height 0.2s,
+			opacity 0.1s;
+	}
+
+	#version-text {
+	}
 
 	.sidebar:hover {
 		width: 200px;
@@ -235,7 +237,7 @@
 	}
 
 	.sidebar i {
-		font-size: 60% !important;
+		font-size: 60%;
 	}
 
 	.sidebar-item {
