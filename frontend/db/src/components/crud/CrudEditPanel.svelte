@@ -142,22 +142,43 @@
 					return;
 				}
 
-				if (
-					column.type.data.regex != null &&
-					!new RegExp(column.type.data.regex).test(value_str)
-				) {
-					toast.push(
-						`${column.display_name} must match the pattern ${column.type.data.regex}`
-					);
+				if (column.type.data.regex != null && !new RegExp(column.type.data.regex).test(value_str)) {
+					toast.push(`${column.display_name} must match the pattern ${column.type.data.regex}`);
 					saving_loading_counter--;
 					return;
 				}
 
 				request[column.api_name] = value_str;
+			} else if (column.type.type == 'currency') {
+				let num = parseFloat(value as string);
+
+				if (isNaN(num)) {
+					toast.push(`${column.display_name} must be a number`);
+					saving_loading_counter--;
+					return;
+				}
+
+				if (num < 0) {
+					toast.push(`${column.display_name} must be greater than or equal to 0`);
+					saving_loading_counter--;
+					return;
+				}
+
+                // Check decimal places
+                if (num.toFixed(currency_decimal_places) != num.toString()) {
+                    toast.push(`${column.display_name} must have at most ${currency_decimal_places} decimal places`);
+                    saving_loading_counter--;
+                    return;
+                }
+
+				request[column.api_name] = num;
+			} else if (column.type.type == 'checkbox') {
+				request[column.api_name] = value == 'on';
 			} else {
-                toast.push('DEV ERROR: This CRUD edit types submission logic hasnt been implemented');
-                malformed = true;
-            }
+				console.error('DEV ERROR: Unimplemented submission type');
+				toast.push('DEV ERROR: Unimplemented submission type');
+				malformed = true;
+			}
 
 			edited_columns.push(column);
 		}
@@ -202,12 +223,12 @@
 		return (current_editing_item as any)[api_name];
 	}
 
-    let currency_decimal_places = 0;
+	let currency_decimal_places = 0;
 
-    get_setting('currency_decimal_places').then((res) => {
-        // @ts-ignore
-        currency_decimal_places = res.Int;
-    });
+	get_setting('currency_decimal_places').then((res) => {
+		// @ts-ignore
+		currency_decimal_places = res.UnsignedInt;
+	});
 </script>
 
 <div class="flex flex-col h-full w-full items-center">
@@ -305,24 +326,22 @@
 								checked={// @ts-ignore
 								get_column_value(column.api_name)}
 							/>
-                        {:else if column.type.type == 'currency'}
-                            <input
-                                id="{api_endpoint}-{column.api_name}-input"
-                                form="edit-{api_endpoint}-form"
-                                class="flex-grow"
-                                type="number"
-                                name={column.api_name}
-                                readonly={column.readonly}
-                                disabled={column.readonly}
-                                value={// @ts-ignore
-                                get_column_value(column.api_name)}
-                                min={0}
-                                step={Math.pow(10, -currency_decimal_places)}
-                            />
-                        {:else}
-                            <span class="text-red-500">
-                                UNIMPLEMENTED
-                            </span>
+						{:else if column.type.type == 'currency'}
+							<input
+								id="{api_endpoint}-{column.api_name}-input"
+								form="edit-{api_endpoint}-form"
+								class="flex-grow"
+								type="number"
+								name={column.api_name}
+								readonly={column.readonly}
+								disabled={column.readonly}
+								value={// @ts-ignore
+								get_column_value(column.api_name)}
+								min={0}
+								step={Math.pow(10, -currency_decimal_places)}
+							/>
+						{:else}
+							<span class="text-red-500"> UNIMPLEMENTED </span>
 						{/if}
 						{#if !column.readonly}
 							<button
