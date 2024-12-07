@@ -5,11 +5,11 @@
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	let customers_list_req: ListRequest = {
 		range: {
@@ -119,14 +119,18 @@
 	};
 </script>
 
-<div class="flex flex-col h-full">
-	<CrudPanel
-		list_request={customers_list_req}
-		objects_list={customers_list}
-		crud_endpoint="customers"
-		read_perms={['CUSTOMERS_READ']}
-		write_perms={['CUSTOMERS_WRITE']}
-		create_post_request={create_default}
-		{columns}
-	></CrudPanel>
+<div class="flex flex-col w-full h-screen min-h-0 items-center p-2 space-y-3 overflow-hidden">
+	<div
+		class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
+	>
+		<CrudPanel
+			list_request={customers_list_req}
+			objects_list={customers_list}
+			crud_endpoint="customers"
+			read_perms={['CUSTOMERS_READ']}
+			write_perms={['CUSTOMERS_WRITE']}
+			create_post_request={create_default}
+			{columns}
+		></CrudPanel>
+	</div>
 </div>

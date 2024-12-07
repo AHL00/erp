@@ -119,14 +119,18 @@
 	};
 </script>
 
-<div class="flex flex-col h-full">
-	<CrudPanel
-		list_request={suppliers_list_req}
-		objects_list={suppliers_list}
-		crud_endpoint="suppliers"
-		read_perms={['SUPPLIERS_READ']}
-		write_perms={['SUPPLIERS_WRITE']}
-		create_post_request={create_default}
-		{columns}
-	></CrudPanel>
+<div class="flex flex-col w-full h-screen min-h-0 items-center p-2 space-y-3 overflow-hidden">
+	<div
+		class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
+	>
+		<CrudPanel
+			list_request={suppliers_list_req}
+			objects_list={suppliers_list}
+			crud_endpoint="suppliers"
+			read_perms={['SUPPLIERS_READ']}
+			write_perms={['SUPPLIERS_WRITE']}
+			create_post_request={create_default}
+			{columns}
+		></CrudPanel>
+	</div>
 </div>

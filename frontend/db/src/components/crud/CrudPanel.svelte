@@ -44,6 +44,11 @@
 	/// If null, the create button will be disabled.
 	export let create_post_request: any | null;
 
+    /// Tailwind classes for the background color
+    /// Both light and dark mode are needed.
+    /// Default = 'bg-custom-light dark:bg-custom-dark'
+    export let background_color: string = 'bg-custom-light dark:bg-custom-dark';
+
 	let loading_count = 0;
 
 	let error = false;
@@ -437,7 +442,7 @@
 		<div
 			slot="content"
 			class="relative flex flex-col flex-grow self-center w-full h-full
-            bg-custom-lighter dark:bg-custom-dark
+            {background_color}
             "
 		>
 			{#if loading_count > 0}
@@ -465,20 +470,20 @@
                             Inheriting is a mess so I'm just going to hardcode it. -->
 							<PermissionGuard permissions={write_perms}>
 								{#if !edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> Edit </th>
+									<th class="p-2 z-20 {background_color}"> Edit </th>
 								{/if}
 								{#if delete_enabled}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> Delete </th>
+									<th class="p-2 z-20 {background_color}"> Delete </th>
 								{/if}
 							</PermissionGuard>
 							{#each custom_buttons as button}
 								<PermissionGuard permissions={button.permissions}>
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> {button.text} </th>
+									<th class="p-2 z-20 {background_color}"> {button.text} </th>
 								</PermissionGuard>
 							{/each}
 							{#each columns as column, index}
 								<th
-									class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"
+									class="p-2 z-20 {background_color}"
 									on:click={() => {
 										sort_toggle(index);
 									}}
@@ -501,10 +506,10 @@
 							{/each}
 							<!-- <PermissionGuard permissions={write_perms}>
 								{#if edit_all_mode}
-									<th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> </th>
+									<th class="p-2 z-20 {background_color}"> </th>
 								{/if}
                                 {#if !delete_enabled}
-                                    <th class="p-2 z-20 bg-custom-lighter dark:bg-custom-dark"> </th>
+                                    <th class="p-2 z-20 {background_color}"> </th>
                                 {/if}
 							</PermissionGuard> -->
 						</tr>

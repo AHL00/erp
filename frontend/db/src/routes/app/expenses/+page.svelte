@@ -5,11 +5,11 @@
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	let expenses_list_req: ListRequest = {
 		range: {
@@ -36,9 +36,9 @@
 			current_sort: null,
 			type: {
 				type: 'number',
-				data: { integer: true, range: [0, null], step: 1 },
+				data: { integer: true, range: [0, null], step: 1 }
 			},
-            edit: true,
+			edit: true,
 			readonly: true
 		},
 		{
@@ -50,7 +50,7 @@
 			type: {
 				type: 'datetime'
 			},
-            edit: true,
+			edit: true,
 			readonly: true
 		},
 		{
@@ -66,7 +66,7 @@
 					regex: null
 				}
 			},
-            edit: true,
+			edit: true,
 			readonly: false
 		},
 		{
@@ -78,7 +78,7 @@
 			type: {
 				type: 'currency'
 			},
-            edit: true,
+			edit: true,
 			readonly: false
 		}
 	];
@@ -89,15 +89,19 @@
 	};
 </script>
 
-<div class="flex flex-col h-full">
-	<CrudPanel
-		list_request={expenses_list_req}
-		objects_list={expenses_list}
-		crud_endpoint="expenses"
-		read_perms={['EXPENSES_READ']}
-		write_perms={['EXPENSES_WRITE']}
-		create_post_request={default_item}
-		delete_enabled={true}
-		{columns}
-	></CrudPanel>
+<div class="flex flex-col w-full h-screen min-h-0 items-center p-2 space-y-3 overflow-hidden">
+	<div
+		class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
+	>
+		<CrudPanel
+			list_request={expenses_list_req}
+			objects_list={expenses_list}
+			crud_endpoint="expenses"
+			read_perms={['EXPENSES_READ']}
+			write_perms={['EXPENSES_WRITE']}
+			create_post_request={default_item}
+			delete_enabled={true}
+			{columns}
+		></CrudPanel>
+	</div>
 </div>

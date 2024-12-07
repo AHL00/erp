@@ -5,11 +5,11 @@
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
-    import { showNavbar } from '../../../stores/navbarStore';
+	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
-    onMount(async () => {
+	onMount(async () => {
 		showNavbar.set(true);
-    });
+	});
 
 	let inventory_list_req: ListRequest = {
 		range: {
@@ -54,22 +54,22 @@
 			edit: true,
 			readonly: false
 		},
-        {
-            api_name: 'description',
-            api_request_name: null,
-            display_name: 'Description',
-            display_map_fn: null,
-            current_sort: null,
-            type: {
-                type: 'string',
-                data: {
-                    length_range: [0, null],
-                    regex: null
-                }
-            },
-            edit: true,
-            readonly: false
-        },
+		{
+			api_name: 'description',
+			api_request_name: null,
+			display_name: 'Description',
+			display_map_fn: null,
+			current_sort: null,
+			type: {
+				type: 'string',
+				data: {
+					length_range: [0, null],
+					regex: null
+				}
+			},
+			edit: true,
+			readonly: false
+		},
 		{
 			api_name: 'price',
 			api_request_name: null,
@@ -123,18 +123,23 @@
 		name: 'New Item',
 		price: '0.00',
 		stock: 0,
-		quantity_per_box: 1
+		quantity_per_box: 1,
+		description: ''
 	};
 </script>
 
-<div class="flex flex-col h-full">
-	<CrudPanel
-		list_request={inventory_list_req}
-		objects_list={inventory_list}
-		crud_endpoint="inventory"
-		read_perms={['INVENTORY_READ']}
-		write_perms={['INVENTORY_WRITE']}
-		create_post_request={default_item}
-		{columns}
-	></CrudPanel>
+<div class="flex flex-col w-full h-screen min-h-0 items-center p-2 space-y-3 overflow-hidden">
+	<div
+		class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
+	>
+		<CrudPanel
+			list_request={inventory_list_req}
+			objects_list={inventory_list}
+			crud_endpoint="inventory"
+			read_perms={['INVENTORY_READ']}
+			write_perms={['INVENTORY_WRITE']}
+			create_post_request={default_item}
+			{columns}
+		></CrudPanel>
+	</div>
 </div>
