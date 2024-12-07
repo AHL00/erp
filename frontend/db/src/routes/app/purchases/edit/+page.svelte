@@ -543,6 +543,10 @@
 	}
 </script>
 
+<svelte:head>
+    <title>Purchase {purchase_id}</title>
+</svelte:head>
+
 <FullscreenLoader bind:this={loader} />
 <form
 	class="relative w-full h-full flex"

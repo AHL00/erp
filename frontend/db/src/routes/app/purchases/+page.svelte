@@ -178,6 +178,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Purchases</title>
+</svelte:head>
+
 <div class="flex flex-col w-full h-screen min-h-0 items-center p-3 space-y-3 overflow-hidden">
 	<PermissionGuard permissions={['PURCHASE_WRITE']}>
 		<div class="w-full flex flex-row h-fit space-x-3">

@@ -588,6 +588,10 @@
 	}
 </script>
 
+<svelte:head>
+    <title>Order {order_meta?.id}</title>
+</svelte:head>
+
 <FullscreenLoader bind:this={loader} />
 <form
 	class="relative w-full h-full flex"

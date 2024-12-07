@@ -121,6 +121,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Settings</title>
+</svelte:head>
+
 <div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
 	<PermissionGuard permissions={['SETTINGS']}>
 		<div class="w-full flex flex-row h-full space-x-3">

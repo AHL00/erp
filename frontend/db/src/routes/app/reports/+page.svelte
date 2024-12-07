@@ -18,6 +18,10 @@ import Main from "./Main.svelte"
     }
 </script>
 
+<svelte:head>
+    <title>Reports</title>
+</svelte:head>
+
 <div class="flex flex-col w-full">
     <div class="flex flex-row w-full px-1 py-2 dark:bg-custom-dark bg-custom-lighter 
     dark:shadow-custom-dark-shadow shadow-custom-light-shadow

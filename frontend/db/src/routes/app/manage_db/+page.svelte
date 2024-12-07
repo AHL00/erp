@@ -85,6 +85,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Manage DB</title>
+</svelte:head>
+
 <div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
 	<PermissionGuard permissions={['MANAGE_DB']}>
 		<div class="w-full flex flex-row h-fit space-x-3">

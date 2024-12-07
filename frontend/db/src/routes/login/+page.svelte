@@ -77,6 +77,10 @@
 		});
 </script>
 
+<svelte:head>
+    <title>{business_name} - Login</title>
+</svelte:head>
+
 <div class="h-screen w-screen flex items-center">
 	<div
 		class="h-auto w-96

@@ -150,7 +150,7 @@
 			{#if $auth_info_store === null}
 				?
 			{:else}
-				{middle_ellipsis($auth_info_store.username, 10)}
+				{middle_ellipsis($auth_info_store.username, 15)}
 			{/if}
 		</span>
 	</button>

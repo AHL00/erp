@@ -45,6 +45,10 @@
 	];
 </script>
 
+<svelte:head>
+    <title>Price List</title>
+</svelte:head>
+
 <div class="h-[100vh] overflow-y-hidden">
 	<CrudPanel
 		list_request={inventory_list_req}

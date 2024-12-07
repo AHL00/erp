@@ -128,6 +128,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Inventory</title>
+</svelte:head>
+
 <div class="flex flex-col w-full h-screen min-h-0 items-center p-2 space-y-3 overflow-hidden">
 	<div
 		class="w-full rounded-lg p-1 flex-grow shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col min-h-0"
