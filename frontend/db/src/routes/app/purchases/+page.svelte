@@ -215,7 +215,7 @@
 						search_results={supplier_search_results}
 						display_map_fn={supplier_display_map_fn}
 						search_column="name"
-						search_count={10}
+						search_count={32}
 						form_id="purchase-create-form"
 						validity_message={'Select a supplier from the dropdown'}
 						required={true}

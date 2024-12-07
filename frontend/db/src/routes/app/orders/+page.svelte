@@ -261,7 +261,7 @@
 							search_results={customer_search_results}
 							display_map_fn={customer_display_map_fn}
 							search_column="name"
-							search_count={10}
+							search_count={32}
 							form_id="order-create-form"
 							validity_message={'Select a customer from the dropdown'}
 							required={true}
