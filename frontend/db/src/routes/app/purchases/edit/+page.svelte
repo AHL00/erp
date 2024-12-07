@@ -632,7 +632,7 @@
 								}}
 								bind:this={pif_supplier}
 							>
-								<!-- Show supplier info here, should be found in pif_supplier.selected_value -->
+								<!-- Show supplie   r info here, should be found in pif_supplier.selected_value -->
 								<div class="flex flex-col space-y-2 p-2">
 									<span class="text-lg">Customer info</span>
 									<span class="text-md">Name: {pif_supplier.selected_value()?.name}</span>
@@ -758,7 +758,7 @@
 											}}
 											search_column="name"
 											initial_value={data.purchase_item.inventory_item}
-											search_count={15}
+											search_count={32}
 											form_id="purchase-edit-form"
 											validity_message={'Select an item from the dropdown'}
 											required={true}
@@ -771,6 +771,10 @@
 												data.purchase_item.inventory_item = value;
 
 												console.log('on change');
+											}}
+											presearch_fn={(search) => {
+												search = search.replace(/-/g, ' ');
+												return search;
 											}}
 											on_initial_value={(value) => {}}
 										/>

@@ -295,7 +295,7 @@ pub(super) async fn search(
         r#"
     SELECT *
     FROM inventory
-    WHERE {} @@ phraseto_tsquery('english', $1)
+    WHERE {} @@ phraseto_tsquery('simple', $1)
     LIMIT $2
     "#,
         column_ts_name

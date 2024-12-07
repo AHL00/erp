@@ -109,7 +109,7 @@ pub(super) async fn search(
         r#"
     SELECT id, name, price, quantity_per_box
     FROM inventory
-    WHERE {} @@ phraseto_tsquery('english', $1)
+    WHERE {} @@ phraseto_tsquery('simple', $1)
     LIMIT $2
     "#,
         column_ts_name

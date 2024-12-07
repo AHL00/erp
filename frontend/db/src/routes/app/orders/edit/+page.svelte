@@ -506,15 +506,15 @@
 		}
 
 		// Compare every field except id
-        return (
-            a.amount_paid === b.amount_paid &&
-            customer_same &&
-            a.notes === b.notes &&
-            a.retail === b.retail &&
-            a.retail_customer_address === b.retail_customer_address &&
-            a.retail_customer_name === b.retail_customer_name &&
-            a.retail_customer_phone === b.retail_customer_phone
-        );
+		return (
+			a.amount_paid === b.amount_paid &&
+			customer_same &&
+			a.notes === b.notes &&
+			a.retail === b.retail &&
+			a.retail_customer_address === b.retail_customer_address &&
+			a.retail_customer_name === b.retail_customer_name &&
+			a.retail_customer_phone === b.retail_customer_phone
+		);
 	}
 
 	function compare_order_item(a: OrderItem, b: OrderItem) {
@@ -589,7 +589,7 @@
 </script>
 
 <svelte:head>
-    <title>Order {order_meta?.id}</title>
+	<title>Order {order_meta?.id}</title>
 </svelte:head>
 
 <FullscreenLoader bind:this={loader} />
@@ -855,16 +855,16 @@
 											display_map_fn={(val) => {
 												return val.name;
 											}}
-                                            display_extra_map_fn={(val) => {
-                                                if (val.description.trim().length !== 0) {
-                                                    return val.description;
-                                                } else {
-                                                    return null;
-                                                }
-                                            }}
+											display_extra_map_fn={(val) => {
+												if (val.description.trim().length !== 0) {
+													return val.description;
+												} else {
+													return null;
+												}
+											}}
 											search_column="name"
 											initial_value={data.order_item.inventory_item}
-											search_count={15}
+											search_count={32}
 											form_id="order-edit-form"
 											validity_message={'Select an item from the dropdown'}
 											required={true}
@@ -877,6 +877,10 @@
 												data.order_item.inventory_item = value;
 
 												console.log('on change');
+											}}
+											presearch_fn={(search) => {
+												search = search.replace(/-/g, ' ');
+												return search;
 											}}
 											on_initial_value={(value) => {}}
 										/>
@@ -928,17 +932,19 @@
 										/>
 									</td>
 									<td class="w-8">
-                                        <div class="h-full w-full flex flex-row justify-center items-center space-x-2">
-                                            <button
-                                                class="bg-red-500 text-white px-2 py-1 rounded-md"
-                                                on:click={() => {
-                                                    // Remove the item from the array
-                                                    order_items_editing = order_items_editing.filter((_, index) => index !== i);
-                                                }}
-                                            >
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+										<div class="h-full w-full flex flex-row justify-center items-center space-x-2">
+											<button
+												class="bg-red-500 text-white px-2 py-1 rounded-md"
+												on:click={() => {
+													// Remove the item from the array
+													order_items_editing = order_items_editing.filter(
+														(_, index) => index !== i
+													);
+												}}
+											>
+												<i class="fas fa-trash"></i>
+											</button>
+										</div>
 									</td>
 								</tr>
 							{/each}

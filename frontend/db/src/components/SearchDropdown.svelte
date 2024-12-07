@@ -39,6 +39,7 @@
 	export let on_initial_value: (val: ResultType) => void = () => {};
 	export let disabled = false;
 	export let classes = '';
+    export let presearch_fn: (search: string) => string = (search) => search;
 
 	let search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
@@ -123,6 +124,7 @@
 	}
 
 	function search() {
+        
 		if (search_perms.length > 0) {
 			let auth_info = $auth_info_store;
 
@@ -147,7 +149,7 @@
 		search_error = null;
 
 		let search_request: SearchRequest = {
-			search: search_input.value,
+			search: presearch_fn(search_input.value),
 			column: search_column,
 			count: search_count
 		};
