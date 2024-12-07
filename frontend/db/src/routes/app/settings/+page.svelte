@@ -84,12 +84,6 @@
 
 	let saving_indexes: Set<number> = new Set();
 
-	// Looping add to set random number every second
-	setInterval(() => {
-		saving_indexes.add(Math.floor(Math.random() * 10));
-        saving_indexes = saving_indexes;
-	}, 1000);
-
 	function save_setting(idx: number) {
 		const setting = settings_edit[idx];
 		saving_indexes.add(idx);
