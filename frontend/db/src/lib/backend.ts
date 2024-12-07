@@ -46,7 +46,6 @@ export const SETTINGS_CACHE_PREFIX = 'cached_setting_';
 export async function get_setting(key: string) {
     let cached = sessionStorage.getItem(`${SETTINGS_CACHE_PREFIX}${key}`);
     if (cached) {
-        console.log("Returning cached setting", key);
         return JSON.parse(cached) as SettingValue;
     }
 

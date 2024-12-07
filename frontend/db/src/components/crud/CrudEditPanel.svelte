@@ -3,7 +3,7 @@
 
 	import { utc_date_to_local } from '$lib/index';
 	import type { CrudColumn } from './types';
-	import { api_call } from '$lib/backend';
+	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import Loader from '../Loader.svelte';
 	let current_item_id: number | null = null;
@@ -154,7 +154,10 @@
 				}
 
 				request[column.api_name] = value_str;
-			}
+			} else {
+                toast.push('DEV ERROR: This CRUD edit types submission logic hasnt been implemented');
+                malformed = true;
+            }
 
 			edited_columns.push(column);
 		}
@@ -198,6 +201,13 @@
 
 		return (current_editing_item as any)[api_name];
 	}
+
+    let currency_decimal_places = 0;
+
+    get_setting('currency_decimal_places').then((res) => {
+        // @ts-ignore
+        currency_decimal_places = res.Int;
+    });
 </script>
 
 <div class="flex flex-col h-full w-full items-center">
@@ -295,6 +305,24 @@
 								checked={// @ts-ignore
 								get_column_value(column.api_name)}
 							/>
+                        {:else if column.type.type == 'currency'}
+                            <input
+                                id="{api_endpoint}-{column.api_name}-input"
+                                form="edit-{api_endpoint}-form"
+                                class="flex-grow"
+                                type="number"
+                                name={column.api_name}
+                                readonly={column.readonly}
+                                disabled={column.readonly}
+                                value={// @ts-ignore
+                                get_column_value(column.api_name)}
+                                min={0}
+                                step={Math.pow(10, -currency_decimal_places)}
+                            />
+                        {:else}
+                            <span class="text-red-500">
+                                UNIMPLEMENTED
+                            </span>
 						{/if}
 						{#if !column.readonly}
 							<button
