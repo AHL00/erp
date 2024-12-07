@@ -544,7 +544,7 @@
 </script>
 
 <svelte:head>
-    <title>Purchase {purchase_id}</title>
+	<title>Purchase {purchase_id}</title>
 </svelte:head>
 
 <FullscreenLoader bind:this={loader} />
@@ -749,6 +749,13 @@
 											display_map_fn={(val) => {
 												return val.name;
 											}}
+											display_extra_map_fn={(val) => {
+												if (val.description.trim().length !== 0) {
+													return val.description;
+												} else {
+													return null;
+												}
+											}}
 											search_column="name"
 											initial_value={data.purchase_item.inventory_item}
 											search_count={15}
@@ -861,7 +868,7 @@
 					</div>
 				{/if}
 
-            <button
+				<button
 					form="purchase-edit-form"
 					type="submit"
 					id="save-purchase-button"

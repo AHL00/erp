@@ -47,7 +47,7 @@
 			type: {
 				type: 'string',
 				data: {
-					length_range: [1, 255],
+					length_range: [1, 64],
 					regex: null
 				}
 			},
@@ -63,7 +63,7 @@
 			type: {
 				type: 'string',
 				data: {
-					length_range: [0, null],
+					length_range: [0, 128],
 					regex: null
 				}
 			},

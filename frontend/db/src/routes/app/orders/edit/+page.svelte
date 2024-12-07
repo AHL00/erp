@@ -855,6 +855,13 @@
 											display_map_fn={(val) => {
 												return val.name;
 											}}
+                                            display_extra_map_fn={(val) => {
+                                                if (val.description.trim().length !== 0) {
+                                                    return val.description;
+                                                } else {
+                                                    return null;
+                                                }
+                                            }}
 											search_column="name"
 											initial_value={data.order_item.inventory_item}
 											search_count={15}

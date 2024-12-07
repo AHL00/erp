@@ -29,6 +29,7 @@
 	export let search_column: string;
 	export let search_count: number;
 	export let display_map_fn: (val: any) => string;
+	export let display_extra_map_fn: (val: any) => string | null = () => null;
 	export let initial_value: ResultType | null = null;
 	export let max_dropdown_height: string = '300px';
 	export let form_id: string;
@@ -238,26 +239,28 @@
 <div
 	class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}"
 >
-    <div class="relative w-full">
-        <input
-            type="text"
-            bind:this={search_input}
-            autocomplete="off"
-            id={input_id}
-            {disabled}
-            placeholder="{input_placeholder}"
-            class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
-            on:focusin={() => {
-                dropdown_div.classList.remove('hidden');
+	<div class="relative w-full">
+		<input
+			type="text"
+			bind:this={search_input}
+			autocomplete="off"
+			id={input_id}
+			{disabled}
+			placeholder={input_placeholder}
+			class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
+			on:focusin={() => {
+				dropdown_div.classList.remove('hidden');
 
-                // Reset the search results
-                search_input.value = '';
-                search_results = [];
-            }}
-            on:input={typing_handler}
-        />
-        <i class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"></i>
-    </div>
+				// Reset the search results
+				search_input.value = '';
+				search_results = [];
+			}}
+			on:input={typing_handler}
+		/>
+		<i
+			class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"
+		></i>
+	</div>
 
 	<div
 		bind:this={dropdown_div}
@@ -288,9 +291,15 @@
 						on:click={() => select(i)}
 						type="button"
 					>
-						<span class="text-sm">
+						<span class="text-md">
 							{display_map_fn(result)}
 						</span>
+						{#if display_extra_map_fn(result) !== null}
+							<div class="h-4 border-r border-gray-400 mx-2"></div>
+							<span class="text-md italic">
+								{display_extra_map_fn(result)}
+							</span>
+						{/if}
 					</button>
 				{:else}
 					<div class="flex flex-row items-center p-2">
