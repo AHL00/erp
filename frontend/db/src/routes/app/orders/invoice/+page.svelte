@@ -346,45 +346,46 @@
 
 			<div class="px-8 pb-8 h-fit w-full bottom-0 mt-auto absolute break-inside-avoid">
 				<hr />
-				<div class="flex flex-row justify-end mt-4">
+				<div class="flex flex-row justify-end mt-4 space-x-4">
 					{#if order?.notes && order?.notes.length > 0}
-						<div class="flex flex-col flex-grow space-y-1">
-							<span class="text-sm text-zinc-800 font-sans font-bold">Note</span>
-							<span class="text-md text-black font-sans font-light w-7/12 whitespace-pre-line"
+						<div class="flex flex-col space-y-1 flex-initial w-1/4">
+							<span class="text-sm text-zinc-800 font-sans font-bold">Notes</span>
+							<span class="text-sm text-black font-sans font-light whitespace-pre-line"
 								>{order?.notes}</span
 							>
 						</div>
 					{/if}
-					<div class="flex flex-col items-end space-y-1">
+                    {#if business_bank_accounts && business_bank_accounts.length > 0}
+					<div class="flex flex-wrap flex-row place-content-start flex-grow">
+						<span class="w-full h-fit text-sm text-zinc-800 font-sans font-bold mb-1">Bank Accounts</span>
+						{#each business_bank_accounts as account}
+							<span class="w-fit h-fit mr-2 text-xs text-black font-sans font-light">{account}</span>
+						{/each}
+					</div>
+				{/if}
+					<div class="flex flex-col items-end space-y-1 flex-initial w-1/4">
 						<span class="text-sm text-zinc-800 font-sans font-bold">Total</span>
 						<CurrencySpan custom_class="text-2xl text-black font-sans font-light" value={total} />
 					</div>
 				</div>
-				{#if business_bank_accounts && business_bank_accounts.length > 0}
-					<div class="flex flex-wrap justify-start">
-						<span class="w-full text-xs text-zinc-800 font-sans font-bold mb-1">Bank Accounts</span>
-						{#each business_bank_accounts as account}
-							<span class="w-fit mr-2 text-xs text-black font-sans font-light">{account}</span>
-						{/each}
-					</div>
-				{/if}
+
 				{#if invoice_signature_fields}
 					<div class="flex flex-row justify-between mt-4">
 						<div class="flex flex-col items-end">
 							<div class="flex flex-col justify-center text-center">
-								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-md text-[#bbbbbb] font-sans mt-8">______________________</span>
 								<span class="text-sm text-zinc-700 font-sans mt-1">Checked by</span>
 							</div>
 						</div>
 						<div class="flex flex-col items-end">
 							<div class="flex flex-col justify-center text-center">
-								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-md text-[#bbbbbb] font-sans mt-8">______________________</span>
 								<span class="text-sm text-zinc-700 font-sans mt-1">Received by</span>
 							</div>
 						</div>
 						<div class="flex flex-col items-end">
 							<div class="flex flex-col justify-center text-center">
-								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-md text-[#bbbbbb] font-sans mt-8">______________________</span>
 								<span class="text-sm text-zinc-700 font-sans mt-1">Authorised by</span>
 							</div>
 						</div>
