@@ -16,7 +16,7 @@
 	let order: Order | null = null;
 	let order_items: OrderItem[] = [];
 	let loading = true;
-    let filling_data_count = 0;
+	let filling_data_count = 0;
 
 	let should_print = false;
 
@@ -35,67 +35,67 @@
 	});
 
 	let logo_high_res_uri = '';
-    filling_data_count++;
+	filling_data_count++;
 	get_setting('logo_high_resolution')
 		.then((res) => {
 			// @ts-ignore
 			logo_high_res_uri = res['ImageBase64URI'];
-            filling_data_count--;
+			filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch logo');
-            filling_data_count--;
+			filling_data_count--;
 		});
 
 	let business_name: string | null = null;
-    filling_data_count++;
+	filling_data_count++;
 	get_setting('business_name')
 		.then((res) => {
 			// @ts-ignore
 			business_name = res['Text'];
-            filling_data_count--;
+			filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business name');
-            filling_data_count--;
+			filling_data_count--;
 		});
 
 	let business_address: string | null = null;
-    filling_data_count++;
+	filling_data_count++;
 	get_setting('business_address')
 		.then((res) => {
 			// @ts-ignore
 			business_address = res['Text'];
-            filling_data_count--;
+			filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business address');
-            filling_data_count--;
+			filling_data_count--;
 		});
 
 	let business_phone_nums: string[] | null = null;
-    filling_data_count++;
+	filling_data_count++;
 	get_setting('business_phone_numbers')
 		.then((res) => {
 			// @ts-ignore
 			business_phone_nums = res['TextVec'];
-            filling_data_count--;
+			filling_data_count--;
 		})
 		.catch((error) => {
 			toast.push('Failed to fetch business phone numbers');
-            filling_data_count--;
+			filling_data_count--;
 		});
 
-    $: {
-        console.log(filling_data_count);
-    }
+	$: {
+		console.log(filling_data_count);
+	}
 	$: {
 		if (should_print && order && filling_data_count === 0) {
-            console.log('printing');
+			console.log('printing');
 			setTimeout(() => {
 				window.print();
 				window.onafterprint = () => {
-                    console.log('after print');
+					console.log('after print');
 					window.close();
 				};
 			}, 1000);
@@ -185,7 +185,7 @@
 						</div>
 					</div>
 					<div class="flex flex-col space-y-3 items-end justify-center">
-						<span class="text-3xl text-black font-sans font-light">{business_name}</span>
+						<span class="text-3xl text-black font-sans font-normal">{business_name}</span>
 						<div class="flex flex-col items-end space-y-2">
 							<span class="text-sm text-black font-sans font-light">{business_address}</span>
 							<div class="flex flex-col items-end">
@@ -265,6 +265,7 @@
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">No.</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
 									>Qty/Box</th
@@ -280,11 +281,12 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each order_items as item}
-								<tr>
+							{#each order_items as item, i}
+								<tr class="my-2">
+									<td class="px-2 py-2 text-sm text-black font-sans font-light">{i + 1}</td>
 									<td
-										class="px-2 flex flex-col {item.inventory_item.description.length > 0
-											? 'pt-2 pb-0'
+										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
+											? 'pt-2 pb-2'
 											: 'py-2'}"
 									>
 										<span class="text-sm text-black font-sans font-light">
