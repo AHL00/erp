@@ -90,6 +90,7 @@ pub fn routes() -> Vec<rocket::Route> {
         settings::get,
         settings::get_multiple,
         settings::set,
+        settings::reset,
         // backup::restore,
         // customers::delete,
     ]

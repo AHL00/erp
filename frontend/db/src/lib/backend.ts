@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import type { SettingValue } from '$bindings/SettingValue';
+import { toast } from '@zerodevx/svelte-toast';
 
 export const api_base = import.meta.env.VITE_API_BASE_URL
 	? import.meta.env.VITE_API_BASE_URL
@@ -65,6 +66,7 @@ export async function get_setting(key: string) {
             throw new Error(`HTTP status ${response.status}`);
         }
     } catch (e) {
+        toast.push(`Failed to get setting ${key}, try resetting to defaults`);
 		throw new Error(`Failed to get setting ${key}: ${e}`);
 	}
 }

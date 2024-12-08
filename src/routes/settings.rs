@@ -3,7 +3,7 @@ use rocket::{http::Status, serde::json::Json};
 use crate::{
     db::DB,
     settings::{
-        ensure_settings_exist, get_setting, get_settings, set_setting, Setting, SettingRow,
+        ensure_settings_exist, get_setting, get_settings, reset_settings, set_setting, Setting, SettingRow
     },
     types::permissions::UserPermissionEnum,
 };
@@ -94,6 +94,13 @@ pub(super) async fn set(
     _auth: AuthGuard<{ UserPermissionEnum::SETTINGS as u32 }>,
 ) -> Result<(), ApiError> {
     set_setting(&mut db, setting.0.into()).await?;
+
+    Ok(())
+}
+
+#[rocket::get("/settings/reset")]
+pub(super) async fn reset(mut db: DB, _auth: AuthGuard<{ UserPermissionEnum::SETTINGS as u32 }>) -> Result<(), ApiError> {
+    reset_settings(&mut db).await?;
 
     Ok(())
 }

@@ -86,6 +86,19 @@
 			filling_data_count--;
 		});
 
+	let business_bank_accounts: string[] | null = null;
+	filling_data_count++;
+	get_setting('business_bank_accounts')
+		.then((res) => {
+			// @ts-ignore
+			business_bank_accounts = res['TextVec'];
+			filling_data_count--;
+		})
+		.catch((error) => {
+			toast.push('Failed to fetch business bank accounts');
+			filling_data_count--;
+		});
+
 	$: {
 		console.log(filling_data_count);
 	}
@@ -144,6 +157,14 @@
 			total = order_items.reduce((acc, item) => acc + parseFloat(item.price) * item.quantity, 0);
 		}
 	}
+
+	// Settings
+	let invoice_signature_fields: boolean = false;
+
+	get_setting('invoice_signature_fields').then((res) => {
+		// @ts-ignore
+		invoice_signature_fields = res.Boolean;
+	});
 </script>
 
 <svelte:head>
@@ -175,18 +196,18 @@
 						<object
 							data={logo_high_res_uri}
 							type="image/png"
-							class="w-28 h-28 rounded-xl"
+							class="w-24 h-24 rounded-xl"
 							aria-label="Logo"
 						>
 						</object>
 						<div class="flex flex-row items-end space-x-3">
-							<span class="text-4xl text-black font-sans font-light">Invoice</span>
-							<span class="text-3xl text-zinc-800 font-sans font-light">#{order_id}</span>
+							<span class="text-3xl text-black font-sans font-light">Invoice</span>
+							<span class="text-2xl text-zinc-800 font-sans font-light">#{order_id}</span>
 						</div>
 					</div>
 					<div class="flex flex-col space-y-3 items-end justify-center">
 						<span class="text-3xl text-black font-sans font-normal">{business_name}</span>
-						<div class="flex flex-col items-end space-y-2">
+						<div class="flex flex-col items-end space-y-1">
 							<span class="text-sm text-black font-sans font-light">{business_address}</span>
 							<div class="flex flex-col items-end">
 								{#if business_phone_nums}
@@ -207,7 +228,7 @@
                                 TODO: Retail customer info</span
 							> -->
 							<div class="flex flex-col">
-								<span class="text-md text-zinc-700 font-sans font-bold">Bill To</span>
+								<span class="text-sm text-zinc-700 font-sans font-bold">Customer</span>
 								<span class="text-xl text-black font-sans font-light"
 									>{order?.retail_customer_name}</span
 								>
@@ -242,6 +263,12 @@
 								<span class="text-sm text-black font-sans font-light">{order?.customer?.phone}</span
 								>
 							</div>
+                            {#if order?.customer?.notes.trim().length > 0}
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
+                                    <span class="text-sm text-black font-sans font-light">{order?.customer?.notes}</span>
+                                </div>
+                            {/if}
 						{/if}
 					</div>
 					<div class="flex flex-col items-end space-y-2">
@@ -256,6 +283,15 @@
 							<span class="text-sm text-black font-sans font-light"
 								>{order?.retail ? 'Retail' : 'Wholesale'}</span
 							>
+						</div>
+						<div class="flex flex-col items-end">
+							<span class="text-xs text-zinc-700 font-sans font-bold">Bank Accounts</span>
+							{#if business_bank_accounts}
+								{@const bank_accounts = business_bank_accounts ?? []}
+								{#each bank_accounts as bank_account}
+									<span class="text-sm text-black font-sans font-light">{bank_account}</span>
+								{/each}
+							{/if}
 						</div>
 					</div>
 				</div>
@@ -331,6 +367,28 @@
 						<CurrencySpan custom_class="text-2xl text-black font-sans font-light" value={total} />
 					</div>
 				</div>
+				{#if invoice_signature_fields}
+					<div class="flex flex-row justify-between mt-4">
+						<div class="flex flex-col items-end">
+							<div class="flex flex-col justify-center text-center">
+								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-sm text-zinc-700 font-sans mt-1">Checked by</span>
+							</div>
+						</div>
+						<div class="flex flex-col items-end">
+							<div class="flex flex-col justify-center text-center">
+								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-sm text-zinc-700 font-sans mt-1">Received by</span>
+							</div>
+						</div>
+						<div class="flex flex-col items-end">
+							<div class="flex flex-col justify-center text-center">
+								<span class="text-md text-[#bbbbbb] font-sans mt-10">______________________</span>
+								<span class="text-sm text-zinc-700 font-sans mt-1">Authorised by</span>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}

@@ -1,5 +1,7 @@
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
+use sqlx::Acquire;
+use sqlx_core::transaction;
 
 use crate::db::DB;
 
@@ -17,11 +19,24 @@ fn default_settings() -> Vec<Setting> {
             long_name: "Business Address".to_string(),
             description: None,
             value: SettingValue::Text("123 Business Avenue".to_string()),
-        },Setting {
+        },
+        Setting {
             key: "business_email".to_string(),
             long_name: "Business Email".to_string(),
             description: None,
             value: SettingValue::Text("business@gmail.com".to_string()),
+        },
+        Setting {
+            key: "business_website".to_string(),
+            long_name: "Business Website".to_string(),
+            description: None,
+            value: SettingValue::Text("https://business.com".to_string()),
+        },
+        Setting {
+            key: "business_bank_accounts".to_string(),
+            long_name: "Business Bank Accounts".to_string(),
+            description: None,
+            value: SettingValue::TextVec(vec![]),
         },
         Setting {
             key: "business_phone_numbers".to_string(),
@@ -62,21 +77,39 @@ fn default_settings() -> Vec<Setting> {
         Setting {
             key: "logo_high_resolution".to_string(),
             long_name: "Logo High Resolution".to_string(),
-            description: Some("High resolution logo used in places like invoices. 512x512 recommended.".to_string()),
-            value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_high_res.txt").to_string()),
+            description: Some(
+                "High resolution logo used in places like invoices. 512x512 recommended."
+                    .to_string(),
+            ),
+            value: SettingValue::ImageBase64URI(
+                include_str!("misc/default_logo_high_res.txt").to_string(),
+            ),
         },
         Setting {
             key: "logo_low_resolution".to_string(),
             long_name: "Logo Low Resolution".to_string(),
-            description: Some("Low resolution logo used in places like browser icons. 128x128 recommended.".to_string()),
-            value: SettingValue::ImageBase64URI(include_str!("misc/default_logo_low_res.txt").to_string()),
+            description: Some(
+                "Low resolution logo used in places like browser icons. 128x128 recommended."
+                    .to_string(),
+            ),
+            value: SettingValue::ImageBase64URI(
+                include_str!("misc/default_logo_low_res.txt").to_string(),
+            ),
         },
         Setting {
             key: "theme_color".to_string(),
             long_name: "Theme Color".to_string(),
             description: Some("Primary theme color in hex".to_string()),
             value: SettingValue::Text("#d3d3d3".to_string()),
-        }
+        },
+        Setting {
+            key: "invoice_signature_fields".to_string(),
+            long_name: "Invoice Signature Fields".to_string(),
+            description: Some(
+                "Whether signature fields should be included in invoices".to_string(),
+            ),
+            value: SettingValue::Boolean(true),
+        },
     ]
 }
 
@@ -204,6 +237,59 @@ pub async fn get_setting(db: &mut DB, key: &str) -> Result<Option<Setting>, sqlx
     .await?;
 
     Ok(setting.map(Setting::from))
+}
+
+pub async fn reset_settings(db: &mut DB) -> Result<(), sqlx::Error> {
+    let mut transaction = db.begin().await?;
+
+    sqlx::query(
+        r#"
+        DELETE FROM settings
+        "#,
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    log::warn!("Creating default settings");
+
+    let default_settings = default_settings();
+
+    for setting in default_settings {
+        let setting_row = SettingRow::from(setting);
+
+        sqlx::query(
+            r#"
+            INSERT INTO settings (key, long_name, description, value)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (key) DO UPDATE
+            SET value = $4
+            "#,
+        )
+        .bind(setting_row.key)
+        .bind(setting_row.long_name)
+        .bind(setting_row.description)
+        .bind(setting_row.value)
+        .execute(&mut *transaction)
+        .await?;
+    }
+
+    let settings_count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*)
+        FROM settings
+        "#,
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+
+    if settings_count == 0 {
+        transaction.rollback().await?;
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    transaction.commit().await?;
+
+    Ok(())
 }
 
 pub async fn get_settings(db: &mut DB, keys: Vec<String>) -> Result<Vec<Setting>, sqlx::Error> {

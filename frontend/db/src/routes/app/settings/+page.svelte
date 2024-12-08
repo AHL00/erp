@@ -35,6 +35,26 @@
 			toast.push('Failed to fetch settings');
 		}
 	}
+    
+    async function resetSettings() {
+        try {
+            const response = await api_call('/settings/reset', 'GET', null);
+
+            if (!response) {
+                throw new Error('No response');
+            }
+
+            if (response.status === 200) {
+                toast.push('Settings reset');
+                fetchSettings();
+            } else {
+                throw new Error(`Response status: ${response.status}`);
+            }
+        } catch (e) {
+            console.error('Failed to reset settings:', e);
+            toast.push('Failed to reset settings');
+        }
+    }
 
 	fetchSettings();
 
@@ -131,7 +151,18 @@
 			<div
 				class="h-full w-full p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 			>
-				<span class="text-3xl m-4">Settings</span>
+                <div class="flex flex-row justify-between items-center p-2 border-b border-custom-light-outline dark:border-custom-dark-outline">
+                    <span class="text-3xl m-4">Settings</span>
+                    <button
+                        class="font-bold p-2 bg-custom-light dark:bg-custom-darker border-red-500 border-[1px] rounded-lg"
+                        on:click={() => {
+                            resetSettings();
+                        }}
+                    >
+                        <span>Reset to default</span>
+                        <i class="fas fa-sync-alt ml-2 opacity-80"></i>
+                    </button>
+                </div>
 				{#each settings_edit as setting, i}
 					<div
 						class="flex flex-row justify-between items-center p-2 border-b border-custom-light-outline dark:border-custom-dark-outline"
