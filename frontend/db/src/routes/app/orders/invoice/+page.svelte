@@ -290,7 +290,7 @@
 				</div>
 				<hr />
 
-				<div class="flex flex-row justify-center w-full h-fit break-inside-avoid py-5">
+				<div class="flex flex-row justify-center w-full h-fit break-inside-avoid py-3">
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
@@ -312,11 +312,11 @@
 						<tbody>
 							{#each order_items as item, i}
 								<tr class="my-2">
-									<td class="px-2 py-2 text-sm text-black font-sans font-light">{i + 1}</td>
+									<td class="px-2 py-1 text-sm text-black font-sans font-light">{i + 1}</td>
 									<td
 										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
-											? 'pt-2 pb-2'
-											: 'py-2'}"
+											? 'pt-1 pb-1'
+											: 'py-1'}"
 									>
 										<span class="text-sm text-black font-sans font-light">
 											{item.inventory_item.name}
@@ -327,14 +327,14 @@
 											</span>
 										{/if}
 									</td>
-									<td class="px-2 py-2 text-sm text-black font-sans font-light"
+									<td class="px-2 py-1 text-sm text-black font-sans font-light"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-2 py-2 text-sm text-black font-sans font-light">{item.quantity}</td>
-									<td class="px-2 py-2 text-sm text-black font-sans font-light">
+									<td class="px-2 py-1 text-sm text-black font-sans font-light">{item.quantity}</td>
+									<td class="px-2 py-1 text-sm text-black font-sans font-light">
 										<CurrencySpan value={parseFloat(item.price)} />
 									</td>
-									<td class="px-2 py-2 text-sm text-black font-sans font-light">
+									<td class="px-2 py-1 text-sm text-black font-sans font-light">
 										<CurrencySpan value={parseFloat(item.price) * item.quantity} />
 									</td>
 								</tr>
