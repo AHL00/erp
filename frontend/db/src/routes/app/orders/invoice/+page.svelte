@@ -191,7 +191,7 @@
 	{:else}
 		<div class="w-full h-fit bg-white">
 			<div class="flex flex-col justify-start px-8 w-full h-fit">
-				<div class="flex flex-row justify-between w-full h-fit py-5 break-inside-avoid">
+				<div class="flex flex-row justify-between w-full h-fit pt-8 pb-5 break-inside-avoid">
 					<div class="flex flex-col space-y-3">
 						<object
 							data={logo_high_res_uri}
@@ -290,7 +290,7 @@
 				</div>
 				<hr />
 
-				<div class="flex flex-row justify-center w-full h-fit py-3">
+				<div class="flex flex-row justify-center w-full h-fit py-4">
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
