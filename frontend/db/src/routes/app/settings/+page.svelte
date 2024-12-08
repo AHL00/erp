@@ -145,11 +145,11 @@
 	<title>Settings</title>
 </svelte:head>
 
-<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
+<div class="flex flex-col h-full w-full items-center p-3 space-y-3">
 	<PermissionGuard permissions={['SETTINGS']}>
 		<div class="w-full flex flex-row h-full space-x-3">
 			<div
-				class="h-full w-full p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
+				class="h-fit w-full p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
 			>
                 <div class="flex flex-row justify-between items-center p-2 border-b border-custom-light-outline dark:border-custom-dark-outline">
                     <span class="text-3xl m-4">Settings</span>
