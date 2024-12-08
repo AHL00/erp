@@ -263,12 +263,14 @@
 								<span class="text-sm text-black font-sans font-light">{order?.customer?.phone}</span
 								>
 							</div>
-                            {#if order?.customer?.notes.trim().length > 0}
-                                <div class="flex flex-col">
-                                    <span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
-                                    <span class="text-sm text-black font-sans font-light">{order?.customer?.notes}</span>
-                                </div>
-                            {/if}
+							{#if order?.customer?.notes.trim().length > 0}
+								<div class="flex flex-col">
+									<span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
+									<span class="text-sm text-black font-sans font-light"
+										>{order?.customer?.notes}</span
+									>
+								</div>
+							{/if}
 						{/if}
 					</div>
 					<div class="flex flex-col items-end space-y-2">
@@ -283,15 +285,6 @@
 							<span class="text-sm text-black font-sans font-light"
 								>{order?.retail ? 'Retail' : 'Wholesale'}</span
 							>
-						</div>
-						<div class="flex flex-col items-end">
-							<span class="text-xs text-zinc-700 font-sans font-bold">Bank Accounts</span>
-							{#if business_bank_accounts}
-								{@const bank_accounts = business_bank_accounts ?? []}
-								{#each bank_accounts as bank_account}
-									<span class="text-sm text-black font-sans font-light">{bank_account}</span>
-								{/each}
-							{/if}
 						</div>
 					</div>
 				</div>
@@ -367,6 +360,14 @@
 						<CurrencySpan custom_class="text-2xl text-black font-sans font-light" value={total} />
 					</div>
 				</div>
+				{#if business_bank_accounts && business_bank_accounts.length > 0}
+					<div class="flex flex-wrap justify-start">
+						<span class="w-full text-xs text-zinc-800 font-sans font-bold mb-1">Bank Accounts</span>
+						{#each business_bank_accounts as account}
+							<span class="w-fit mr-2 text-xs text-black font-sans font-light">{account}</span>
+						{/each}
+					</div>
+				{/if}
 				{#if invoice_signature_fields}
 					<div class="flex flex-row justify-between mt-4">
 						<div class="flex flex-col items-end">
