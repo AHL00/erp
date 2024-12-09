@@ -216,7 +216,6 @@ async fn create_default_settings(db: &mut DB) -> Result<(), sqlx::Error> {
             INSERT INTO settings (key, long_name, description, value)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (key) DO NOTHING
-            SET value = $4
             "#,
         )
         .bind(setting_row.key)
