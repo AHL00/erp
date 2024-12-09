@@ -140,6 +140,7 @@
 	let retail_customer_name: HTMLInputElement | undefined;
 	let retail_customer_phone: HTMLInputElement | undefined;
 	let retail_customer_address: HTMLTextAreaElement | undefined;
+    let notes_field: HTMLTextAreaElement | undefined;
 
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
@@ -158,8 +159,7 @@
 			customer = null;
 		}
 
-		// @ts-ignore
-		let notes = document.querySelector('textarea').value;
+		let notes = notes_field?.value ?? "";
 
 		let customer_id: number | null = customer ? customer.id : null;
 
@@ -300,6 +300,7 @@
 						<textarea
 							class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 							placeholder="Notes"
+                            bind:this={notes_field}
 						></textarea>
 
 						<div
