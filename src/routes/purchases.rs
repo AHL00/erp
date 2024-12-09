@@ -330,9 +330,7 @@ pub(super) async fn patch(
         req.amount_paid
             .as_ref()
             .map(|v| SqlType::BigDecimal(v.clone())),
-        req.date_time
-            .as_ref()
-            .map(|v| SqlType::DateTime(v.clone())),
+        req.date_time.as_ref().map(|v| SqlType::DateTime(v.clone())),
     ]
     .into_iter()
     .flatten();
@@ -750,9 +748,21 @@ pub(super) async fn delete(
     mut db: crate::db::DB,
     _auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
+    let mut transaction = db.begin().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to start transaction: {:?}", e),
+        )
+    })?;
+
+    sqlx::query("DELETE FROM purchase_items WHERE purchase_id = $1")
+        .bind(id)
+        .execute(&mut *transaction)
+        .await?;
+
     sqlx::query("DELETE FROM purchases WHERE id = $1")
         .bind(id)
-        .execute(&mut **db)
+        .execute(&mut *transaction)
         .await
         .map_err(|e| match e {
             sqlx::Error::RowNotFound => {
@@ -760,6 +770,13 @@ pub(super) async fn delete(
             }
             _ => e.into(),
         })?;
+
+    transaction.commit().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to commit transaction: {}", e),
+        )
+    })?;
 
     Ok(Status::NoContent)
 }

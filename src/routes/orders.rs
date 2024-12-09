@@ -900,6 +900,25 @@ pub(super) async fn delete(
     mut db: DB,
     _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
 ) -> Result<Status, ApiError> {
+    // Start transaction
+    let mut transaction = db.begin().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to start transaction: {}", e),
+        )
+    })?;
+
+    // Drop all order_items
+    sqlx::query(
+        r#"
+        DELETE FROM order_items
+        WHERE order_id = $1
+        "#,
+    )
+    .bind(id)
+    .execute(&mut *transaction)
+    .await?;
+
     sqlx::query(
         r#"
         DELETE FROM orders
@@ -907,11 +926,18 @@ pub(super) async fn delete(
         "#,
     )
     .bind(id)
-    .execute(&mut **db)
+    .execute(&mut *transaction)
     .await
     .map_err(|e| match e {
         sqlx::Error::RowNotFound => ApiError(Status::NotFound, format!("No order with id {}", id)),
         _ => e.into(),
+    })?;
+
+    transaction.commit().await.map_err(|e| {
+        ApiError(
+            Status::InternalServerError,
+            format!("Failed to commit transaction: {}", e),
+        )
     })?;
 
     Ok(Status::NoContent)
