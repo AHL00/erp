@@ -303,6 +303,8 @@ pub(super) struct OrderPatchRequest {
     pub set_retail_customer_null: bool,
     pub notes: Option<String>,
     pub amount_paid: Option<sqlx::types::BigDecimal>,
+    pub fulfilled: Option<bool>,
+    pub date_time: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[rocket::post("/orders", data = "<req>")]
@@ -394,6 +396,8 @@ pub(super) async fn patch(
             .map(|_| "retail_customer_address"),
         req.notes.as_ref().map(|_| "notes"),
         req.amount_paid.as_ref().map(|_| "amount_paid"),
+        req.fulfilled.as_ref().map(|_| "fulfilled"),
+        req.date_time.as_ref().map(|_| "date_time"),
     ]
     .into_iter()
     .flatten()
@@ -421,6 +425,10 @@ pub(super) async fn patch(
         req.amount_paid
             .as_ref()
             .map(|v| SqlType::BigDecimal(v.clone())),
+        req.fulfilled.as_ref().map(|v| SqlType::Boolean(v.clone())),
+        req.date_time
+            .as_ref()
+            .map(|v| SqlType::DateTime(v.clone())),
     ]
     .into_iter()
     .flatten();

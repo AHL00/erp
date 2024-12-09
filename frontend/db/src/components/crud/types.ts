@@ -1,4 +1,5 @@
 import type { SortOrder } from '$bindings/SortOrder';
+import type { date_time_accuracy } from '$lib';
 
 export interface CrudEditTypeSelect<T> {
 	options: T[];
@@ -35,7 +36,7 @@ export type CrudValueType =
 	| { type: 'checkbox' }
 	| { type: 'date' }
 	| { type: 'time' }
-	| { type: 'datetime' }
+	| { type: 'datetime', accuracy: date_time_accuracy, format: string }
 	| { type: 'file' }
 	| { type: 'image' }
 	| { type: 'password' }

@@ -241,6 +241,7 @@ pub(super) struct PurchasePatchRequest {
     pub supplier_id: Option<i32>,
     pub notes: Option<String>,
     pub amount_paid: Option<sqlx::types::BigDecimal>,
+    pub date_time: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[rocket::post("/purchases", data = "<req>")]
@@ -311,6 +312,7 @@ pub(super) async fn patch(
         req.supplier_id.as_ref().map(|_| "supplier_id"),
         req.notes.as_ref().map(|_| "notes"),
         req.amount_paid.as_ref().map(|_| "amount_paid"),
+        req.date_time.as_ref().map(|_| "date_time"),
     ]
     .into_iter()
     .flatten()
@@ -328,6 +330,9 @@ pub(super) async fn patch(
         req.amount_paid
             .as_ref()
             .map(|v| SqlType::BigDecimal(v.clone())),
+        req.date_time
+            .as_ref()
+            .map(|v| SqlType::DateTime(v.clone())),
     ]
     .into_iter()
     .flatten();

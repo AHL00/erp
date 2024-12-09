@@ -58,7 +58,6 @@
 
 		// Set the search input to the selected value
 		search_input.value = display_map_fn(selected);
-		fake_search_input.value = display_map_fn(selected);
 
 		if (initial) {
 			on_initial_value(selected);
@@ -75,7 +74,6 @@
 	export function set_selected_value(value: ResultType, initial = false) {
 		selected = value;
 		search_input.value = display_map_fn(selected);
-		fake_search_input.value = display_map_fn(selected);
 
 		if (initial) {
 			on_initial_value(selected);
@@ -210,10 +208,10 @@
 		dropdown_blur.classList.add('hidden');
 
 		if (required) {
-			search_input.required = true;
+			fake_search_input.required = true;
 		}
 
-		search_input.setAttribute('form', form_id);
+		fake_search_input.setAttribute('form', form_id);
 		// search_input.setCustomValidity(validity_message);
 
 		// Escape handler if dropdown is open
@@ -241,21 +239,31 @@
 	}
 
 	export function reportValidity() {
-		return search_input.reportValidity();
+		return fake_search_input.reportValidity();
+	}
+
+	let search_input_value = '';
+	$: {
+		if (search_input !== undefined && search_input !== null) {
+			search_input_value = search_input.value;
+		}
 	}
 </script>
 
 <!-- TODO: BUG: Doesn't activate search if typing fast -->
-<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}">
+<div
+	class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}"
+>
 	<input
 		type="text"
 		bind:this={fake_search_input}
+		bind:value={search_input_value}
 		autocomplete="off"
-		id={input_id}
+		id={input_id + '_fake'}
 		{disabled}
 		placeholder={input_placeholder}
 		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
-		on:focusin={() => {
+		on:click={(e) => {
 			dropdown_div.classList.remove('hidden');
 			dropdown_blur.classList.remove('hidden');
 
@@ -265,6 +273,33 @@
 
 			// Focus on dropdown search bar
 			search_input.focus();
+		}}
+		on:input={(e) => {
+			// Open the dropdown
+			dropdown_div.classList.remove('hidden');
+			dropdown_blur.classList.remove('hidden');
+
+			console.log(e);
+			// Reset the search results
+			// @ts-ignore
+			search_input.value = e.data;
+			search_results = [];
+
+			// Focus on dropdown search bar
+			search_input.focus();
+		}}
+		on:keydown={(e) => {
+			if (e.key === 'Enter') {
+				dropdown_div.classList.remove('hidden');
+				dropdown_blur.classList.remove('hidden');
+
+				// Reset the search results
+				search_input.value = '';
+				search_results = [];
+
+				// Focus on dropdown search bar
+				search_input.focus();
+			}
 		}}
 	/>
 	<i
@@ -285,8 +320,9 @@
 				autocomplete="off"
 				id={input_id}
 				{disabled}
+				name="search"
 				placeholder={selected ? display_map_fn(selected) : input_placeholder}
-				class="h-full w-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
+				class="real_input h-full w-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
 				on:focusin={() => {}}
 				on:input={typing_handler}
 			/>

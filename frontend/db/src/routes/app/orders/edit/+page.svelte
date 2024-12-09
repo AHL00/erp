@@ -20,7 +20,7 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { open_in_new_tab } from '$lib';
+	import { local_date_to_iso_utc, open_in_new_tab, utc_date_to_local_rounded } from '$lib';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -33,6 +33,8 @@
 	let order_meta: OrderMeta;
 	let order_meta_editing: OrderMeta;
 	let currently_saving_meta: boolean = false;
+
+	const order_date_time_accuracy = 'second';
 
 	let customer_search_dropdown: SearchDropdown<Customer>;
 	let customer_display_map_fn = (val: Customer) => {
@@ -47,6 +49,7 @@
 			retail: null,
 			amount_paid: null,
 			notes: null,
+			date_time: null,
 
 			customer_id: null,
 			set_customer_id_null: false,
@@ -54,7 +57,9 @@
 			retail_customer_address: null,
 			retail_customer_name: null,
 			retail_customer_phone: null,
-			set_retail_customer_null: false
+			set_retail_customer_null: false,
+
+			fulfilled: null
 		};
 
 		if (order_meta.notes !== order_meta_editing.notes) {
@@ -102,6 +107,14 @@
 		} else {
 			// If wholesale, remove retail customer info
 			order_patch_req.set_retail_customer_null = true;
+		}
+
+		if (order_meta.fulfilled !== order_meta_editing.fulfilled) {
+			order_patch_req.fulfilled = order_meta_editing.fulfilled;
+		}
+
+		if (order_meta.date_time !== order_meta_editing.date_time) {
+			order_patch_req.date_time = order_meta_editing.date_time;
 		}
 
 		api_call(`orders/${order_id}`, 'PATCH', order_patch_req)
@@ -286,6 +299,8 @@
 	let oif_order_type_wholesale: HTMLInputElement;
 	let oif_amount_paid: HTMLInputElement;
 	let oif_notes: HTMLTextAreaElement;
+	let oif_fulfilled: HTMLInputElement;
+	let oif_date_time: HTMLInputElement;
 
 	let oif_retail_customer_address: HTMLTextAreaElement;
 	let oif_retail_customer_name: HTMLInputElement;
@@ -317,6 +332,14 @@
 
 		if (oif_notes !== undefined) {
 			oif_notes.value = x.notes;
+		}
+
+		if (oif_fulfilled !== undefined) {
+			oif_fulfilled.checked = x.fulfilled;
+		}
+
+		if (oif_date_time !== undefined) {
+			oif_date_time.value = utc_date_to_local_rounded(x.date_time, order_date_time_accuracy);
 		}
 	}
 
@@ -513,7 +536,10 @@
 			a.retail === b.retail &&
 			a.retail_customer_address === b.retail_customer_address &&
 			a.retail_customer_name === b.retail_customer_name &&
-			a.retail_customer_phone === b.retail_customer_phone
+			a.retail_customer_phone === b.retail_customer_phone &&
+			a.fulfilled === b.fulfilled &&
+			utc_date_to_local_rounded(a.date_time, order_date_time_accuracy) ===
+				utc_date_to_local_rounded(b.date_time, order_date_time_accuracy)
 		);
 	}
 
@@ -778,7 +804,33 @@
 							}}
 							bind:this={oif_amount_paid}
 						/>
-
+						<div class="flex flex-row w-full justify-start space-x-3">
+							<div
+								class="w-fit flex place-items-center flex-row space-x-2 py-1 px-2 border dark:border-custom-dark-outline border-custom-light-outline rounded"
+							>
+								<span class="text-md">Fulfilled:</span>
+								<input
+									type="checkbox"
+									class="w-4 h-4"
+									on:change={() => {
+										order_meta_editing.fulfilled = !order_meta_editing.fulfilled;
+									}}
+									bind:this={oif_fulfilled}
+								/>
+							</div>
+							<input
+								type="datetime-local"
+								step="1"
+								class="flex-grow box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+								placeholder="Date and time"
+								on:input={() => {
+									if (order_meta_editing !== undefined) {
+										order_meta_editing.date_time = local_date_to_iso_utc(oif_date_time.value);
+									}
+								}}
+								bind:this={oif_date_time}
+							/>
+						</div>
 						<div class="flex flex-row w-full justify-end space-x-3">
 							{#if !compare_order_meta(order_meta, order_meta_editing)}
 								<button

@@ -15,6 +15,7 @@
 	import type { ListRequest } from '$bindings/ListRequest';
 	import Loader from '$lib/../components/Loader.svelte';
 	import { onMount } from 'svelte';
+	import { format_local_date, utc_date_to_local_rounded } from '$lib';
 
 	// List request type, e.g. InventoryItemListRequest
 	export let list_request: ListRequest;
@@ -44,10 +45,10 @@
 	/// If null, the create button will be disabled.
 	export let create_post_request: any | null;
 
-    /// Tailwind classes for the background color
-    /// Both light and dark mode are needed.
-    /// Default = 'bg-custom-light dark:bg-custom-dark'
-    export let background_color: string = 'bg-custom-light dark:bg-custom-dark';
+	/// Tailwind classes for the background color
+	/// Both light and dark mode are needed.
+	/// Default = 'bg-custom-light dark:bg-custom-dark'
+	export let background_color: string = 'bg-custom-light dark:bg-custom-dark';
 
 	let loading_count = 0;
 
@@ -572,7 +573,15 @@
 													<CurrencySpan value={currency_value} />
 												{/if}
 											{:else if column.type.type == 'datetime'}
-												{new Date(get_field_of_item(item, column.api_name)).toLocaleString()}
+												{format_local_date(
+													new Date(
+														utc_date_to_local_rounded(
+															get_field_of_item(item, column.api_name),
+															column.type.accuracy
+														)
+													),
+													column.type.format
+												)}
 											{:else if column.type.type == 'checkbox'}
 												<input
 													type="checkbox"

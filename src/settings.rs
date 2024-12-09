@@ -110,6 +110,12 @@ fn default_settings() -> Vec<Setting> {
             ),
             value: SettingValue::Boolean(true),
         },
+        Setting {
+            key: "date_time_format".to_string(),
+            long_name: "Date Time Format".to_string(),
+            description: Some("Date and time format using this notation: https://www.npmjs.com/package/dateformat".to_string()),
+            value: SettingValue::Text("dd/mm/yy hh:MM tt".to_string()),
+        }
     ]
 }
 
@@ -202,12 +208,13 @@ async fn create_default_settings(db: &mut DB) -> Result<(), sqlx::Error> {
 
     for setting in default_settings {
         let setting_row = SettingRow::from(setting);
+        let key = setting_row.key.clone();
 
-        sqlx::query(
+        let res = sqlx::query(
             r#"
             INSERT INTO settings (key, long_name, description, value)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (key) DO UPDATE
+            ON CONFLICT (key) DO NOTHING
             SET value = $4
             "#,
         )
@@ -217,6 +224,12 @@ async fn create_default_settings(db: &mut DB) -> Result<(), sqlx::Error> {
         .bind(setting_row.value)
         .execute(&mut ***db)
         .await?;
+
+        if res.rows_affected() == 0 {
+            log::warn!("Setting {} already exists", key);
+        } else {
+            log::warn!("Setting {} created", key);
+        }
     }
 
     Ok(())

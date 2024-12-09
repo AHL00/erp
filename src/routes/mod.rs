@@ -256,7 +256,7 @@ enum SqlType {
     Float(f64),
     Boolean(bool),
     Null,
-    // DateTime(sqlx::types::chrono::NaiveDateTime),
+    DateTime(sqlx::types::chrono::DateTime<chrono::Utc>),
 }
 
 impl SqlType {
@@ -271,7 +271,7 @@ impl SqlType {
             SqlType::Float(f) => query.bind(f),
             SqlType::Boolean(b) => query.bind(b),
             SqlType::Null => query.bind(None::<i32>),
-            // SqlType::DateTime(d) => query.bind(d),
+            SqlType::DateTime(d) => query.bind(d),
         }
     }
 
@@ -286,7 +286,7 @@ impl SqlType {
             SqlType::Float(f) => query.bind(f),
             SqlType::Boolean(b) => query.bind(b),
             SqlType::Null => query.bind(None::<i32>),
-            // SqlType::DateTime(d) => query.bind(d),
+            SqlType::DateTime(d) => query.bind(d),
         }
     }
 }

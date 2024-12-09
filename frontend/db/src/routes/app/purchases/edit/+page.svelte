@@ -20,7 +20,7 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { open_in_new_tab } from '$lib';
+	import { local_date_to_iso_utc, open_in_new_tab, utc_date_to_local_rounded } from '$lib';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -34,6 +34,8 @@
 	let purchase_meta_editing: PurchaseMeta;
 	let currently_saving_meta: boolean = false;
 
+	const purchase_date_time_accuracy = 'second';
+
 	let supplier_search_dropdown: SearchDropdown<Customer>;
 	let supplier_display_map_fn = (val: Customer) => {
 		return val.name;
@@ -46,7 +48,8 @@
 		let purchase_patch_req: PurchasePatchRequest = {
 			amount_paid: null,
 			notes: null,
-			supplier_id: null
+			supplier_id: null,
+			date_time: null
 		};
 
 		if (purchase_meta.notes !== purchase_meta_editing.notes) {
@@ -64,6 +67,10 @@
 			purchase_meta.supplier.id !== purchase_meta_editing.supplier.id
 		) {
 			purchase_patch_req.supplier_id = purchase_meta_editing.supplier.id;
+		}
+
+		if (purchase_meta.date_time !== purchase_meta_editing.date_time) {
+			purchase_patch_req.date_time = purchase_meta_editing.date_time;
 		}
 
 		// This means wholesale, a supplier is chosen.
@@ -261,6 +268,7 @@
 	let pif_supplier: SearchDropdown<Customer>;
 	let pif_amount_paid: HTMLInputElement;
 	let pif_notes: HTMLTextAreaElement;
+	let pif_date_time: HTMLInputElement;
 
 	function set_pifs(x: PurchaseMeta) {
 		// Spread to avoid copying the object as a reference
@@ -280,6 +288,10 @@
 
 		if (pif_notes !== undefined) {
 			pif_notes.value = x.notes;
+		}
+
+		if (pif_date_time !== undefined) {
+			pif_date_time.value = utc_date_to_local_rounded(x.date_time, purchase_date_time_accuracy);
 		}
 	}
 
@@ -469,7 +481,13 @@
 		}
 
 		// Compare every field except id
-		return a.amount_paid === b.amount_paid && supplier_same && a.notes === b.notes;
+		return (
+			a.amount_paid === b.amount_paid &&
+			supplier_same &&
+			a.notes === b.notes &&
+			utc_date_to_local_rounded(a.date_time, purchase_date_time_accuracy) ===
+				utc_date_to_local_rounded(b.date_time, purchase_date_time_accuracy)
+		);
 	}
 
 	function compare_purchase_item(a: PurchaseItem, b: PurchaseItem) {
@@ -674,6 +692,18 @@
 						/>
 
 						<div class="flex flex-row w-full justify-end space-x-3">
+							<input
+								type="datetime-local"
+								step="1"
+								class="flex-grow box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+								placeholder="Date and time"
+								on:input={() => {
+									if (purchase_meta_editing !== undefined) {
+										purchase_meta_editing.date_time = local_date_to_iso_utc(pif_date_time.value);
+									}
+								}}
+								bind:this={pif_date_time}
+							/>
 							{#if !compare_purchase_meta(purchase_meta, purchase_meta_editing)}
 								<button
 									class="bg-red-500 text-white px-2 py-1 rounded-md"

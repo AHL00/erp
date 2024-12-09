@@ -1,7 +1,7 @@
 <script lang="ts" generics="EditObject extends { id: number }">
 	import { match } from 'ts-pattern';
 
-	import { utc_date_to_local } from '$lib/index';
+	import { utc_date_to_local_rounded } from '$lib/index';
 	import type { CrudColumn } from './types';
 	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
@@ -282,7 +282,7 @@
 								readonly={column.readonly}
 								disabled={column.readonly}
 								value={// @ts-ignore
-								utc_date_to_local(get_column_value(column.api_name))}
+								utc_date_to_local_rounded(get_column_value(column.api_name))}
 							/>
 						{:else if column.type.type == 'string'}
 							<input

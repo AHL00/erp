@@ -8,7 +8,7 @@
 	import type { OrderPostRequest } from '$bindings/OrderPostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import SearchDropdown from '../../../components/SearchDropdown.svelte';
-	import { api_call } from '$lib/backend';
+	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 
@@ -34,6 +34,12 @@
 
 	let orders_list: OrderMeta[] = [];
 
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_format').then((res) => {
+        // @ts-ignore
+		date_time_fmt = res.Text;
+	});
+
 	// Won't be editing so no need for edit config in columns
 	let columns: CrudColumn[] = [
 		{
@@ -52,7 +58,7 @@
 			display_name: 'Date',
 			display_map_fn: null,
 			current_sort: 'DESC',
-			type: { type: 'datetime' },
+			type: { type: 'datetime', accuracy: 'second', format: date_time_fmt },
 			edit: true,
 			readonly: true
 		},
@@ -142,12 +148,12 @@
 		let customer;
 
 		if (customer_search_dropdown) {
-            if (!customer_search_dropdown.reportValidity()) {
-                currently_creating = false;
-                return;
-            }
+			if (!customer_search_dropdown.reportValidity()) {
+				currently_creating = false;
+				return;
+			}
 
-            customer = customer_search_dropdown.selected_value();
+			customer = customer_search_dropdown.selected_value();
 		} else {
 			customer = null;
 		}
@@ -274,19 +280,19 @@
 									class="w-7/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
 									placeholder="Retail customer"
 									required
-                                    bind:this={retail_customer_name}
+									bind:this={retail_customer_name}
 								/>
 								<input
 									class="w-5/12 box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent disabled:opacity-40"
 									placeholder="Phone"
 									required
-                                    bind:this={retail_customer_phone}
+									bind:this={retail_customer_phone}
 								/>
 							</div>
 							<textarea
 								class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 								placeholder="Address"
-                                bind:this={retail_customer_address}
+								bind:this={retail_customer_address}
 							></textarea>
 						</div>
 					{/if}

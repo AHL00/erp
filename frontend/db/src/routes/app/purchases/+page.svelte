@@ -8,7 +8,7 @@
 	import type { PurchasePostRequest } from '$bindings/PurchasePostRequest';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import SearchDropdown from '../../../components/SearchDropdown.svelte';
-	import { api_call } from '$lib/backend';
+	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import PermissionGuard from '../../../components/PermissionGuard.svelte';
 
@@ -34,6 +34,13 @@
 
 	let purchases_list: PurchaseMeta[] = [];
 
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_format').then((res) => {
+        // @ts-ignore
+		date_time_fmt = res.Text;
+	});
+
+
 	// Won't be editing so no need for edit config in columns
 	let columns: CrudColumn[] = [
 		{
@@ -52,7 +59,7 @@
 			display_name: 'Date',
 			display_map_fn: null,
 			current_sort: 'DESC',
-			type: { type: 'datetime' },
+			type: { type: 'datetime', accuracy: 'second', format: date_time_fmt },
 			edit: true,
 			readonly: true
 		},

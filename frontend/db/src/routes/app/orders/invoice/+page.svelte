@@ -177,7 +177,7 @@
 		{:else}
 			<title
 				>Invoice #{order_id}
-				{new Date(order?.date_time).toLocaleDateString()}
+				{new Date((order?.date_time).toLocaleDateString()}
 				{order?.customer?.name}</title
 			>
 		{/if}

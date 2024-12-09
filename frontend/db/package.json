@@ -38,6 +38,7 @@
 	"type": "module",
 	"dependencies": {
 		"@types/uuid": "^10.0.0",
+		"dateformat": "^5.0.3",
 		"svelte-collapsible": "^0.3.0",
 		"ts-pattern": "^5.1.1",
 		"uuid": "^10.0.0"
