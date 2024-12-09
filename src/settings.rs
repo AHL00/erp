@@ -194,7 +194,8 @@ pub async fn ensure_settings_exist(db: &mut DB) -> Result<(), sqlx::Error> {
     .fetch_one(&mut ***db)
     .await?;
 
-    if settings_count == 0 {
+    if settings_count < default_settings().len() as i64 {
+        log::info!("Settings do not exist, creating default settings");
         create_default_settings(db).await?;
     }
 
