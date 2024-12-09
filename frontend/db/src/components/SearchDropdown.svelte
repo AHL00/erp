@@ -39,10 +39,12 @@
 	export let on_initial_value: (val: ResultType) => void = () => {};
 	export let disabled = false;
 	export let classes = '';
-    export let presearch_fn: (search: string) => string = (search) => search;
+	export let presearch_fn: (search: string) => string = (search) => search;
 
 	let search_input: HTMLInputElement;
+	let fake_search_input: HTMLInputElement;
 	let dropdown_div: HTMLDivElement;
+	let dropdown_blur: HTMLDivElement;
 
 	let current_search = '';
 	let loading = false;
@@ -56,6 +58,7 @@
 
 		// Set the search input to the selected value
 		search_input.value = display_map_fn(selected);
+		fake_search_input.value = display_map_fn(selected);
 
 		if (initial) {
 			on_initial_value(selected);
@@ -72,6 +75,7 @@
 	export function set_selected_value(value: ResultType, initial = false) {
 		selected = value;
 		search_input.value = display_map_fn(selected);
+		fake_search_input.value = display_map_fn(selected);
 
 		if (initial) {
 			on_initial_value(selected);
@@ -96,6 +100,7 @@
 
 		search_input.blur();
 		dropdown_div.classList.add('hidden');
+		dropdown_blur.classList.add('hidden');
 	}
 
 	let typing_timer: any;
@@ -124,7 +129,6 @@
 	}
 
 	function search() {
-        
 		if (search_perms.length > 0) {
 			let auth_info = $auth_info_store;
 
@@ -192,15 +196,19 @@
 		}
 	};
 
-	let click_listener = (e: MouseEvent) => {
-		if (dropdown_div !== null && dropdown_div !== undefined) {
-			if (!dropdown_div.contains(e.target as Node) && !search_input.contains(e.target as Node)) {
-				close();
-			}
-		}
-	};
+	// let click_listener = (e: MouseEvent) => {
+	// 	if (dropdown_div !== null && dropdown_div !== undefined) {
+	// 		if (!dropdown_div.contains(e.target as Node) && !search_input.contains(e.target as Node)) {
+	// 			close();
+	// 		}
+	// 	}
+	// };
 
 	onMount(() => {
+		// Hide everything
+		dropdown_div.classList.add('hidden');
+		dropdown_blur.classList.add('hidden');
+
 		if (required) {
 			search_input.required = true;
 		}
@@ -212,7 +220,7 @@
 		window.addEventListener('keydown', keydown_listener);
 
 		// Click handler
-		window.addEventListener('click', click_listener);
+		// window.addEventListener('click', click_listener);
 
 		if (initial_value !== null) {
 			set_selected_value(initial_value, true);
@@ -221,7 +229,7 @@
 
 	onDestroy(() => {
 		window.removeEventListener('keydown', keydown_listener);
-		window.removeEventListener('click', click_listener);
+		// window.removeEventListener('click', click_listener);
 	});
 
 	export function selected_value() {
@@ -238,40 +246,55 @@
 </script>
 
 <!-- TODO: BUG: Doesn't activate search if typing fast -->
-<div
-	class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}"
->
-	<div class="relative w-full">
-		<input
-			type="text"
-			bind:this={search_input}
-			autocomplete="off"
-			id={input_id}
-			{disabled}
-			placeholder={input_placeholder}
-			class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
-			on:focusin={() => {
-				dropdown_div.classList.remove('hidden');
+<div class="relative w-full {disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} {classes}">
+	<input
+		type="text"
+		bind:this={fake_search_input}
+		autocomplete="off"
+		id={input_id}
+		{disabled}
+		placeholder={input_placeholder}
+		class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
+		on:focusin={() => {
+			dropdown_div.classList.remove('hidden');
+			dropdown_blur.classList.remove('hidden');
 
-				// Reset the search results
-				search_input.value = '';
-				search_results = [];
-			}}
-			on:input={typing_handler}
-		/>
-		<i
-			class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"
-		></i>
-	</div>
+			// Reset the search results
+			search_input.value = '';
+			search_results = [];
+
+			// Focus on dropdown search bar
+			search_input.focus();
+		}}
+	/>
+	<i
+		class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"
+	></i>
 
 	<div
+		class="z-[41] fixed w-[50vw] h-[50vh] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col
+            bg-white dark:bg-custom-dark border dark:border-custom-dark-outline border-custom-light-outline
+                shadow-lg dark:shadow-custom-dark-shadow shadow-custom-light-shadow rounded-md overflow-hidden
+                overflow-y-auto p-3 space-y-3"
 		bind:this={dropdown_div}
-		class="absolute mt-10 top-0 left-0 w-full bg-white dark:bg-custom-dark border dark:border-custom-dark-outline
-         border-custom-light-outline shadow-lg dark:shadow-custom-dark-shadow shadow-custom-light-shadow rounded-md
-         overflow-hidden overflow-y-auto z-40 hidden"
-		style="max-height: {max_dropdown_height};"
 	>
-		<div class="flex flex-col">
+		<div class="flex-shrink-0 h-12 relative overflow-hidden">
+			<input
+				type="text"
+				bind:this={search_input}
+				autocomplete="off"
+				id={input_id}
+				{disabled}
+				placeholder={selected ? display_map_fn(selected) : input_placeholder}
+				class="h-full w-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent relative z-auto pr-10"
+				on:focusin={() => {}}
+				on:input={typing_handler}
+			/>
+			<i
+				class="fas fa-search absolute right-2 pb-[1px] top-1/2 transform -translate-y-1/2 opacity-30 pointer-events-none"
+			></i>
+		</div>
+		<div class="flex flex-col overflow-auto">
 			{#if search_error !== null}
 				<div class="flex flex-row items-center p-2 m-3 mt-5">
 					<Loader
@@ -311,4 +334,9 @@
 			{/if}
 		</div>
 	</div>
+	<div
+		class="z-40 backdrop-blur-md bg-opacity-35 fixed w-[100vw] h-[100vh] top-0 left-0"
+		bind:this={dropdown_blur}
+		on:click={close}
+	></div>
 </div>
