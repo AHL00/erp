@@ -230,63 +230,72 @@
 					</div>
 				</div>
 				<hr />
-				<div class="flex flex-row justify-between w-full h-fit py-3 break-inside-avoid">
-					<div class="flex flex-col space-y-2">
+				<div class="flex flex-row justify-between w-full h-fit py-3 break-inside-avoid gap-x-4">
+					<div class="flex-grow">
 						{#if order?.retail}
-							<!-- <span class="text-md text-black font-sans font-light">
-                                TODO: Retail customer info</span
-							> -->
 							<div class="flex flex-col">
 								<span class="text-sm text-zinc-700 font-sans font-bold">Customer</span>
 								<span class="text-xl text-black font-sans font-light"
 									>{order?.retail_customer_name}</span
 								>
 							</div>
-							{#if order?.retail_customer_address && order?.retail_customer_address.length > 0}
+						{:else}
+							<div class="flex flex-col">
+								<span class="text-md text-zinc-700 font-sans font-bold">Customer</span>
+								<span class="text-xl text-black font-sans font-light">{order?.customer?.name}</span>
+							</div>
+						{/if}
+						<div class="flex flex-wrap gap-x-3 gap-y-1 flex-grow place-items-center mt-2">
+							{#if order?.retail}
+								<!-- <span class="text-md text-black font-sans font-light">
+                                TODO: Retail customer info</span
+                                > -->
+								{#if order?.retail_customer_address && order?.retail_customer_address.length > 0}
+									<div class="flex flex-col">
+										<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
+										<span class="text-sm text-black font-sans font-light"
+											>{order?.retail_customer_address}</span
+										>
+									</div>
+								{/if}
+								<div class="flex flex-col">
+									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
+									<span class="text-sm text-black font-sans font-light"
+										>{order?.retail_customer_phone}</span
+									>
+								</div>
+							{:else}
 								<div class="flex flex-col">
 									<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
 									<span class="text-sm text-black font-sans font-light"
-										>{order?.retail_customer_address}</span
+										>{order?.customer?.address}</span
 									>
 								</div>
-							{/if}
-							<div class="flex flex-col">
-								<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-								<span class="text-sm text-black font-sans font-light"
-									>{order?.retail_customer_phone}</span
-								>
-							</div>
-						{:else}
-							<div class="flex flex-col">
-								<span class="text-md text-zinc-700 font-sans font-bold">Bill To</span>
-								<span class="text-xl text-black font-sans font-light">{order?.customer?.name}</span>
-							</div>
-							<div class="flex flex-col">
-								<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
-								<span class="text-sm text-black font-sans font-light"
-									>{order?.customer?.address}</span
-								>
-							</div>
-							<div class="flex flex-col">
-								<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-								<span class="text-sm text-black font-sans font-light">{order?.customer?.phone}</span
-								>
-							</div>
-							{#if order?.customer?.notes.trim().length > 0}
 								<div class="flex flex-col">
-									<span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
+									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
 									<span class="text-sm text-black font-sans font-light"
-										>{order?.customer?.notes}</span
+										>{order?.customer?.phone}</span
 									>
 								</div>
+								{#if order?.customer?.notes.trim().length > 0}
+									<div class="flex flex-col">
+										<span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
+										<span class="text-sm text-black font-sans font-light"
+											>{order?.customer?.notes}</span
+										>
+									</div>
+								{/if}
 							{/if}
-						{/if}
+						</div>
 					</div>
 					<div class="flex flex-col items-end space-y-2">
 						<div class="flex flex-col items-end">
 							<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
 							<span class="text-sm text-black font-sans font-light"
-								>{utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
+								>{utc_iso_to_local_formatted(
+									order?.date_time ? order.date_time : new Date(0).toISOString(),
+									date_time_fmt
+								)}
 							</span>
 						</div>
 						<div class="flex flex-col items-end">
@@ -356,15 +365,22 @@
 					<hr />
 					<div class="flex flex-row mt-4 space-x-4 justify-between">
 						{#if order?.notes && order?.notes.length > 0}
-							<div class="flex flex-col space-y-1 flex-initial w-1/4">
+							<div
+								class="flex flex-col space-y-1 flex-initial {business_bank_accounts &&
+								business_bank_accounts.length > 0
+									? 'w-1/4'
+									: 'w-1/2'}"
+							>
 								<span class="text-sm text-zinc-800 font-sans font-bold">Notes</span>
-								<span class="text-sm text-black font-sans font-light whitespace-pre-line"
+								<span class="text-xs text-black font-sans font-light whitespace-pre-line"
 									>{order?.notes}</span
 								>
 							</div>
 						{/if}
 						{#if business_bank_accounts && business_bank_accounts.length > 0}
-							<div class="flex flex-wrap flex-row place-content-start flex-grow">
+							<div class="flex flex-wrap flex-row place-content-start
+                            {order?.notes && order?.notes.length > 0 ? 'flex-initial w-1/2' : 'flex-grow'}
+                            ">
 								<span class="w-full h-fit text-sm text-zinc-800 font-sans font-bold mb-1"
 									>Bank Accounts</span
 								>
