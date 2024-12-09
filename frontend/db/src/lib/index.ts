@@ -32,10 +32,18 @@ export function middle_ellipsis(text: string, max_length: number) {
 
 export type date_time_accuracy = 'day' | 'hour' | 'minute' | 'second';
 
-import dateFormat, { masks } from "dateformat";
+import dateFormat, { masks } from 'dateformat';
 
 export function format_local_date(date: Date, format: string): string {
 	return dateFormat(date, format);
+}
+
+export function utc_iso_to_local_formatted(
+	date: string,
+	format: string,
+	accuracy: date_time_accuracy = 'second'
+): string {
+	return format_local_date(new Date(utc_date_to_local_rounded(date, accuracy)), format);
 }
 
 export function utc_date_to_local_rounded(

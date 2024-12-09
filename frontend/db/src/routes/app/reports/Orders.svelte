@@ -74,6 +74,12 @@
 				currently_generating_report = false;
 			});
 	}
+
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_fmt').then((res) => {
+		// @ts-ignore
+		date_time_fmt = res.Text;
+	});
 </script>
 
 <div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
@@ -213,7 +219,7 @@
 									<div class="flex flex-col">
 										<div class="font-bold">Date</div>
 										<div>
-											{new Date(order.date_time).toLocaleDateString()}
+											{utc_iso_to_local_formatted(order.date_time, date_time_fmt)}
 										</div>
 									</div>
 									<div class="flex flex-col">

@@ -7,9 +7,10 @@
 	import type { Expense } from '$bindings/Expense';
 
 	import Loader from '../../../components/Loader.svelte';
-	import { api_call } from '$lib/backend';
+	import { api_call, get_setting } from '$lib/backend';
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { User } from '$bindings/User';
+	import { utc_iso_to_local_formatted } from '$lib';
 
 	let data: ExpenseReportRequest = {
 		start_date: '',
@@ -73,6 +74,12 @@
 				currently_generating_report = false;
 			});
 	}
+
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_fmt').then((res) => {
+		// @ts-ignore
+		date_time_fmt = res.Text;
+	});
 </script>
 
 <div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
@@ -193,7 +200,7 @@
 							<div class="flex flex-col">
 								<div class="font-bold">Date</div>
 								<div>
-									{new Date(expense.date_time).toLocaleDateString()}
+									{utc_iso_to_local_formatted(expense.date_time, date_time_fmt)}
 								</div>
 							</div>
 							<div class="flex flex-col">

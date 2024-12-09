@@ -11,6 +11,7 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import type { OrderItem } from '$bindings/OrderItem';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
+	import { utc_iso_to_local_formatted } from '$lib';
 
 	let order_id: string | null = null;
 	let order: Order | null = null;
@@ -165,19 +166,25 @@
 		// @ts-ignore
 		invoice_signature_fields = res.Boolean;
 	});
+
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_format').then((res) => {
+		// @ts-ignore
+		date_time_fmt = res.Text;
+	});
 </script>
 
 <svelte:head>
 	<PermissionGuard permissions={['ORDER_READ']}>
 		{#if order?.retail}
 			<title
-				>Invoice #{order_id} Retail {new Date(order?.date_time).toLocaleDateString()}
+				>Invoice #{order_id} Retail {utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
 				{order?.retail_customer_name}</title
 			>
 		{:else}
 			<title
 				>Invoice #{order_id}
-				{new Date((order?.date_time).toLocaleDateString()}
+				{utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
 				{order?.customer?.name}</title
 			>
 		{/if}
@@ -277,8 +284,8 @@
 						<div class="flex flex-col items-end">
 							<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
 							<span class="text-sm text-black font-sans font-light"
-								>{new Date(order?.date_time).toLocaleDateString()}</span
-							>
+								>{utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
+							</span>
 						</div>
 						<div class="flex flex-col items-end">
 							<span class="text-xs text-zinc-700 font-sans font-bold">Type</span>
