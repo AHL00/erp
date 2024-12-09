@@ -181,12 +181,14 @@
 				>Invoice #{order_id} Retail {utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
 				{order?.retail_customer_name}</title
 			>
-		{:else}
+		{:else if order}
 			<title
 				>Invoice #{order_id}
 				{utc_iso_to_local_formatted(order?.date_time, date_time_fmt)}
 				{order?.customer?.name}</title
 			>
+		{:else}
+			<title>Invoice #{order_id}</title>
 		{/if}
 		<title slot="denied">Permission Denied</title>
 	</PermissionGuard>
