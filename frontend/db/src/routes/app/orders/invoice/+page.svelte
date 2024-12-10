@@ -199,8 +199,8 @@
 		<FullscreenLoader ellipsis={true} icon="dots" text="Loading Order" />
 	{:else}
 		<div class="w-full h-fit bg-white">
-			<div class="flex flex-col justify-start px-8 w-full h-fit">
-				<div class="flex flex-row justify-between w-full h-fit pt-8 pb-5 break-inside-avoid">
+			<div class="flex flex-col justify-start w-full h-fit">
+				<div class="flex flex-row justify-between w-full h-fit pb-5 break-inside-avoid">
 					<div class="flex flex-col space-y-3">
 						<object
 							data={logo_high_res_uri}
@@ -314,11 +314,9 @@
 							<tr>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">No.</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Qty</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
 									>Qty/Box</th
-								>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
-									>Quantity</th
 								>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Price</th
 								>
@@ -345,10 +343,10 @@
 											</span>
 										{/if}
 									</td>
+									<td class="px-2 py-1 text-sm text-black font-sans font-light">{item.quantity}</td>
 									<td class="px-2 py-1 text-sm text-black font-sans font-light"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light">{item.quantity}</td>
 									<td class="px-2 py-1 text-sm text-black font-sans font-light">
 										<CurrencySpan value={parseFloat(item.price)} />
 									</td>
@@ -378,9 +376,13 @@
 							</div>
 						{/if}
 						{#if business_bank_accounts && business_bank_accounts.length > 0}
-							<div class="flex flex-wrap flex-row place-content-start
-                            {order?.notes && order?.notes.length > 0 ? 'flex-initial w-1/2' : 'flex-grow'}
-                            ">
+							<div
+								class="flex flex-wrap flex-row place-content-start
+                            {order?.notes && order?.notes.length > 0
+									? 'flex-initial w-1/2'
+									: 'flex-grow'}
+                            "
+							>
 								<span class="w-full h-fit text-sm text-zinc-800 font-sans font-bold mb-1"
 									>Bank Accounts</span
 								>

@@ -898,7 +898,7 @@
 					</table>
 				</div>
 
-				<div class="flex">
+				<div class="flex pt-3">
 					<button
 						class="bg-green-500 text-white px-2 py-1 rounded-md"
 						on:click={create_new_purchase_item}
