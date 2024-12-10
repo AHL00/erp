@@ -203,11 +203,7 @@
 	// };
 
 	onMount(() => {
-		// Hide everything
-		dropdown_div.classList.add('hidden');
-		dropdown_blur.classList.add('hidden');
-
-		if (required) {
+			if (required) {
 			fake_search_input.required = true;
 		}
 
@@ -310,7 +306,7 @@
 		class="z-[41] fixed w-[50vw] h-[50vh] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col
             bg-white dark:bg-custom-dark border dark:border-custom-dark-outline border-custom-light-outline
                 shadow-lg dark:shadow-custom-dark-shadow shadow-custom-light-shadow rounded-md overflow-hidden
-                overflow-y-auto p-3 space-y-3"
+                overflow-y-auto p-3 space-y-3 hidden"
 		bind:this={dropdown_div}
 	>
 		<div class="flex-shrink-0 h-12 relative overflow-hidden">
@@ -371,7 +367,7 @@
 		</div>
 	</div>
 	<div
-		class="z-40 backdrop-blur-md bg-opacity-35 fixed w-[100vw] h-[100vh] top-0 left-0"
+		class="z-40 backdrop-blur-md bg-opacity-35 fixed w-[100vw] h-[100vh] top-0 left-0 hidden"
 		bind:this={dropdown_blur}
 		on:click={close}
 	></div>

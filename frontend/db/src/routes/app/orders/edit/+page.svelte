@@ -884,10 +884,12 @@
 					</div>
 				{/if}
 				<div class="flex flex-col grow min-h-0 overflow-auto">
-					<table class="w-full border-separate border-spacing-x-3 border-spacing-y-1">
+					<table class="w-full border-collapse border-spacing-x-3 border-spacing-y-1">
 						<thead>
 							<tr>
 								<th class="p-2 z-20 w-max bg-custom-lighter dark:bg-custom-dark">Item</th>
+								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark italic">Qty/Box</th>
+								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark italic">Stock</th>
 								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark">Qty</th>
 								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Price</th>
 								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Total</th>
@@ -940,9 +942,28 @@
 									<td>
 										<input
 											type="number"
+											class="w-full box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Qty/Box"
+											disabled
+											value={data.order_item.inventory_item ? data.order_item.inventory_item.quantity_per_box : null}
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
+											class="w-full box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Stock"
+											disabled
+											value={data.order_item.inventory_item ? data.order_item.inventory_item.stock : null}
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Quantity"
 											form="order-edit-form"
+                                            min="1"
 											bind:value={data.order_item.quantity}
 										/>
 									</td>
@@ -953,6 +974,7 @@
 												class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												placeholder="Price"
 												form="order-edit-form"
+                                                min="0"
 												bind:value={data.order_item.price}
 											/>
 											{#if data.order_item.inventory_item && parseFloat(data.order_item.inventory_item.price) != parseFloat(data.order_item.price)}
@@ -1088,4 +1110,8 @@
 		position: sticky;
 		top: 0;
 	}
+
+    td {
+        padding: 0.6rem 0.4rem;
+    }
 </style>

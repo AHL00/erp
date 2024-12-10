@@ -42,6 +42,7 @@ export type CrudValueType =
 	| { type: 'password' }
 	| { type: 'textarea'; data: CrudEditTypeTextarea }
 	| { type: 'use_display_map_fn_and_no_edit' };
+
 export interface CrudColumn {
 	/// The name in structs returned by the API
 	api_name: string;
@@ -59,3 +60,13 @@ export interface CrudColumn {
     /// Disable editing in the edit panel even if shown
 	readonly: boolean;
 }
+// export interface CustomColumn<T> {
+//     /// The name of the custom column
+//     name: string;
+//     /// The value of the custom column
+//     value: any;
+//     /// Allows custom formatting and processing of the data before displaying it
+//     display_map_fn: ((value: T) => string) | null;
+// }
+
+// export type Column<T> = CrudColumn<T> | CustomColumn<T>;
