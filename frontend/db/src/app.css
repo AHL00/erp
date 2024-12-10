@@ -14,5 +14,10 @@
 }
 
 .inset-shadow-y {
-    box-shadow: inset -1px 5px 7px -5px var(--tw-shadow-color);
+	box-shadow: inset -1px 5px 7px -5px var(--tw-shadow-color);
+}
+
+textarea:focus,
+input:focus {
+	outline: none;
 }
