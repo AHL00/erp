@@ -19,7 +19,7 @@
 		filters: [],
 		sorts: [
 			{
-				column: 'id',
+				column: 'name',
 				order: 'ASC'
 			}
 		]
@@ -33,7 +33,7 @@
 			api_request_name: null,
 			display_name: 'ID',
 			display_map_fn: null,
-			current_sort: 'ASC',
+			current_sort: null,
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
 			readonly: true
@@ -43,7 +43,7 @@
 			api_request_name: null,
 			display_name: 'Name',
 			display_map_fn: null,
-			current_sort: null,
+			current_sort: 'ASC',
 			type: {
 				type: 'string',
 				data: {
