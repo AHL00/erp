@@ -314,10 +314,10 @@
 							<tr>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">No.</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start"
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end"
 									>Qty/Box</th
 								>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Qty</th>
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end">Qty</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end">Price</th
 								>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end"
@@ -343,10 +343,10 @@
 											</span>
 										{/if}
 									</td>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light"
+									<td class="px-2 py-1 text-sm text-black font-sans font-light text-end"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light">{item.quantity}</td>
+									<td class="px-2 py-1 text-sm text-black font-sans font-light text-end">{item.quantity}</td>
                                     <td class="px-2 py-1 text-sm text-black font-sans font-light text-end">
                                         <CurrencySpan value={parseFloat(item.price)} />
                                     </td>
