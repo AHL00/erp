@@ -33,6 +33,7 @@
 	export let custom_buttons: CustomButton[] = [];
 
 	export let custom_margins: string = 'm-0';
+    export let post_delete_callback: (res: Response) => void = () => {};
 
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
@@ -254,10 +255,6 @@
 		}
 
 		if (create_post_request != null) {
-			// Set the ID to -1, although it should be ignored by the backend.
-			// In case anything goes very wrong, this will keep existing items from being overwritten.
-			create_post_request.id = -1;
-
 			// Try to send an API call to create the item
 			try {
 				api_call(`${crud_endpoint}`, 'POST', create_post_request).then((res) => {
@@ -339,9 +336,10 @@
 		if (confirm('Are you sure you want to delete this item? This action is irreversible.')) {
 			api_call(`${crud_endpoint}/${item.id}`, 'DELETE', null)
 				.then((res) => {
-					if (res?.status == 204) {
+					if (res?.status == 204 || res?.status == 200) {
 						toast.push('Item deleted');
 						refresh_list();
+                        post_delete_callback(res);
 					} else {
 						toast.push('Error deleting item');
 					}

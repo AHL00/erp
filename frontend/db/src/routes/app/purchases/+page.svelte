@@ -14,6 +14,7 @@
 
 	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
+	import type { StockUpdate } from '$bindings/StockUpdate';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -36,10 +37,9 @@
 
 	let date_time_fmt = 'dd/mm/yy hh:MM tt';
 	get_setting('date_time_format').then((res) => {
-        // @ts-ignore
+		// @ts-ignore
 		date_time_fmt = res.Text;
 	});
-
 
 	// Won't be editing so no need for edit config in columns
 	let columns: CrudColumn[] = [
@@ -98,7 +98,7 @@
 			},
 			edit: true,
 			readonly: true
-		},
+		}
 	];
 
 	let supplier_search_results: Supplier[] = [];
@@ -125,29 +125,28 @@
 			supplier = supplier_search_dropdown.selected_value();
 		} else {
 			toast.push('Failed to create purchase');
-            console.error('Supplier search dropdown not found');
-            currently_creating = false;
-            return;
+			console.error('Supplier search dropdown not found');
+			currently_creating = false;
+			return;
 		}
 
-        
 		// @ts-ignore
 		let notes = document.querySelector('textarea').value;
-        
-        let supplier_id: number;
-        if (supplier) {
-            supplier_id = supplier.id;
-        } else {
-            toast.push('Supplier not selected');
-            console.error('Supplier not selected');
-            currently_creating = false;
-            return;
-        }
+
+		let supplier_id: number;
+		if (supplier) {
+			supplier_id = supplier.id;
+		} else {
+			toast.push('Supplier not selected');
+			console.error('Supplier not selected');
+			currently_creating = false;
+			return;
+		}
 
 		let purchase_create_req: PurchasePostRequest = {
 			amount_paid: '0.0',
 			supplier_id: supplier_id,
-			notes: notes,
+			notes: notes
 		};
 
 		api_call('purchases', 'POST', purchase_create_req)
@@ -183,6 +182,24 @@
 				currently_creating = false;
 			});
 	};
+
+	function post_delete_callback(res: Response) {
+		res
+			.json()
+			.then((data) => {
+				let stock_upates: StockUpdate[] = data;
+
+				let string = 'Stock updates:\n';
+				for (let update of stock_upates) {
+					string += `${update.inventory_id} ${update.delta}\n`;
+				}
+
+				console.log(string);
+			})
+			.catch((err) => {
+				console.error(err);
+			});
+	}
 </script>
 
 <svelte:head>
@@ -251,6 +268,7 @@
 				objects_list={purchases_list}
 				crud_endpoint="purchases"
 				read_perms={['PURCHASE_READ']}
+				{post_delete_callback}
 				write_perms={['PURCHASE_WRITE']}
 				create_post_request={null}
 				edit_override={(item_id) => {

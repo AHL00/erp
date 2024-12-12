@@ -59,6 +59,10 @@ pub(super) async fn backup(
     Ok(out_string)
 }
 
+
+// TODO: Reset sequences in postgres as they
+// may go out of sync with the data.
+
 // #[rocket::post("/db/restore", data = "<sql_data>")]
 // pub async fn restore(
 //     _auth: AuthGuard<{ UserPermissionEnum::MANAGE_DB as u32 }>,

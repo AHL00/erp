@@ -312,7 +312,7 @@
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">No.</th>
+								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start w-5">No.</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
 								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end"
 									>Qty/Box</th
@@ -328,7 +328,7 @@
 						<tbody>
 							{#each order_items as item, i}
 								<tr class="my-2">
-									<td class="px-2 py-1 text-sm text-black font-sans font-light">{i + 1}</td>
+									<td class="px-2 py-1 text-sm text-black font-sans font-light w-5">{i + 1}</td>
 									<td
 										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
 											? 'pt-1 pb-1'

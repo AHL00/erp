@@ -14,6 +14,7 @@
 
 	import { showNavbar } from '../../../stores/navbarStore';
 	import { onMount } from 'svelte';
+	import type { StockUpdate } from '$bindings/StockUpdate';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -36,7 +37,7 @@
 
 	let date_time_fmt = 'dd/mm/yy hh:MM tt';
 	get_setting('date_time_format').then((res) => {
-        // @ts-ignore
+		// @ts-ignore
 		date_time_fmt = res.Text;
 	});
 
@@ -140,7 +141,7 @@
 	let retail_customer_name: HTMLInputElement | undefined;
 	let retail_customer_phone: HTMLInputElement | undefined;
 	let retail_customer_address: HTMLTextAreaElement | undefined;
-    let notes_field: HTMLTextAreaElement | undefined;
+	let notes_field: HTMLTextAreaElement | undefined;
 
 	let create_submit_callback = async (e: any) => {
 		e.preventDefault();
@@ -159,7 +160,7 @@
 			customer = null;
 		}
 
-		let notes = notes_field?.value ?? "";
+		let notes = notes_field?.value ?? '';
 
 		let customer_id: number | null = customer ? customer.id : null;
 
@@ -227,6 +228,24 @@
 				currently_creating = false;
 			});
 	};
+
+	function post_delete_callback(res: Response) {
+		res
+			.json()
+			.then((data) => {
+				let stock_updates: StockUpdate[] = data;
+
+				let string = 'Stock updates:\n';
+				for (let update of stock_updates) {
+					string += `${update.inventory_id} ${update.delta}\n`;
+				}
+
+				console.log(string);
+			})
+			.catch((err) => {
+				console.error(err);
+			});
+	}
 </script>
 
 <svelte:head>
@@ -300,7 +319,7 @@
 						<textarea
 							class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 							placeholder="Notes"
-                            bind:this={notes_field}
+							bind:this={notes_field}
 						></textarea>
 
 						<div
@@ -346,6 +365,7 @@
 					redirect(`/app/orders/edit?id=${item_id}`);
 				}}
 				delete_enabled={true}
+				{post_delete_callback}
 				custom_buttons={[
 					{
 						callback: (order) => {

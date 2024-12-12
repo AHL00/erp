@@ -746,8 +746,43 @@ pub(super) async fn update_items(
 pub(super) async fn delete(
     id: i32,
     mut db: crate::db::DB,
-    _auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
-) -> Result<Status, ApiError> {
+    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
+    let purchase_items: Vec<PurchaseItem> = sqlx::query_as(
+        r#"
+        SELECT 
+            purchase_items.id as id,
+            row_to_json(inventory) as inventory,
+            purchase_items.price as price,
+            purchase_items.quantity as quantity
+        FROM purchase_items
+            INNER JOIN inventory ON inventory_id = inventory.id
+        WHERE purchase_id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut **db)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => {
+            ApiError(Status::NotFound, format!("No purchase with id {}", id))
+        }
+        _ => e.into(),
+    })?
+    .into_iter()
+    .map(|row: PurchaseItemRow| row.into())
+    .collect();
+
+    let stock_update_factories =
+        calculate_stock_deltas(&vec![], &purchase_items, id, &auth.auth_info, &mut db)
+            .await
+            .map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to calculate stock deltas: {:?}", e),
+                )
+            })?;
+
     let mut transaction = db.begin().await.map_err(|e| {
         ApiError(
             Status::InternalServerError,
@@ -771,6 +806,62 @@ pub(super) async fn delete(
             _ => e.into(),
         })?;
 
+    // Add stock back
+    let mut stock_updates = vec![];
+    for update_factory in stock_update_factories {
+        let res = sqlx::query(
+            r#"
+            UPDATE inventory
+            SET stock = stock + $1
+            WHERE id = $2
+            "#,
+        )
+        .bind(update_factory.delta)
+        .bind(update_factory.inventory.id)
+        .execute(&mut *transaction)
+        .await;
+
+        if let Err(error) = res {
+            transaction.rollback().await.map_err(|e| {
+                ApiError(
+                    Status::InternalServerError,
+                    format!("Failed to rollback transaction: {}", e),
+                )
+            })?;
+
+            return Err(ApiError(
+                Status::InternalServerError,
+                format!("Failed to update stock: {}", error),
+            ));
+        }
+
+        // Update stock update history
+        let stock_update: StockUpdate = sqlx::query_as(
+            r#"
+            INSERT INTO stock_updates (inventory_id, created_by_user_id, delta, order_item_id, order_id, purchase_item_id, purchase_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+            "#,
+        )
+        .bind(update_factory.inventory.id)
+        .bind(update_factory.created_by_user_id)
+        .bind(update_factory.delta)
+        .bind(update_factory.order_item_id)
+        .bind(update_factory.order_id)
+        .bind(update_factory.purchase_item_id)
+        .bind(update_factory.purchase_id)
+        .fetch_one(&mut *transaction)
+        .await
+        .map_err(|e| {
+            ApiError(
+                Status::InternalServerError,
+                format!("Failed to insert stock update: {}", e),
+            )
+        })?;
+
+        stock_updates.push(stock_update);
+    }
+
     transaction.commit().await.map_err(|e| {
         ApiError(
             Status::InternalServerError,
@@ -778,5 +869,5 @@ pub(super) async fn delete(
         )
     })?;
 
-    Ok(Status::NoContent)
+    Ok(ApiReturn(Status::Ok, stock_updates))
 }
