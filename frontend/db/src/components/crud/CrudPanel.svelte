@@ -33,7 +33,7 @@
 	export let custom_buttons: CustomButton[] = [];
 
 	export let custom_margins: string = 'm-0';
-    export let post_delete_callback: (res: Response) => void = () => {};
+	export let post_delete_callback: (res: Response) => void = () => {};
 
 	export let read_perms: [UserPermissionEnum];
 	export let write_perms: [UserPermissionEnum];
@@ -339,7 +339,7 @@
 					if (res?.status == 204 || res?.status == 200) {
 						toast.push('Item deleted');
 						refresh_list();
-                        post_delete_callback(res);
+						post_delete_callback(res);
 					} else {
 						toast.push('Error deleting item');
 					}
@@ -640,13 +640,12 @@
 							</button>
 						</div>
 					{/if}
-					{#if create_post_request !== null}
-						<div class="mx-1">
-							<div
-								class="inline-flex rounded-md outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline
-                        text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
-								role="group"
-							>
+					<div class="mx-1">
+						<div
+							class="inline-flex rounded-md text-custom-text-light-lighter dark:text-custom-text-dark-lighter gap-x-2"
+							role="group"
+						>
+							{#if create_post_request !== null}
 								<button
 									type="button"
 									class="rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
@@ -658,9 +657,21 @@
 									<i class="fas text-sm mr-2 fa-plus"></i>
 									<span class="text-sm">New</span>
 								</button>
-							</div>
+							{/if}
+
+							<button
+								type="button"
+								class="rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
+                                outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline z-10"
+								on:click={() => {
+									refresh_list();
+								}}
+							>
+								<i class="fas text-sm mr-2 fa-sync"></i>
+								<span class="text-sm">Refresh</span>
+							</button>
 						</div>
-					{/if}
+					</div>
 				</PermissionGuard>
 
 				<div class="justify-self-end ml-auto mx-1">
