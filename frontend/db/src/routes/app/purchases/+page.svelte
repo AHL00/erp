@@ -51,7 +51,8 @@
 			current_sort: null,
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'date_time',
@@ -61,7 +62,8 @@
 			current_sort: 'DESC',
 			type: { type: 'datetime', accuracy: 'second', format: date_time_fmt },
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'supplier',
@@ -73,7 +75,8 @@
 			current_sort: null,
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: false,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'created_by_user',
@@ -85,7 +88,8 @@
 			current_sort: null,
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: false,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'amount_paid',
@@ -97,7 +101,8 @@
 				type: 'currency'
 			},
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		}
 	];
 

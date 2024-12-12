@@ -2,6 +2,7 @@
 	import { type Expense } from '$bindings/Expense';
 	import { type ExpensePostRequest } from '$bindings/ExpensePostRequest';
 	import type { ListRequest } from '$bindings/ListRequest';
+	import { get_setting } from '$lib/backend';
 	import CrudPanel from '../../../components/crud/CrudPanel.svelte';
 	import type { CrudColumn } from '../../../components/crud/types';
 
@@ -27,6 +28,13 @@
 
 	let expenses_list: Expense[] = [];
 
+    
+	let date_time_fmt = 'dd/mm/yy hh:MM tt';
+	get_setting('date_time_format').then((res) => {
+		// @ts-ignore
+		date_time_fmt = res.Text;
+	});
+
 	let columns: CrudColumn[] = [
 		{
 			api_name: 'id',
@@ -39,7 +47,8 @@
 				data: { integer: true, range: [0, null], step: 1 }
 			},
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'date_time',
@@ -48,10 +57,13 @@
 			display_map_fn: (date_time: string) => new Date(date_time).toLocaleString(),
 			current_sort: 'DESC',
 			type: {
-				type: 'datetime'
+				type: 'datetime',
+                accuracy: 'second',
+                format: date_time_fmt
 			},
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'description',
@@ -67,7 +79,8 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: false
 		},
 		{
 			api_name: 'amount',
@@ -79,7 +92,9 @@
 				type: 'currency'
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: false,
+            align: 'right'
 		}
 	];
 

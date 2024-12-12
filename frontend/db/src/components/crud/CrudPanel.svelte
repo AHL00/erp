@@ -1,5 +1,9 @@
 <!-- A generic CRUD page that can edit any specified object on the API. -->
 <script lang="ts" generics="EntryType extends { id: number }">
+	import { flip } from 'svelte/animate';
+
+	import type { SearchRequest } from '$bindings/SearchRequest';
+
 	import CurrencySpan from '../currency/CurrencySpan.svelte';
 
 	import { api_call } from '$lib/backend';
@@ -16,6 +20,7 @@
 	import Loader from '$lib/../components/Loader.svelte';
 	import { onMount } from 'svelte';
 	import { format_local_date, utc_date_to_local_rounded } from '$lib';
+	import { fade, fly, scale } from 'svelte/transition';
 
 	// List request type, e.g. InventoryItemListRequest
 	export let list_request: ListRequest;
@@ -49,18 +54,85 @@
 	/// Tailwind classes for the background color
 	/// Both light and dark mode are needed.
 	/// Default = 'bg-custom-light dark:bg-custom-dark'
-	export let background_color: string = 'bg-custom-light dark:bg-custom-dark';
+	export let background_color: string = 'bg-custom-lighter dark:bg-custom-dark';
 
 	let loading_count = 0;
 
 	let error = false;
 
+	let search_request: SearchRequest | null = null;
+	let last_search: string | null = null;
+	let search_timer: number | null = null;
+	let search_input: HTMLInputElement;
+	const search_count: number = 1000000;
+
 	function get_api_request_name(column: CrudColumn): string {
 		return column.api_request_name ?? column.api_name;
 	}
 
+	function get_column_by_api_name(api_name: string): CrudColumn | undefined {
+		return columns.find((column) => get_api_request_name(column) === api_name);
+	}
+
 	function refresh_list() {
 		loading_count++;
+
+		// If search_request exists, search instead
+		if (search_request !== null) {
+			api_call(`${crud_endpoint}/search`, 'POST', search_request)
+				.then((res) => {
+					if (res === undefined) {
+						console.error('Error fetching list');
+
+						toast.push('Error fetching data');
+
+						// Clear the list
+						objects_list = [];
+						last_search = null;
+
+						loading_count--;
+						error = true;
+						return;
+					}
+
+					if (res?.status == 200) {
+						res.json().then((data) => {
+							objects_list = data;
+							last_search = search_request ? search_request.search : null;
+						});
+						loading_count--;
+
+						if (error) {
+							error = false;
+						}
+					} else {
+						console.error('Error fetching list');
+
+						toast.push('Error fetching data');
+
+						// Clear the list
+						objects_list = [];
+						last_search = null;
+
+						loading_count--;
+						error = true;
+					}
+				})
+				.catch((e) => {
+					console.error('Error fetching list');
+
+					toast.push('Error fetching data');
+
+					// Clear the list
+					objects_list = [];
+					last_search = null;
+
+					loading_count--;
+					error = true;
+				});
+
+			return;
+		}
 
 		//TODO: Implement catch for every api_call
 		api_call(`${crud_endpoint}/list`, 'POST', list_request)
@@ -81,6 +153,7 @@
 
 					// Clear the list
 					objects_list = [];
+					last_search = null;
 
 					loading_count--;
 					error = true;
@@ -93,6 +166,7 @@
 
 				// Clear the list
 				objects_list = [];
+				last_search = null;
 
 				loading_count--;
 				error = true;
@@ -225,6 +299,7 @@
 
 			// Clear the list, which will show a loading element
 			objects_list = [];
+			last_search = null;
 
 			loading_count--;
 			return Promise.reject('Error fetching count: ' + e);
@@ -242,6 +317,7 @@
 
 			// Clear the list, which will show a loading element
 			objects_list = [];
+			last_search = null;
 
 			loading_count--;
 			return Promise.reject('Error fetching count: HTTP code ' + res?.status);
@@ -411,6 +487,17 @@
 		}
 		return null;
 	}
+
+	$: {
+		if (loading_count == 0 && search_request !== null) {
+			if (search_input && search_input !== document.activeElement)
+				// To solve weird thing where
+				// rerendering causes blurring.
+				setTimeout(() => {
+					search_input.focus();
+				}, 100);
+		}
+	}
 </script>
 
 <!-- TODO: Allow custom edit panel, make it fit in any space with flex-grow -->
@@ -444,24 +531,72 @@
             {background_color}
             "
 		>
-			{#if loading_count > 0}
-				<div class="absolute h-full w-full flex">
-					<Loader icon_size={1} blur_background={true} custom_classes="rounded-2xl" />
-				</div>
-			{/if}
-			{#if error}
-				<div class="absolute h-full w-full flex">
-					<Loader
-						icon_size={1}
-						blur_background={true}
-						custom_classes="rounded-2xl"
-						icon="error"
-						text="Error fetching data."
-						ellipsis={false}
-					/>
+			{#if search_request}
+				<div
+					class="searchbar p-2 flex flex-row justify-center place-items-center gap-x-2"
+					in:fly={{ y: -200, duration: 300 }}
+					out:fly={{ y: -200, duration: 300 }}
+				>
+					<div class="relative w-1/2">
+						<input
+							type="text"
+							class="w-full h-full border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded-md p-2 bg-transparent relative z-auto pr-10"
+							bind:value={search_request.search}
+							disabled={loading_count > 0}
+							autocomplete="off"
+							autocapitalize="off"
+							placeholder={`Search by "${get_column_by_api_name(search_request.column)?.display_name}"...`}
+							on:keydown={(e) => {
+								if (e.key === 'Enter') {
+									refresh_list();
+								}
+							}}
+							bind:this={search_input}
+						/>
+						{#if last_search == null || last_search !== search_request.search}
+							<button
+								class="fas fa-search absolute right-10 top-1/2 transform -translate-y-1/2
+                            h-full hover:brightness-90 pl-3 pr-2
+                            border-l-[1px] border-custom-light-outline dark:border-custom-dark-outline"
+								transition:fade={{ duration: 200 }}
+								on:click={() => {
+									refresh_list();
+								}}
+							>
+							</button>
+						{/if}
+						<button
+							class="fas fa-times absolute right-0 top-1/2 transform -translate-y-1/2
+                            h-full hover:brightness-90 px-3 text-lg
+                            border-l-[1px] border-custom-light-outline dark:border-custom-dark-outline"
+							on:click={() => {
+								search_request = null;
+								last_search = null;
+								refresh_list();
+							}}
+						>
+						</button>
+					</div>
 				</div>
 			{/if}
 			<div class="overflow-auto h-full flex flex-col {custom_margins}">
+				{#if loading_count > 0}
+					<div class="absolute h-full w-full flex">
+						<Loader icon_size={1} blur_background={true} custom_classes="rounded-2xl" />
+					</div>
+				{/if}
+				{#if error}
+					<div class="absolute h-full w-full flex">
+						<Loader
+							icon_size={1}
+							blur_background={true}
+							custom_classes="rounded-2xl"
+							icon="error"
+							text="Error fetching data."
+							ellipsis={false}
+						/>
+					</div>
+				{/if}
 				<table class="w-full">
 					<thead>
 						<tr>
@@ -482,23 +617,53 @@
 							{/each}
 							{#each columns as column, index}
 								<th
-									class="p-2 z-20 {background_color}"
+									class="p-2 z-20 {background_color} text-{column.align} text-left"
 									on:click={() => {
-										sort_toggle(index);
+										if (search_request === null) {
+											sort_toggle(index);
+										}
 									}}
 								>
 									<span style="white-space: nowrap;">
 										{column.display_name}
-										{#if column.current_sort == 'ASC'}
-											<span class="text-xl">▲</span>
+										{#if search_request === null}
+											{#if column.current_sort == 'ASC'}
+												<span class="text-xl">▲</span>
+											{/if}
+											{#if column.current_sort == 'DESC'}
+												<span class="text-xl">▼</span>
+											{/if}
+											{#if column.current_sort != null && list_request.sorts.length > 1}
+												<span class="text-xs"
+													>{find_sort_index(get_api_request_name(column)) + 1}</span
+												>
+											{/if}
 										{/if}
-										{#if column.current_sort == 'DESC'}
-											<span class="text-xl">▼</span>
-										{/if}
-										{#if column.current_sort != null && list_request.sorts.length > 1}
-											<span class="text-xs"
-												>{find_sort_index(get_api_request_name(column)) + 1}</span
+										{#if column.searchable && search_request === null}
+											<button
+												class="
+                                                flex-row gap-x-1
+                                                inline-flex items-center
+                                                rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90
+                                                outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline"
+												on:click={() => {
+													search_request = {
+														column: get_api_request_name(column),
+														count: search_count,
+														search: ''
+													};
+													objects_list = [];
+													last_search = null;
+
+													// Focus on the search input
+													setTimeout(() => {
+														search_input.focus();
+													}, 100);
+												}}
 											>
+												<i class="fas text-sm mr-1 fa-search"></i>
+												<span class="text-sm">Search</span>
+											</button>
 										{/if}
 									</span>
 								</th>
@@ -516,10 +681,10 @@
 					<tbody id="{crud_endpoint}_table_body">
 						{#if !edit_all_mode}
 							{#each objects_list as item}
-								<tr class="text-center">
+								<tr>
 									<PermissionGuard permissions={write_perms}>
 										{#if !edit_all_mode}
-											<td class="p-2">
+											<td class="p-2 text-center">
 												<button
 													class="font-bold"
 													on:click={() => {
@@ -531,7 +696,7 @@
 											</td>
 										{/if}
 										{#if delete_enabled}
-											<td class="p-2">
+											<td class="p-2 text-center">
 												<button
 													class="font-bold"
 													on:click={() => {
@@ -544,7 +709,7 @@
 										{/if}
 										{#each custom_buttons as button}
 											<PermissionGuard permissions={button.permissions}>
-												<td class="p-2">
+												<td class="p-2 text-center">
 													<button
 														class="font-bold"
 														on:click={() => {
@@ -558,7 +723,7 @@
 										{/each}
 									</PermissionGuard>
 									{#each columns as column}
-										<td class="p-2">
+										<td class="p-2 text-{column.align}">
 											{#if column.display_map_fn !== null}
 												{column.display_map_fn(get_field_of_item(item, column.api_name))}
 											{:else if column.type.type == 'currency'}
@@ -568,7 +733,7 @@
 												{#if currency_value === null}
 													<span class="text-red-500">[Invalid currency]</span>
 												{:else}
-													<CurrencySpan value={currency_value} />
+													<CurrencySpan value={currency_value} align={column.align} />
 												{/if}
 											{:else if column.type.type == 'datetime'}
 												{format_local_date(
@@ -674,7 +839,7 @@
 					</div>
 				</PermissionGuard>
 
-				<div class="justify-self-end ml-auto mx-1">
+				<div class="justify-self-end ml-auto mx-1 {search_request ? 'hidden' : ''}">
 					<div
 						class="inline-flex rounded-md outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline
                         text-custom-text-light-lighter dark:text-custom-text-dark-lighter"
@@ -753,5 +918,17 @@
 
 	th:hover {
 		cursor: pointer;
+	}
+
+	.text-left {
+		text-align: left !important;
+	}
+
+	.text-center {
+		text-align: center !important;
+	}
+
+	.text-right {
+		text-align: right !important;
 	}
 </style>

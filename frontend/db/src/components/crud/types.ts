@@ -59,6 +59,8 @@ export interface CrudColumn {
 	edit: boolean;
     /// Disable editing in the edit panel even if shown
 	readonly: boolean;
+    searchable: boolean;
+    align?: 'left' | 'center' | 'right';
 }
 // export interface CustomColumn<T> {
 //     /// The name of the custom column

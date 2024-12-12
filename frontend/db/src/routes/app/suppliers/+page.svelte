@@ -36,7 +36,8 @@
 			current_sort: null,
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
-			readonly: true
+			readonly: true,
+            searchable: false
 		},
 		{
 			api_name: 'name',
@@ -52,7 +53,8 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: true
 		},
 		{
 			api_name: 'phone',
@@ -68,7 +70,8 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: false
 		},
 		{
 			api_name: 'address',
@@ -84,7 +87,8 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: false
 		},
 		{
 			api_name: 'notes',
@@ -107,7 +111,8 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+            searchable: false
 		}
 	];
 

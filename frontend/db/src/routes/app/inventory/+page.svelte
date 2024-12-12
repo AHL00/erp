@@ -36,7 +36,8 @@
 			current_sort: null,
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
-			readonly: true
+			readonly: true,
+			searchable: false
 		},
 		{
 			api_name: 'name',
@@ -52,7 +53,9 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+			searchable: true,
+			align: 'left'
 		},
 		{
 			api_name: 'description',
@@ -68,7 +71,9 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+			searchable: false,
+			align: 'left'
 		},
 		{
 			api_name: 'price',
@@ -80,7 +85,9 @@
 				type: 'currency'
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+			searchable: false,
+			align: 'right'
 		},
 		{
 			api_name: 'stock',
@@ -97,8 +104,9 @@
 				}
 			},
 			edit: true,
-
-			readonly: false
+			readonly: false,
+			searchable: false,
+			align: 'right'
 		},
 		{
 			api_name: 'quantity_per_box',
@@ -115,7 +123,9 @@
 				}
 			},
 			edit: true,
-			readonly: false
+			readonly: false,
+			searchable: false,
+			align: 'right'
 		}
 	];
 

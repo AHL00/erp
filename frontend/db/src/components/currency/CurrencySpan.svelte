@@ -58,7 +58,8 @@
 
 <script lang="ts">
 	export let value: number;
-    export let custom_class: string = "";
+	export let custom_class: string = '';
+	export let align: 'left' | 'center' | 'right' = 'center';
 
 	let formatted_value: Promise<string>;
 	$: {
@@ -70,8 +71,22 @@
 	{#await formatted_value}
 		<Loader icon_size={0.5} />
 	{:then formatted}
-		<span class={custom_class}>{formatted}</span>
+		<span class="{custom_class} text-{align}">{formatted}</span>
 	{:catch error}
 		<span class="text-red-500">[Formatting Error ({value})]</span>
 	{/await}
 </span>
+
+<style>
+    .text-left {
+        text-align: left;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+</style>
