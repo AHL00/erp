@@ -549,6 +549,10 @@
 							on:keydown={(e) => {
 								if (e.key === 'Enter') {
 									refresh_list();
+								} else if (e.key === 'Escape') {
+									search_request = null;
+									last_search = null;
+									refresh_list();
 								}
 							}}
 							bind:this={search_input}
