@@ -246,14 +246,14 @@ pub(super) async fn search(
     let query_str = format!(r#"
     SELECT *
     FROM customers
-    WHERE {} @@ phraseto_tsquery('simple', $1)
+    WHERE {} @@ websearch_to_tsquery('simple', $1)
     LIMIT $2
     "#, column_ts_name);
 
     let query = sqlx::query_as(
         &query_str
     );
-// ORDER BY ts_rank($3, phraseto_tsquery('simple', $1)) DESC
+// ORDER BY ts_rank($3, websearch_to_tsquery('simple', $1)) DESC
 
     let data = query
     .bind(req.search)

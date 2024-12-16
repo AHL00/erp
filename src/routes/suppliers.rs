@@ -230,7 +230,7 @@ pub(super) async fn search(
     let query_str = format!(r#"
     SELECT *
     FROM suppliers
-    WHERE {} @@ phraseto_tsquery('simple', $1)
+    WHERE {} @@ websearch_to_tsquery('simple', $1)
     LIMIT $2
     "#, column_ts_name);
 
