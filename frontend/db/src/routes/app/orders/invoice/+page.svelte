@@ -234,15 +234,15 @@
 					<div class="flex-grow">
 						{#if order?.retail}
 							<div class="flex flex-col">
-								<span class="text-sm text-zinc-700 font-sans font-bold">Customer</span>
-								<span class="text-xl text-black font-sans font-light"
+								<span class="text-sm text-zinc-800 font-sans font-bold">Customer</span>
+								<span class="text-xl text-zinc-700 font-sans font-normal"
 									>{order?.retail_customer_name}</span
 								>
 							</div>
 						{:else}
 							<div class="flex flex-col">
-								<span class="text-md text-zinc-700 font-sans font-bold">Customer</span>
-								<span class="text-xl text-black font-sans font-light">{order?.customer?.name}</span>
+								<span class="text-md text-zinc-800 font-sans font-bold">Customer</span>
+								<span class="text-xl text-zinc-700 font-sans font-normal">{order?.customer?.name}</span>
 							</div>
 						{/if}
 						<div class="flex flex-wrap gap-x-3 gap-y-1 flex-grow place-items-center mt-2">
@@ -252,35 +252,35 @@
                                 > -->
 								{#if order?.retail_customer_address && order?.retail_customer_address.length > 0}
 									<div class="flex flex-col">
-										<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
-										<span class="text-sm text-zinc-800 font-sans font-normal"
+										<span class="text-xs text-zinc-800 font-sans font-bold">Address</span>
+										<span class="text-sm text-zinc-700 font-sans font-normal"
 											>{order?.retail_customer_address}</span
 										>
 									</div>
 								{/if}
 								<div class="flex flex-col">
-									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-									<span class="text-sm text-zinc-800 font-sans font-normal"
+									<span class="text-xs text-zinc-800 font-sans font-bold">Phone</span>
+									<span class="text-sm text-zinc-700 font-sans font-normal"
 										>{order?.retail_customer_phone}</span
 									>
 								</div>
 							{:else}
 								<div class="flex flex-col">
-									<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
-									<span class="text-sm text-zinc-800 font-sans font-normal"
+									<span class="text-xs text-zinc-800 font-sans font-bold">Address</span>
+									<span class="text-sm text-zinc-700 font-sans font-normal"
 										>{order?.customer?.address}</span
 									>
 								</div>
 								<div class="flex flex-col">
-									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-									<span class="text-sm text-zinc-800 font-sans font-normal"
+									<span class="text-xs text-zinc-800 font-sans font-bold">Phone</span>
+									<span class="text-sm text-zinc-700 font-sans font-normal"
 										>{order?.customer?.phone}</span
 									>
 								</div>
 								{#if order && order?.customer?.notes.trim().length > 0}
 									<div class="flex flex-col">
-										<span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
-										<span class="text-sm text-zinc-800 font-sans font-normal"
+										<span class="text-xs text-zinc-800 font-sans font-bold">Notes</span>
+										<span class="text-sm text-zinc-700 font-sans font-normal"
 											>{order?.customer?.notes}</span
 										>
 									</div>
@@ -290,8 +290,8 @@
 					</div>
 					<div class="flex flex-col items-end space-y-2">
 						<div class="flex flex-col items-end">
-							<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
-							<span class="text-sm text-zinc-800 font-sans font-normal"
+							<span class="text-xs text-zinc-800 font-sans font-bold">Date</span>
+							<span class="text-sm text-zinc-700 font-sans font-normal"
 								>{utc_iso_to_local_formatted(
 									order?.date_time ? order.date_time : new Date(0).toISOString(),
 									date_time_fmt
@@ -299,8 +299,8 @@
 							</span>
 						</div>
 						<div class="flex flex-col items-end">
-							<span class="text-xs text-zinc-700 font-sans font-bold">Type</span>
-							<span class="text-sm text-zinc-800 font-sans font-normal"
+							<span class="text-xs text-zinc-800 font-sans font-bold">Type</span>
+							<span class="text-sm text-zinc-700 font-sans font-normal"
 								>{order?.retail ? 'Retail' : 'Wholesale'}</span
 							>
 						</div>
@@ -312,15 +312,15 @@
 					<table class="table-auto w-full">
 						<thead>
 							<tr>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start w-5">No.</th>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-start">Item</th>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end"
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start w-5">No.</th>
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start">Item</th>
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end"
 									>Qty/Box</th
 								>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end">Qty</th>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end">Price</th
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Qty</th>
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Price</th
 								>
-								<th class="px-2 py-1 text-sm text-zinc-700 font-sans font-bold text-end"
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end"
 									>Amount</th
 								>
 							</tr>
@@ -370,7 +370,7 @@
 									: 'w-1/2'}"
 							>
 								<span class="text-sm text-zinc-800 font-sans font-bold">Notes</span>
-								<span class="text-xs text-zinc-800 font-sans font-normal whitespace-pre-line"
+								<span class="text-xs text-zinc-700 font-sans font-normal whitespace-pre-line"
 									>{order?.notes}</span
 								>
 							</div>
@@ -387,7 +387,7 @@
 									>Bank Accounts</span
 								>
 								{#each business_bank_accounts as account}
-									<span class="w-fit h-fit mr-2 text-xs text-zinc-800 font-sans font-normal"
+									<span class="w-fit h-fit mr-2 text-xs text-zinc-700 font-sans font-normal"
 										>{account}</span
 									>
 								{/each}
