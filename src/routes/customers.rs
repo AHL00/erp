@@ -105,13 +105,9 @@ pub(super) async fn list(
         .fetch_all(&mut **db)
         .await
         .map_err(|e| match e {
-            sqlx::Error::ColumnNotFound(column) => ApiError(
-                Status::BadRequest,
-                format!(
-                    "Column not found: {}",
-                    column
-                ),
-            ),
+            sqlx::Error::ColumnNotFound(column) => {
+                ApiError(Status::BadRequest, format!("Column not found: {}", column))
+            }
             _ => e.into(),
         })?;
 
@@ -241,29 +237,34 @@ pub(super) async fn search(
 ) -> Result<Json<Vec<Customer>>, ApiError> {
     let req = req.into_inner();
 
-    let column_ts_name = format!("{}_ts", req.column);
-
-    let query_str = format!(r#"
-    SELECT *
-    FROM customers
-    WHERE {} @@ websearch_to_tsquery('simple', $1)
-    LIMIT $2
-    "#, column_ts_name);
-
-    let query = sqlx::query_as(
-        &query_str
+    let query_str = format!(
+        r#"
+        SELECT *, word_similarity($1, "{}") AS sml
+        FROM customers
+        WHERE $1 <% "{}"
+        ORDER BY sml DESC, "{}"
+        LIMIT $2
+        "#,
+        req.column, req.column, req.column
     );
-// ORDER BY ts_rank($3, websearch_to_tsquery('simple', $1)) DESC
+
+    let query = sqlx::query_as(&query_str);
 
     let data = query
-    .bind(req.search)
-    .bind(req.count)
-    .fetch_all(&mut **db).await.map_err(|e| match e {
-        sqlx::Error::ColumnNotFound(column) => {
-            ApiError(Status::BadRequest, format!("Column not found or doesn't have a text search index: {}", column))
-        }
-        _ => e.into(),
-    })?;
+        .bind(req.search)
+        .bind(req.count)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::ColumnNotFound(column) => ApiError(
+                Status::BadRequest,
+                format!(
+                    "Column not found: {}",
+                    column
+                ),
+            ),
+            _ => e.into(),
+        })?;
 
     Ok(Json(data))
 }

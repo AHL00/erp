@@ -225,14 +225,16 @@ pub(super) async fn search(
 ) -> Result<Json<Vec<Supplier>>, ApiError> {
     let req = req.into_inner();
 
-    let column_ts_name = format!("{}_ts", req.column);
-
-    let query_str = format!(r#"
-    SELECT *
-    FROM suppliers
-    WHERE {} @@ websearch_to_tsquery('simple', $1)
-    LIMIT $2
-    "#, column_ts_name);
+    let query_str = format!(
+        r#"
+        SELECT *, word_similarity($1, "{}") AS sml
+        FROM suppliers
+        WHERE $1 <% "{}"
+        ORDER BY sml DESC, "{}"
+        LIMIT $2
+        "#,
+        req.column, req.column, req.column
+    );
 
     let query = sqlx::query_as(
         &query_str
@@ -243,7 +245,7 @@ pub(super) async fn search(
     .bind(req.count)
     .fetch_all(&mut **db).await.map_err(|e| match e {
         sqlx::Error::ColumnNotFound(column) => {
-            ApiError(Status::BadRequest, format!("Column not found or doesn't have a text search index: {}", column))
+            ApiError(Status::BadRequest, format!("Column not found: {}", column))
         }
         _ => e.into(),
     })?;

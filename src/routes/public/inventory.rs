@@ -103,16 +103,15 @@ pub(super) async fn search(
 ) -> Result<Json<Vec<PublicInventoryItem>>, ApiError> {
     let req = req.into_inner();
 
-    let column_ts_name = format!("{}_ts", req.column);
-
     let query_str = format!(
         r#"
-    SELECT id, name, price, quantity_per_box
-    FROM inventory
-    WHERE {} @@ websearch_to_tsquery('simple', $1)
-    LIMIT $2
-    "#,
-        column_ts_name
+        SELECT *, word_similarity($1, "{}") AS sml
+        FROM inventory
+        WHERE $1 <% "{}"
+        ORDER BY sml DESC, "{}"
+        LIMIT $2
+        "#,
+        req.column, req.column, req.column
     );
 
     let query = sqlx::query_as(&query_str);
@@ -126,7 +125,7 @@ pub(super) async fn search(
             sqlx::Error::ColumnNotFound(column) => ApiError(
                 Status::BadRequest,
                 format!(
-                    "Column not found or doesn't have a text search index: {}",
+                    "Column not found: {}",
                     column
                 ),
             ),

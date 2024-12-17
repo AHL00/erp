@@ -1,5 +1,9 @@
 CREATE SCHEMA IF NOT EXISTS public;
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+SELECT set_limit(0.1);
+
 CREATE TABLE
     IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -37,7 +41,7 @@ CREATE TABLE
         name VARCHAR(255) NOT NULL,
         name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', name)) STORED,
         description TEXT NOT NULL,
-        price NUMERIC(10, 2) NOT NULL,
+        price NUMERIC(32, 4) NOT NULL,
         stock INTEGER NOT NULL,
         quantity_per_box INTEGER NOT NULL
     );
@@ -52,7 +56,7 @@ CREATE TABLE
             TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
             customer_id INT,
             created_by_user_id INT NOT NULL,
-            amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            amount_paid NUMERIC(32, 4) NOT NULL DEFAULT 0.00,
             retail BOOLEAN NOT NULL DEFAULT FALSE,
             retail_customer_name VARCHAR(255),
             retail_customer_phone VARCHAR(255),
@@ -71,7 +75,7 @@ CREATE TABLE
             TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
             supplier_id INT NOT NULL,
             created_by_user_id INT NOT NULL,
-            amount_paid NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+            amount_paid NUMERIC(32, 4) NOT NULL DEFAULT 0.00,
             notes TEXT,
             FOREIGN KEY (supplier_id) REFERENCES suppliers (id),
             FOREIGN KEY (created_by_user_id) REFERENCES users (id)
@@ -82,7 +86,7 @@ CREATE TABLE
     IF NOT EXISTS order_items (
         id SERIAL PRIMARY KEY,
         inventory_id INT NOT NULL,
-        price NUMERIC(10, 2) NOT NULL, -- price at the time of order, which can be edited freely to allow for discounts, special rates, etc.
+        price NUMERIC(32, 4) NOT NULL, -- price at the time of order, which can be edited freely to allow for discounts, special rates, etc.
         quantity INT NOT NULL,
         order_id INT NOT NULL,
         FOREIGN KEY (order_id) REFERENCES orders (id),
@@ -94,7 +98,7 @@ CREATE TABLE
     IF NOT EXISTS purchase_items (
         id SERIAL PRIMARY KEY,
         inventory_id INT NOT NULL,
-        price NUMERIC(10, 2) NOT NULL, -- price at the time of purchase, which should not be edited
+        price NUMERIC(32, 4) NOT NULL, -- price at the time of purchase, which should not be edited
         quantity INT NOT NULL,
         purchase_id INT NOT NULL,
         FOREIGN KEY (purchase_id) REFERENCES purchases (id),
@@ -107,7 +111,7 @@ CREATE TABLE
         date_time TIMESTAMP
         WITH
             TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
-            amount NUMERIC(10, 2) NOT NULL,
+            amount NUMERIC(32, 4) NOT NULL,
             description TEXT,
             description_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', description)) STORED,
             created_by_user_id INT NOT NULL,
