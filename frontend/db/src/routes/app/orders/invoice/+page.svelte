@@ -215,14 +215,14 @@
 						</div>
 					</div>
 					<div class="flex flex-col space-y-3 items-end justify-center">
-						<span class="text-3xl text-black font-sans font-normal">{business_name}</span>
+						<span class="text-3xl text-zinc-900 font-sans font-light">{business_name}</span>
 						<div class="flex flex-col items-end space-y-1">
-							<span class="text-sm text-black font-sans font-light">{business_address}</span>
+							<span class="text-sm text-zinc-800 font-sans font-normal">{business_address}</span>
 							<div class="flex flex-col items-end">
 								{#if business_phone_nums}
 									{@const phone_nums = business_phone_nums ?? []}
 									{#each phone_nums as phone_num}
-										<span class="text-sm text-black font-sans font-light">{phone_num}</span>
+										<span class="text-sm text-zinc-800 font-sans font-normal">{phone_num}</span>
 									{/each}
 								{/if}
 							</div>
@@ -247,40 +247,40 @@
 						{/if}
 						<div class="flex flex-wrap gap-x-3 gap-y-1 flex-grow place-items-center mt-2">
 							{#if order?.retail}
-								<!-- <span class="text-md text-black font-sans font-light">
+								<!-- <span class="text-md text-black font-sans font-normal">
                                 TODO: Retail customer info</span
                                 > -->
 								{#if order?.retail_customer_address && order?.retail_customer_address.length > 0}
 									<div class="flex flex-col">
 										<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
-										<span class="text-sm text-black font-sans font-light"
+										<span class="text-sm text-zinc-800 font-sans font-normal"
 											>{order?.retail_customer_address}</span
 										>
 									</div>
 								{/if}
 								<div class="flex flex-col">
 									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-									<span class="text-sm text-black font-sans font-light"
+									<span class="text-sm text-zinc-800 font-sans font-normal"
 										>{order?.retail_customer_phone}</span
 									>
 								</div>
 							{:else}
 								<div class="flex flex-col">
 									<span class="text-xs text-zinc-700 font-sans font-bold">Address</span>
-									<span class="text-sm text-black font-sans font-light"
+									<span class="text-sm text-zinc-800 font-sans font-normal"
 										>{order?.customer?.address}</span
 									>
 								</div>
 								<div class="flex flex-col">
 									<span class="text-xs text-zinc-700 font-sans font-bold">Phone</span>
-									<span class="text-sm text-black font-sans font-light"
+									<span class="text-sm text-zinc-800 font-sans font-normal"
 										>{order?.customer?.phone}</span
 									>
 								</div>
-								{#if order?.customer?.notes.trim().length > 0}
+								{#if order && order?.customer?.notes.trim().length > 0}
 									<div class="flex flex-col">
 										<span class="text-xs text-zinc-700 font-sans font-bold">Notes</span>
-										<span class="text-sm text-black font-sans font-light"
+										<span class="text-sm text-zinc-800 font-sans font-normal"
 											>{order?.customer?.notes}</span
 										>
 									</div>
@@ -291,7 +291,7 @@
 					<div class="flex flex-col items-end space-y-2">
 						<div class="flex flex-col items-end">
 							<span class="text-xs text-zinc-700 font-sans font-bold">Date</span>
-							<span class="text-sm text-black font-sans font-light"
+							<span class="text-sm text-zinc-800 font-sans font-normal"
 								>{utc_iso_to_local_formatted(
 									order?.date_time ? order.date_time : new Date(0).toISOString(),
 									date_time_fmt
@@ -300,7 +300,7 @@
 						</div>
 						<div class="flex flex-col items-end">
 							<span class="text-xs text-zinc-700 font-sans font-bold">Type</span>
-							<span class="text-sm text-black font-sans font-light"
+							<span class="text-sm text-zinc-800 font-sans font-normal"
 								>{order?.retail ? 'Retail' : 'Wholesale'}</span
 							>
 						</div>
@@ -328,29 +328,29 @@
 						<tbody>
 							{#each order_items as item, i}
 								<tr class="my-2">
-									<td class="px-2 py-1 text-sm text-black font-sans font-light w-5">{i + 1}</td>
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal w-5">{i + 1}</td>
 									<td
 										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
 											? 'pt-1 pb-1'
 											: 'py-1'}"
 									>
-										<span class="text-sm text-black font-sans font-light">
+										<span class="text-sm text-zinc-900 font-sans font-normal">
 											{item.inventory_item.name}
 										</span>
 										{#if item.inventory_item.description}
-											<span class="text-xs text-zinc-700 font-sans font-light">
+											<span class="text-xs text-zinc-800 font-sans font-normal">
 												{item.inventory_item.description}
 											</span>
 										{/if}
 									</td>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light text-end"
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light text-end">{item.quantity}</td>
-                                    <td class="px-2 py-1 text-sm text-black font-sans font-light text-end">
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">{item.quantity}</td>
+                                    <td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
                                         <CurrencySpan value={parseFloat(item.price)} />
                                     </td>
-									<td class="px-2 py-1 text-sm text-black font-sans font-light text-end">
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
 										<CurrencySpan value={parseFloat(item.price) * item.quantity} />
 									</td>
 								</tr>
@@ -370,7 +370,7 @@
 									: 'w-1/2'}"
 							>
 								<span class="text-sm text-zinc-800 font-sans font-bold">Notes</span>
-								<span class="text-xs text-black font-sans font-light whitespace-pre-line"
+								<span class="text-xs text-zinc-800 font-sans font-normal whitespace-pre-line"
 									>{order?.notes}</span
 								>
 							</div>
@@ -387,7 +387,7 @@
 									>Bank Accounts</span
 								>
 								{#each business_bank_accounts as account}
-									<span class="w-fit h-fit mr-2 text-xs text-black font-sans font-light"
+									<span class="w-fit h-fit mr-2 text-xs text-zinc-800 font-sans font-normal"
 										>{account}</span
 									>
 								{/each}
@@ -395,7 +395,7 @@
 						{/if}
 						<div class="flex flex-col items-end space-y-1 flex-initial w-1/4">
 							<span class="text-sm text-zinc-800 font-sans font-bold">Total</span>
-							<CurrencySpan custom_class="text-2xl text-black font-sans font-light" value={total} />
+							<CurrencySpan custom_class="text-2xl text-zinc-800 font-sans font-normal" value={total} />
 						</div>
 					</div>
 
