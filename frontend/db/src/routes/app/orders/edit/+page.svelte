@@ -692,7 +692,6 @@
 									search_results={customer_search_results}
 									display_map_fn={customer_display_map_fn}
 									search_column="name"
-									search_count={32}
 									form_id="order-edit-form"
 									validity_message={'Select a customer from the dropdown'}
 									required={true}
@@ -918,7 +917,6 @@
 											}}
 											search_column="name"
 											initial_value={data.order_item.inventory_item}
-											search_count={32}
 											form_id="order-edit-form"
 											validity_message={'Select an item from the dropdown'}
 											required={true}

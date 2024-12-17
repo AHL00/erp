@@ -27,7 +27,7 @@
 	/// NOTE: This is just a type indicator
 	export let search_results: ResultType[] = [];
 	export let search_column: string;
-	export let search_count: number;
+	export let search_count: number = 10000000;
 	export let display_map_fn: (val: any) => string;
 	export let display_extra_map_fn: (val: any) => string | null = () => null;
 	export let initial_value: ResultType | null = null;

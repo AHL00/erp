@@ -230,7 +230,7 @@
 					</div>
 				</div>
 				<hr />
-				<div class="flex flex-row justify-between w-full h-fit py-3 break-inside-avoid gap-x-4">
+				<div class="flex flex-row justify-between w-full h-fit pt-3 pb-4 break-inside-avoid gap-x-4">
 					<div class="flex-grow">
 						{#if order?.retail}
 							<div class="flex flex-col">
@@ -308,10 +308,10 @@
 				</div>
 				<hr />
 
-				<div class="flex flex-row justify-center w-full h-fit py-4">
+				<div class="flex flex-row justify-center w-full h-fit">
 					<table class="table-auto w-full">
 						<thead>
-							<tr>
+							<tr class="border-custom-light-outline dark:border-custom-dark-outline border-b-[1px]">
 								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start w-5">No.</th>
 								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start">Item</th>
 								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end"
@@ -327,7 +327,9 @@
 						</thead>
 						<tbody>
 							{#each order_items as item, i}
-								<tr class="my-2">
+								<tr class="my-2 {i == order_items.length - 1 ? '' : 'border-b-[1px]'}
+                                border-dashed
+                                border-custom-light-outline dark:border-custom-dark-outline">
 									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal w-5">{i + 1}</td>
 									<td
 										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
