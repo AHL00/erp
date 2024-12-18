@@ -887,11 +887,11 @@
 						<thead>
 							<tr>
 								<th class="p-2 z-20 w-max bg-custom-lighter dark:bg-custom-dark">Item</th>
-								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark italic">Qty/Box</th>
-								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark italic">Stock</th>
-								<th class="p-2 z-20 w-20 bg-custom-lighter dark:bg-custom-dark">Qty</th>
+								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark italic">Qty/Box</th>
+								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark italic">Stock</th>
+								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Qty</th>
 								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Price</th>
-								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Total</th>
+								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Total</th>
 								<!-- <th class="z-20 bg-custom-lighter dark:bg-custom-dark"></th> -->
 							</tr>
 						</thead>
@@ -943,17 +943,34 @@
 											class="w-full box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Qty/Box"
 											disabled
-											value={data.order_item.inventory_item ? data.order_item.inventory_item.quantity_per_box : null}
+											value={data.order_item.inventory_item
+												? data.order_item.inventory_item.quantity_per_box
+												: null}
 										/>
 									</td>
 									<td>
-										<input
-											type="number"
-											class="w-full box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
-											placeholder="Stock"
-											disabled
-											value={data.order_item.inventory_item ? data.order_item.inventory_item.stock : null}
-										/>
+										<div class="flex flex-row gap-x-2">
+											<input
+												type="number"
+												class="w-full box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												placeholder="Stock"
+												disabled
+												value={data.order_item.inventory_item
+													? data.order_item.inventory_item.stock
+													: null}
+											/>
+											{#if data.order_item.inventory_item && data.order_item.quantity !== order_items[i].quantity}
+												<span
+													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												>
+													{data.order_item.inventory_item &&
+													data.order_item.quantity !== order_items[i].quantity
+														? (order_items[i].quantity - data.order_item.quantity < 0 ? '' : '+') +
+															(order_items[i].quantity - data.order_item.quantity)
+														: ''}
+												</span>
+											{/if}
+										</div>
 									</td>
 									<td>
 										<input
@@ -961,7 +978,7 @@
 											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Quantity"
 											form="order-edit-form"
-                                            min="1"
+											min="1"
 											bind:value={data.order_item.quantity}
 										/>
 									</td>
@@ -972,7 +989,7 @@
 												class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												placeholder="Price"
 												form="order-edit-form"
-                                                min="0"
+												min="0"
 												bind:value={data.order_item.price}
 											/>
 											{#if data.order_item.inventory_item && parseFloat(data.order_item.inventory_item.price) != parseFloat(data.order_item.price)}
@@ -1109,7 +1126,7 @@
 		top: 0;
 	}
 
-    td {
-        padding: 0.6rem 0.4rem;
-    }
+	td {
+		padding: 0.6rem 0.4rem;
+	}
 </style>
