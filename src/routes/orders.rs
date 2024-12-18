@@ -15,6 +15,7 @@ use super::{
     auth::{AuthCookie, User},
     customers::Customer,
     inventory::InventoryItem,
+    search::SearchRequest,
     ApiError, ApiReturn, SqlType, StockUpdate, StockUpdateFactory,
 };
 
@@ -260,6 +261,60 @@ pub(super) async fn list(
         .await
         .map_err(|e| match e {
             sqlx::Error::RowNotFound => ApiError(Status::NotFound, "No orders found".to_string()),
+            e => ApiError(Status::InternalServerError, e.to_string()),
+        })
+        .map(|rows: Vec<OrderMetaRow>| rows.into_iter().map(OrderMeta::from).collect())?;
+
+    Ok(rocket::serde::json::Json(orders))
+}
+
+#[rocket::post("/orders/search", data = "<req>")]
+pub(super) async fn search(
+    req: rocket::serde::json::Json<SearchRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+) -> Result<rocket::serde::json::Json<Vec<OrderMeta>>, ApiError> {
+    let req = req.into_inner();
+
+    let x = req
+        .column
+        .unwrap_or(req.nested_access.unwrap_or("id".to_string()));
+
+    let query_str = format!(
+        r#"
+        SELECT orders.id,
+            orders.date_time,
+            orders.amount_paid,
+            orders.retail,
+            orders.retail_customer_name,
+            orders.retail_customer_phone,
+            orders.retail_customer_address,
+            orders.notes,
+            orders.fulfilled,
+            row_to_json(customers) AS customer,
+            row_to_json(users) AS created_by_user,
+            word_similarity($1, {}::text) AS sml
+        FROM orders
+            LEFT JOIN customers ON orders.customer_id = customers.id
+            INNER JOIN users ON orders.created_by_user_id = users.id
+        WHERE $1 <% {}::text
+        ORDER BY sml DESC, {}::text
+        LIMIT $2
+        "#,
+        x, x, x
+    );
+
+    let query = sqlx::query_as(&query_str);
+
+    let orders: Vec<OrderMeta> = query
+        .bind(&req.search)
+        .bind(req.count)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::ColumnNotFound(c) => {
+                ApiError(Status::NotFound, format!("Column not found: {}", c))
+            }
             e => ApiError(Status::InternalServerError, e.to_string()),
         })
         .map(|rows: Vec<OrderMetaRow>| rows.into_iter().map(OrderMeta::from).collect())?;
@@ -1020,7 +1075,7 @@ pub(super) async fn delete(
 
         stock_updates.push(stock_update);
     }
-    
+
     transaction.commit().await.map_err(|e| {
         ApiError(
             Status::InternalServerError,

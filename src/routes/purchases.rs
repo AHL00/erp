@@ -2,13 +2,10 @@ use rocket::http::Status;
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, FromRow};
 
-use crate::{db::FromDB, routes::SqlType, types::permissions::UserPermissionEnum};
+use crate::{db::{FromDB, DB}, routes::SqlType, types::permissions::UserPermissionEnum};
 
 use super::{
-    auth::{AuthCookie, AuthGuard, User, UserRow},
-    public::InventoryItem,
-    suppliers::Supplier,
-    ApiError, ApiReturn, StockUpdate, StockUpdateFactory,
+    auth::{AuthCookie, AuthGuard, User, UserRow}, public::InventoryItem, search::SearchRequest, suppliers::Supplier, ApiError, ApiReturn, StockUpdate, StockUpdateFactory
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
@@ -113,6 +110,56 @@ pub(super) async fn get(
     .map(|row: PurchaseMetaRow| row.into())?;
 
     Ok(rocket::serde::json::Json(row.into()))
+}
+
+#[rocket::post("/purchases/search", data = "<req>")]
+pub(super) async fn search(
+    req: rocket::serde::json::Json<SearchRequest>,
+    mut db: DB,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+) -> Result<rocket::serde::json::Json<Vec<PurchaseMeta>>, ApiError> {
+    let req = req.into_inner();
+
+    let x = req
+        .column
+        .unwrap_or(req.nested_access.unwrap_or("id".to_string()));
+
+    let query_str = format!(
+        r#"
+        SELECT
+            purchases.id,
+            purchases.date_time,
+            purchases.amount_paid,
+            purchases.notes,
+            row_to_json(suppliers) AS supplier,
+            row_to_json(users) AS created_by_user,
+            word_similarity($1, {}::text) AS sml
+        FROM purchases
+            LEFT JOIN suppliers ON purchases.supplier_id = suppliers.id
+            LEFT JOIN users ON purchases.created_by_user_id = users.id
+        WHERE $1 <% {}::text
+        ORDER BY sml DESC, {}::text
+        LIMIT $2
+        "#,
+        x, x, x
+    );
+
+    let query = sqlx::query_as(&query_str);
+
+    let orders: Vec<PurchaseMeta> = query
+        .bind(&req.search)
+        .bind(req.count)
+        .fetch_all(&mut **db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::ColumnNotFound(c) => {
+                ApiError(Status::NotFound, format!("Column not found: {}", c))
+            }
+            e => ApiError(Status::InternalServerError, e.to_string()),
+        })
+        .map(|rows: Vec<PurchaseMetaRow>| rows.into_iter().map(PurchaseMeta::from).collect())?;
+
+    Ok(rocket::serde::json::Json(orders))
 }
 
 #[rocket::get("/purchases/<id>/items")]

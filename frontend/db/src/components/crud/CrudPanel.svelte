@@ -74,6 +74,17 @@
 		return columns.find((column) => get_api_request_name(column) === api_name);
 	}
 
+    function get_column_by_search_column_name(col_name: string): CrudColumn | undefined {
+        console.log(col_name)
+        return columns.find((column) => {
+            if (!column.search_nested) {
+                return get_api_request_name(column) === col_name
+            } else {
+                return column.search_nested === col_name
+            }
+        })
+    }
+
 	function refresh_list() {
 		loading_count++;
 
@@ -545,7 +556,7 @@
 							disabled={loading_count > 0}
 							autocomplete="off"
 							autocapitalize="off"
-							placeholder={`Search by "${get_column_by_api_name(search_request.column)?.display_name}"...`}
+							placeholder={`Search by "${get_column_by_search_column_name(search_request.column)?.display_name}"...`}
 							on:keydown={(e) => {
 								if (e.key === 'Enter') {
 									refresh_list();
@@ -652,9 +663,10 @@
                                                 outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline"
 												on:click={() => {
 													search_request = {
-														column: get_api_request_name(column),
+														column: column.search_nested ?? column.api_name,
 														count: search_count,
-														search: ''
+														search: '',
+														nested_access: column.search_nested ? column.search_nested : null
 													};
 													objects_list = [];
 													last_search = null;

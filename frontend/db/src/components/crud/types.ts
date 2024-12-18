@@ -60,6 +60,8 @@ export interface CrudColumn {
     /// Disable editing in the edit panel even if shown
 	readonly: boolean;
     searchable: boolean;
+    /// Check SearchRequest for more info
+    search_nested?: string;
     align?: 'left' | 'center' | 'right';
 }
 // export interface CustomColumn<T> {

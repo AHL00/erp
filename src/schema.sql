@@ -17,19 +17,15 @@ CREATE TABLE
     IF NOT EXISTS customers (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
-        name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', name)) STORED,
         phone VARCHAR(255),
         address TEXT,
         notes TEXT
     );
 
-CREATE INDEX IF NOT EXISTS customers_name_ts_idx ON customers USING GIN (name_ts);
-
 CREATE TABLE
     IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
-        name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', name)) STORED,
         phone VARCHAR(255),
         address TEXT,
         notes TEXT
@@ -39,14 +35,11 @@ CREATE TABLE
     IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        name_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', name)) STORED,
         description TEXT NOT NULL,
         price NUMERIC(32, 4) NOT NULL,
         stock INTEGER NOT NULL,
         quantity_per_box INTEGER NOT NULL
     );
-
-CREATE INDEX IF NOT EXISTS inventory_name_ts_idx ON inventory USING GIN (name_ts);
 
 CREATE TABLE
     IF NOT EXISTS orders (
@@ -113,7 +106,6 @@ CREATE TABLE
             TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
             amount NUMERIC(32, 4) NOT NULL,
             description TEXT,
-            description_ts tsvector GENERATED ALWAYS AS (to_tsvector ('simple', description)) STORED,
             created_by_user_id INT NOT NULL,
             FOREIGN KEY (created_by_user_id) REFERENCES users (id)
     );

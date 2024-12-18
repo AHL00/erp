@@ -52,7 +52,8 @@
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
 			readonly: true,
-			searchable: false
+			searchable: true,
+            search_nested: 'orders.id'
 		},
 		{
 			api_name: 'date_time',
@@ -80,7 +81,8 @@
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: true,
 			readonly: true,
-			searchable: false
+			searchable: true,
+            search_nested: 'customers.name'
 		},
 		{
 			api_name: 'created_by_user',
@@ -93,7 +95,8 @@
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: true,
 			readonly: true,
-			searchable: false
+			searchable: true,
+            search_nested: 'users.username'
 		},
 		{
 			api_name: 'amount_paid',

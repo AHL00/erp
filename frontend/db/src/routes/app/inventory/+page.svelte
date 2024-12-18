@@ -37,7 +37,7 @@
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
 			readonly: true,
-			searchable: false
+			searchable: true
 		},
 		{
 			api_name: 'name',

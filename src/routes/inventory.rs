@@ -284,15 +284,19 @@ pub(super) async fn search(
 ) -> Result<Json<Vec<InventoryItem>>, ApiError> {
     let req = req.into_inner();
 
+    let x = req
+        .column
+        .unwrap_or(req.nested_access.unwrap_or("id".to_string()));
+
     let query_str = format!(
         r#"
-        SELECT *, word_similarity($1, "{}") AS sml
+        SELECT *, word_similarity($1, {}::text) AS sml
         FROM inventory
-        WHERE $1 <% "{}"
-        ORDER BY sml DESC, "{}"
+        WHERE $1 <% {}::text
+        ORDER BY sml DESC, {}::text
         LIMIT $2
         "#,
-        req.column, req.column, req.column
+        x, x, x
     );
 
     let query = sqlx::query_as(&query_str);

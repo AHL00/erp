@@ -52,7 +52,8 @@
 			type: { type: 'number', data: { integer: true, range: [0, null], step: 1 } },
 			edit: true,
 			readonly: true,
-            searchable: false
+			searchable: true,
+            search_nested: 'purchases.id'
 		},
 		{
 			api_name: 'date_time',
@@ -63,7 +64,7 @@
 			type: { type: 'datetime', accuracy: 'second', format: date_time_fmt },
 			edit: true,
 			readonly: true,
-            searchable: false
+			searchable: false
 		},
 		{
 			api_name: 'supplier',
@@ -76,7 +77,8 @@
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: false,
 			readonly: true,
-            searchable: false
+			searchable: true,
+			search_nested: 'suppliers.name'
 		},
 		{
 			api_name: 'created_by_user',
@@ -89,7 +91,8 @@
 			type: { type: 'use_display_map_fn_and_no_edit' },
 			edit: false,
 			readonly: true,
-            searchable: false
+			searchable: true,
+			search_nested: 'users.username'
 		},
 		{
 			api_name: 'amount_paid',
@@ -102,7 +105,7 @@
 			},
 			edit: true,
 			readonly: true,
-            searchable: false
+			searchable: false
 		}
 	];
 
