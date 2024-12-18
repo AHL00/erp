@@ -831,17 +831,18 @@
 													? data.purchase_item.inventory_item.stock
 													: null}
 											/>
-											{#if data.purchase_item.inventory_item && data.purchase_item.quantity !== purchase_items[i].quantity}
+											{#if !purchase_items[i]}
 												<span
 													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												>
-													{data.purchase_item.inventory_item &&
-													data.purchase_item.quantity !== purchase_items[i].quantity
-														? (-purchase_items[i].quantity + data.purchase_item.quantity < 0
-																? ''
-																: '+') +
-															(-purchase_items[i].quantity + data.purchase_item.quantity)
-														: ''}
+													{(-data.purchase_item.quantity < 0 ? '' : '+') + -data.purchase_item.quantity}
+												</span>
+											{:else if data.purchase_item.inventory_item && data.purchase_item.quantity !== purchase_items[i].quantity}
+												<span
+													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												>
+													{(purchase_items[i].quantity - data.purchase_item.quantity < 0 ? '' : '+') +
+														(purchase_items[i].quantity - data.purchase_item.quantity)}
 												</span>
 											{/if}
 										</div>

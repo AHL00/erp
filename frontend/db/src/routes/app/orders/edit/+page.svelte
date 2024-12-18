@@ -959,15 +959,18 @@
 													? data.order_item.inventory_item.stock
 													: null}
 											/>
-											{#if data.order_item.inventory_item && data.order_item.quantity !== order_items[i].quantity}
+											{#if !order_items[i]}
 												<span
 													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												>
-													{data.order_item.inventory_item &&
-													data.order_item.quantity !== order_items[i].quantity
-														? (order_items[i].quantity - data.order_item.quantity < 0 ? '' : '+') +
-															(order_items[i].quantity - data.order_item.quantity)
-														: ''}
+													{(-data.order_item.quantity < 0 ? '' : '+') + -data.order_item.quantity}
+												</span>
+											{:else if data.order_item.inventory_item && data.order_item.quantity !== order_items[i].quantity}
+												<span
+													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												>
+													{(order_items[i].quantity - data.order_item.quantity < 0 ? '' : '+') +
+														(order_items[i].quantity - data.order_item.quantity)}
 												</span>
 											{/if}
 										</div>

@@ -164,12 +164,7 @@
 					return;
 				}
 
-                // Check decimal places
-                if (num.toFixed(currency_decimal_places) != num.toString()) {
-                    toast.push(`${column.display_name} must have at most ${currency_decimal_places} decimal places`);
-                    saving_loading_counter--;
-                    return;
-                }
+                // TODO: Check decimal places?
 
 				request[column.api_name] = num;
 			} else if (column.type.type == 'checkbox') {
