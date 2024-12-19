@@ -11,7 +11,7 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import type { OrderItem } from '$bindings/OrderItem';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
-	import { utc_iso_to_local_formatted } from '$lib';
+	import { order_item_total, utc_iso_to_local_formatted } from '$lib';
 
 	let order_id: string | null = null;
 	let order: Order | null = null;
@@ -151,14 +151,6 @@
 		}
 	}
 
-	let total = 0;
-	$: {
-		if (order && order_items) {
-			console.log(order);
-			total = order_items.reduce((acc, item) => acc + parseFloat(item.price) * item.quantity, 0);
-		}
-	}
-
 	// Settings
 	let invoice_signature_fields: boolean = false;
 
@@ -172,6 +164,10 @@
 		// @ts-ignore
 		date_time_fmt = res.Text;
 	});
+
+	function discount_exists(items: OrderItem[]): boolean {
+		return items.some((item) => parseFloat(item.discount) > 0);
+	}
 </script>
 
 <svelte:head>
@@ -230,7 +226,9 @@
 					</div>
 				</div>
 				<hr />
-				<div class="flex flex-row justify-between w-full h-fit pt-3 pb-4 break-inside-avoid gap-x-4">
+				<div
+					class="flex flex-row justify-between w-full h-fit pt-3 pb-4 break-inside-avoid gap-x-4"
+				>
 					<div class="flex-grow">
 						{#if order?.retail}
 							<div class="flex flex-col">
@@ -242,7 +240,9 @@
 						{:else}
 							<div class="flex flex-col">
 								<span class="text-md text-zinc-800 font-sans font-bold">Customer</span>
-								<span class="text-xl text-zinc-700 font-sans font-normal">{order?.customer?.name}</span>
+								<span class="text-xl text-zinc-700 font-sans font-normal"
+									>{order?.customer?.name}</span
+								>
 							</div>
 						{/if}
 						<div class="flex flex-wrap gap-x-3 gap-y-1 flex-grow place-items-center mt-2">
@@ -311,25 +311,31 @@
 				<div class="flex flex-row justify-center w-full h-fit">
 					<table class="table-auto w-full">
 						<thead>
-							<tr class="border-custom-light-outline dark:border-custom-dark-outline border-b-[1px]">
-								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start w-5">No.</th>
+							<tr
+								class="border-custom-light-outline dark:border-custom-dark-outline border-b-[1px]"
+							>
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start w-5"
+									>No.</th
+								>
 								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-start">Item</th>
-								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end"
-									>Qty/Box</th
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Qty/Box</th
 								>
 								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Qty</th>
-								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Price</th
-								>
-								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end"
-									>Amount</th
-								>
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Price</th>
+								{#if discount_exists(order_items)}
+									<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Disc.</th
+									>
+								{/if}
+								<th class="px-2 py-1 text-sm text-zinc-800 font-sans font-bold text-end">Amount</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each order_items as item, i}
-								<tr class="my-2 {i == order_items.length - 1 ? '' : 'border-b-[1px]'}
+								<tr
+									class="my-2 {i == order_items.length - 1 ? '' : 'border-b-[1px]'}
                                 border-dashed
-                                border-custom-light-outline dark:border-custom-dark-outline">
+                                border-custom-light-outline dark:border-custom-dark-outline"
+								>
 									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal w-5">{i + 1}</td>
 									<td
 										class="px-2 flex flex-col {item.inventory_item.description.trim().length > 0
@@ -348,12 +354,25 @@
 									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end"
 										>{item.inventory_item.quantity_per_box}</td
 									>
-									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">{item.quantity}</td>
-                                    <td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
-                                        <CurrencySpan value={parseFloat(item.price)} />
-                                    </td>
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end"
+										>{item.quantity}</td
+									>
 									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
-										<CurrencySpan value={parseFloat(item.price) * item.quantity} />
+										<CurrencySpan value={parseFloat(item.price)} />
+									</td>
+									{#if discount_exists(order_items)}
+										<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
+											{#if !(parseFloat(item.discount) > 0)}
+												<span>-</span>
+											{:else if item.discount_percentage}
+												<span>{item.discount}%</span>
+											{:else}
+												<CurrencySpan value={parseFloat(item.discount)} />
+											{/if}
+										</td>
+									{/if}
+									<td class="px-2 py-1 text-sm text-zinc-900 font-sans font-normal text-end">
+										<CurrencySpan value={order_item_total(item)} />
 									</td>
 								</tr>
 							{/each}
@@ -397,7 +416,10 @@
 						{/if}
 						<div class="flex flex-col items-end space-y-1 flex-initial w-1/4">
 							<span class="text-sm text-zinc-800 font-sans font-bold">Total</span>
-							<CurrencySpan custom_class="text-2xl text-zinc-800 font-sans font-normal" value={total} />
+							<CurrencySpan
+								custom_class="text-2xl text-zinc-800 font-sans font-normal"
+								value={parseFloat(order?.total ?? '-1')}
+							/>
 						</div>
 					</div>
 

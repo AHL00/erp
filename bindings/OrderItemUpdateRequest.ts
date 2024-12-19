@@ -5,4 +5,4 @@ export type OrderItemUpdateRequest = {
  * If the id is None, a new item will be created
  * If the id is Some, the item with that id will be updated
  */
-order_item_id: number | null, inventory_item_id: number, quantity: number, price: string, };
+order_item_id: number | null, inventory_item_id: number, quantity: number, price: string, discount: string, discount_percentage: boolean, };

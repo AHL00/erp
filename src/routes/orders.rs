@@ -34,6 +34,7 @@ pub(super) struct OrderMeta {
     pub retail_customer_address: Option<String>,
     pub fulfilled: bool,
     pub notes: String,
+    pub total: sqlx::types::BigDecimal,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
@@ -57,6 +58,7 @@ pub(super) struct OrderMetaRow {
     retail_customer_address: Option<String>,
     fulfilled: bool,
     notes: String,
+    total: sqlx::types::BigDecimal,
 }
 
 pub(super) type OrderTotal = sqlx::types::BigDecimal;
@@ -75,6 +77,7 @@ impl From<OrderMetaRow> for OrderMeta {
             retail_customer_phone: row.retail_customer_phone,
             retail_customer_address: row.retail_customer_address,
             notes: row.notes,
+            total: row.total,
         }
     }
 }
@@ -99,6 +102,7 @@ pub(super) async fn get(
             orders.retail_customer_address,
             orders.fulfilled,
             orders.notes,
+            orders.total,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
@@ -123,6 +127,8 @@ pub(super) struct OrderItem {
     pub inventory_item: InventoryItem,
     pub quantity: i32,
     pub price: sqlx::types::BigDecimal,
+    pub discount: sqlx::types::BigDecimal,
+    pub discount_percentage: bool,
 }
 
 #[derive(FromRow, Debug, Deserialize)]
@@ -131,6 +137,8 @@ pub(super) struct OrderItemRow {
     pub inventory: sqlx_core::types::Json<InventoryItem>,
     pub quantity: i32,
     pub price: sqlx::types::BigDecimal,
+    pub discount: sqlx::types::BigDecimal,
+    pub discount_percentage: bool,
 }
 
 impl From<OrderItemRow> for OrderItem {
@@ -140,6 +148,8 @@ impl From<OrderItemRow> for OrderItem {
             inventory_item: value.inventory.0,
             quantity: value.quantity,
             price: value.price,
+            discount: value.discount,
+            discount_percentage: value.discount_percentage,
         }
     }
 }
@@ -156,7 +166,9 @@ pub(super) async fn get_items(
             order_items.id as id,
             row_to_json(inventory) as inventory,
             order_items.price as price,
-            order_items.quantity as quantity
+            order_items.quantity as quantity,
+            order_items.discount as discount,
+            order_items.discount_percentage as discount_percentage
         FROM order_items
             INNER JOIN inventory ON inventory_id = inventory.id
         WHERE order_id = $1
@@ -232,6 +244,7 @@ pub(super) async fn list(
             orders.retail_customer_address,
             orders.notes,
             orders.fulfilled,
+            orders.total,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user
         FROM orders
@@ -291,6 +304,7 @@ pub(super) async fn search(
             orders.retail_customer_address,
             orders.notes,
             orders.fulfilled,
+            orders.total,
             row_to_json(customers) AS customer,
             row_to_json(users) AS created_by_user,
             word_similarity($1, {}::text) AS sml
@@ -331,6 +345,8 @@ pub(super) struct OrderItemUpdateRequest {
     pub inventory_item_id: i32,
     pub quantity: i32,
     pub price: sqlx::types::BigDecimal,
+    pub discount: sqlx::types::BigDecimal,
+    pub discount_percentage: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ts_rs::TS)]
@@ -408,7 +424,7 @@ pub(super) async fn total(
 pub(super) async fn get_order_total(order_id: i32, db: &mut DB) -> Result<OrderTotal, ApiError> {
     let total: (OrderTotal,) = sqlx::query_as(
         r#"
-        SELECT sum(price * quantity) as total FROM order_items WHERE order_id = $1
+        SELECT get_order_total($1)
         "#,
     )
     .bind(order_id)
@@ -650,7 +666,9 @@ pub(super) async fn preview_update_items(
             order_items.id as id,
             row_to_json(inventory) as inventory,
             order_items.price as price,
-            order_items.quantity as quantity
+            order_items.quantity as quantity,
+            order_items.discount as discount,
+            order_items.discount_percentage as discount_percentage
         FROM order_items
             INNER JOIN inventory ON inventory_id = inventory.id
         WHERE order_id = $1
@@ -717,7 +735,9 @@ pub(super) async fn update_items(
             order_items.id as id,
             row_to_json(inventory) as inventory,
             order_items.price as price,
-            order_items.quantity as quantity
+            order_items.quantity as quantity,
+            order_items.discount as discount,
+            order_items.discount_percentage as discount_percentage
         FROM order_items
             INNER JOIN inventory ON inventory_id = inventory.id
         WHERE order_id = $1
@@ -756,20 +776,48 @@ pub(super) async fn update_items(
 
     for (i, req) in requests.iter().enumerate() {
         if let Some(order_item_id) = req.order_item_id {
+            // Check if is different to existing
+            let current = current_items
+                .iter()
+                .find(|item| item.id == order_item_id)
+                .ok_or_else(|| {
+                    ApiError(
+                        Status::BadRequest,
+                        format!("Order item with id {} not found", order_item_id),
+                    )
+                })?;
+
+            let update = current.inventory_item.id != req.inventory_item_id
+                || current.quantity != req.quantity
+                || current.price != req.price
+                || current.discount != req.discount
+                || current.discount_percentage != req.discount_percentage;
+
+            if !update {
+                log::info!("Skipping: {:#?}", req);
+                continue;
+            }
+
+            log::info!("Patching: {:#?}", req);
+
             // Patch existing item
             let res = sqlx::query(
                 r#"
             UPDATE order_items
-            SET inventory_id = $1, quantity = $2, price = $3
-            WHERE id = $4
+            SET inventory_id = $1, quantity = $2, price = $3, discount = $4, discount_percentage = $5
+            WHERE id = $6
             "#,
             )
             .bind(req.inventory_item_id)
             .bind(req.quantity)
             .bind(req.price.clone())
+            .bind(req.discount.clone())
+            .bind(req.discount_percentage)
             .bind(order_item_id)
             .execute(&mut *transaction)
             .await;
+
+            log::info!("Patch result: {:#?}", res);
 
             if let Err(error) = res {
                 transaction.rollback().await.map_err(|e| {
@@ -786,6 +834,23 @@ pub(super) async fn update_items(
                         i, error
                     ),
                 ));
+            } else if let Ok(res) = res {
+                if res.rows_affected() == 0 {
+                    transaction.rollback().await.map_err(|e| {
+                        ApiError(
+                            Status::InternalServerError,
+                            format!("Failed to rollback transaction: {}", e),
+                        )
+                    })?;
+
+                    return Err(ApiError(
+                        Status::BadRequest,
+                        format!(
+                            "Order item with id {} not found in order with id {}",
+                            order_item_id, id
+                        ),
+                    ));
+                }
             }
         } else {
             // Do not allow two order items with the same item
@@ -812,8 +877,8 @@ pub(super) async fn update_items(
             // Insert new item
             let id: Result<(i32,), _> = sqlx::query_as(
                 r#"
-                INSERT INTO order_items (order_id, inventory_id, quantity, price)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO order_items (order_id, inventory_id, quantity, price, discount, discount_percentage)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id
                 "#,
             )
@@ -821,6 +886,8 @@ pub(super) async fn update_items(
             .bind(req.inventory_item_id)
             .bind(req.quantity)
             .bind(req.price.clone())
+            .bind(req.discount.clone())
+            .bind(req.discount_percentage)
             .fetch_one(&mut *transaction)
             .await;
 
@@ -961,6 +1028,8 @@ pub(super) async fn delete(
         row_to_json(inventory) as inventory,
         order_items.price as price,
         order_items.quantity as quantity
+        order_items.discount as discount,
+        order_items.discount_percentage as discount_percentage
     FROM order_items
         INNER JOIN inventory ON inventory_id = inventory.id
     WHERE order_id = $1

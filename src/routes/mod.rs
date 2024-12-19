@@ -1,14 +1,14 @@
 pub mod auth;
-pub mod suppliers;
+pub mod backup;
 pub mod customers;
 pub mod expenses;
 pub mod inventory;
-pub mod purchases;
 pub mod orders;
+pub mod purchases;
 pub mod reports;
 pub mod search;
-pub mod backup;
 pub mod settings;
+pub mod suppliers;
 
 pub mod public;
 
@@ -16,7 +16,7 @@ use bigdecimal::BigDecimal;
 use chrono::Utc;
 use inventory::InventoryItem;
 use rocket::{
-    http::Status,
+    http::{ContentType, Status},
     response::{self, Responder},
     routes,
     serde::json,
@@ -181,6 +181,7 @@ impl<'r> Responder<'r, 'static> for ApiError {
 
         response::Response::build()
             .status(self.0)
+            .header_adjoin(ContentType::JSON)
             .sized_body(json_bytes.len(), std::io::Cursor::new(json_bytes))
             .ok()
     }

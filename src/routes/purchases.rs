@@ -2,10 +2,18 @@ use rocket::http::Status;
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, FromRow};
 
-use crate::{db::{FromDB, DB}, routes::SqlType, types::permissions::UserPermissionEnum};
+use crate::{
+    db::{FromDB, DB},
+    routes::SqlType,
+    types::permissions::UserPermissionEnum,
+};
 
 use super::{
-    auth::{AuthCookie, AuthGuard, User, UserRow}, public::InventoryItem, search::SearchRequest, suppliers::Supplier, ApiError, ApiReturn, StockUpdate, StockUpdateFactory
+    auth::{AuthCookie, AuthGuard, User, UserRow},
+    public::InventoryItem,
+    search::SearchRequest,
+    suppliers::Supplier,
+    ApiError, ApiReturn, StockUpdate, StockUpdateFactory,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS, FromRow)]
@@ -625,6 +633,21 @@ pub(super) async fn update_items(
                     format!(
                         "Failed to update purchase item request at index {}: {}",
                         i, e
+                    ),
+                ));
+            } else if res.unwrap().rows_affected() == 0 {
+                transaction.rollback().await.map_err(|e| {
+                    ApiError(
+                        Status::InternalServerError,
+                        format!("Failed to rollback transaction: {:?}", e),
+                    )
+                })?;
+
+                return Err(ApiError(
+                    Status::BadRequest,
+                    format!(
+                        "Purchase item with id {} not found in purchase {}",
+                        purchase_item_id, id
                     ),
                 ));
             }

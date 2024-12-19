@@ -56,6 +56,8 @@ CREATE TABLE
             retail_customer_address TEXT,
             notes TEXT,
             fulfilled BOOLEAN NOT NULL DEFAULT FALSE,
+            -- Order total that updates automatically
+            total NUMERIC(32, 4) NOT NULL DEFAULT 0.00,
             FOREIGN KEY (customer_id) REFERENCES customers (id),
             FOREIGN KEY (created_by_user_id) REFERENCES users (id)
     );
@@ -82,9 +84,90 @@ CREATE TABLE
         price NUMERIC(32, 4) NOT NULL, -- price at the time of order, which can be edited freely to allow for discounts, special rates, etc.
         quantity INT NOT NULL,
         order_id INT NOT NULL,
+        discount NUMERIC(32, 4) NOT NULL DEFAULT 0.00,
+        discount_percentage BOOLEAN NOT NULL DEFAULT FALSE,
         FOREIGN KEY (order_id) REFERENCES orders (id),
         FOREIGN KEY (inventory_id) REFERENCES inventory (id)
     );
+
+
+DROP FUNCTION IF EXISTS get_order_total(INT);
+
+-- NOTE: If updating this, make sure to change the function
+-- in index.ts as well
+CREATE OR REPLACE FUNCTION get_order_total(o_id INT) RETURNS NUMERIC AS $$
+DECLARE
+    total NUMERIC(32, 4);
+BEGIN
+    SELECT COALESCE(SUM(
+        CASE
+            WHEN discount_percentage THEN price * quantity * (1 - discount / 100)
+            ELSE price * quantity - discount
+        END
+    ), 0)
+    INTO total
+    FROM order_items
+    WHERE order_items.order_id = o_id;
+
+    RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_order_total_insert ON order_items;
+DROP TRIGGER IF EXISTS update_order_total_update ON order_items;
+DROP TRIGGER IF EXISTS update_order_total_delete ON order_items;
+DROP FUNCTION IF EXISTS update_order_total();
+
+-- Triggers to update the total of an order when an order item is inserted, updated, or deleted
+CREATE OR REPLACE FUNCTION update_order_total() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE orders
+    SET total = get_order_total(NEW.order_id)
+    WHERE id = NEW.order_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_order_total_insert
+AFTER INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
+CREATE TRIGGER update_order_total_update
+AFTER UPDATE ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
+CREATE TRIGGER update_order_total_delete
+AFTER DELETE ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
+-- Create triggers if they do not exist
+-- DO $$
+-- BEGIN
+--     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_order_total_insert') THEN
+--         CREATE TRIGGER update_order_total_insert
+--         AFTER INSERT ON order_items
+--         FOR EACH ROW
+--         EXECUTE FUNCTION update_order_total();
+--     END IF;
+
+--     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_order_total_update') THEN
+--         CREATE TRIGGER update_order_total_update
+--         AFTER UPDATE ON order_items
+--         FOR EACH ROW
+--         EXECUTE FUNCTION update_order_total();
+--     END IF;
+
+--     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_order_total_delete') THEN
+--         CREATE TRIGGER update_order_total_delete
+--         AFTER DELETE ON order_items
+--         FOR EACH ROW
+--         EXECUTE FUNCTION update_order_total();
+--     END IF;
+-- END $$;
 
 -- Junction table for many-to-many relationship between purchases and purchase items
 CREATE TABLE
@@ -137,3 +220,15 @@ CREATE TABLE
         description TEXT,
         value JSONB NOT NULL
     );
+
+-- CREATE OR REPLACE FUNCTION get_purchase_total(purchase_id INT) RETURNS NUMERIC AS $$
+-- DECLARE
+--     total NUMERIC(32, 4);
+-- BEGIN
+--     SELECT COALESCE(SUM(price * quantity), 0)
+--     INTO total
+--     FROM purchase_items
+--     WHERE purchase_id = get_purchase_total.purchase_id;
+
+--     RETURN total;
+-- END;

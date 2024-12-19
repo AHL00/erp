@@ -1,5 +1,7 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
+import type { Order } from '$bindings/Order';
+import type { OrderItem } from '$bindings/OrderItem';
 import { refreshAuthStatus } from './auth';
 import { get_setting } from './backend';
 
@@ -87,4 +89,32 @@ export function compare_dates_milliseconds(a: string, b: string): number {
 	let date_b = new Date(b);
 
 	return date_a.getTime() - date_b.getTime();
+}
+
+// This is ideally a replica of the total function in the backend
+// Check schema for the total function
+export function order_total(order_items: OrderItem[]): number {
+	let total = 0;
+
+	for (let item of order_items) {
+		total += order_item_total(item);
+	}
+
+	return total;
+}
+
+export function order_item_total(item: OrderItem): number {
+	return order_item_final(item) * item.quantity;
+}
+
+export function order_item_final(item: OrderItem): number {
+	let discount;
+
+	if (item.discount_percentage) {
+		discount = (parseFloat(item.price) * parseFloat(item.discount)) / 100;
+	} else {
+		discount = parseFloat(item.discount);
+	}
+
+	return parseFloat(item.price) - discount;
 }

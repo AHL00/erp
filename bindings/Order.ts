@@ -7,4 +7,4 @@ export type Order = { items: Array<OrderItem>, id: number, date_time: string,
 /**
  * This will be false if the order is retail
  */
-customer: Customer | null, created_by_user: User, amount_paid: string, retail: boolean, retail_customer_name: string | null, retail_customer_phone: string | null, retail_customer_address: string | null, fulfilled: boolean, notes: string, };
+customer: Customer | null, created_by_user: User, amount_paid: string, retail: boolean, retail_customer_name: string | null, retail_customer_phone: string | null, retail_customer_address: string | null, fulfilled: boolean, notes: string, total: string, };

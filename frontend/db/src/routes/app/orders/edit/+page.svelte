@@ -20,7 +20,14 @@
 	import { showNavbar } from '../../../../stores/navbarStore';
 	import CurrencySpan from '../../../../components/currency/CurrencySpan.svelte';
 	import { beforeNavigate } from '$app/navigation';
-	import { local_date_to_iso_utc, open_in_new_tab, utc_date_to_local_rounded } from '$lib';
+	import {
+		local_date_to_iso_utc,
+		open_in_new_tab,
+		order_item_final,
+		order_item_total,
+		order_total,
+		utc_date_to_local_rounded
+	} from '$lib';
 	onMount(async () => {
 		showNavbar.set(true);
 	});
@@ -178,7 +185,9 @@
 				order_item_id,
 				inventory_item_id: item.inventory_item.id,
 				price: item.price,
-				quantity: item.quantity
+				quantity: item.quantity,
+				discount: item.discount,
+				discount_percentage: item.discount_percentage
 			};
 
 			update_requests.push(item_update_req);
@@ -239,6 +248,7 @@
 								// Pull latest order items just to be sure that it was actually updated
 								// If the status was ok, it should be updated, but just to be sure
 								load_items();
+                                load_info();
 
 								if (
 									compare_order_items(
@@ -489,7 +499,9 @@
 				// @ts-ignore
 				inventory_item: null,
 				price: '0.00',
-				quantity: 1
+				quantity: 1,
+                discount: '0.00',
+                discount_percentage: true
 			}
 		});
 
@@ -539,7 +551,8 @@
 			a.retail_customer_phone === b.retail_customer_phone &&
 			a.fulfilled === b.fulfilled &&
 			utc_date_to_local_rounded(a.date_time, order_date_time_accuracy) ===
-				utc_date_to_local_rounded(b.date_time, order_date_time_accuracy)
+				utc_date_to_local_rounded(b.date_time, order_date_time_accuracy) &&
+			a.total === b.total
 		);
 	}
 
@@ -552,7 +565,9 @@
 			a.id === b.id &&
 			a.inventory_item.id === b.inventory_item.id &&
 			parseFloat(a.price) === parseFloat(b.price) &&
-			a.quantity === b.quantity
+			a.quantity === b.quantity &&
+			parseFloat(a.discount) === parseFloat(b.discount) &&
+			a.discount_percentage === b.discount_percentage
 		);
 	}
 
@@ -887,11 +902,13 @@
 						<thead>
 							<tr>
 								<th class="p-2 z-20 w-max bg-custom-lighter dark:bg-custom-dark">Item</th>
-								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark italic">Qty/Box</th>
-								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark italic">Stock</th>
-								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Qty</th>
+								<th class="p-2 z-20 w-16 bg-custom-lighter dark:bg-custom-dark italic">Qty/Box</th>
+								<th class="p-2 z-20 w-32 bg-custom-lighter dark:bg-custom-dark italic">Stock</th>
+								<th class="p-2 z-20 w-24 bg-custom-lighter dark:bg-custom-dark">Qty</th>
 								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Price</th>
-								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Total</th>
+								<th class="p-2 z-20 w-36 bg-custom-lighter dark:bg-custom-dark">Discount / Item</th>
+								<th class="p-2 z-20 w-28 bg-custom-lighter dark:bg-custom-dark">Final</th>
+								<th class="p-2 z-20 w-32 bg-custom-lighter dark:bg-custom-dark">Total</th>
 								<!-- <th class="z-20 bg-custom-lighter dark:bg-custom-dark"></th> -->
 							</tr>
 						</thead>
@@ -986,7 +1003,7 @@
 										/>
 									</td>
 									<td>
-										<div class="space-x-2 flex">
+										<div class="gap-x-2 flex">
 											<input
 												type="number"
 												class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
@@ -997,6 +1014,7 @@
 											/>
 											{#if data.order_item.inventory_item && parseFloat(data.order_item.inventory_item.price) != parseFloat(data.order_item.price)}
 												<button
+													type="reset"
 													class="w-min box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 													on:click={() => {
 														// truncate the price string to 2 decimal places
@@ -1011,14 +1029,49 @@
 										</div>
 									</td>
 									<td>
+										<div class="gap-x-2 flex">
+											<input
+												type="number"
+												class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												placeholder="Discount"
+												form="order-edit-form"
+												min="0"
+												bind:value={data.order_item.discount}
+											/>
+											<button
+												type="button"
+												class="w-min box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+												on:click={() => {
+													data.order_item.discount_percentage =
+														!data.order_item.discount_percentage;
+												}}
+											>
+												{#if data.order_item.discount_percentage}
+													<i class="fas fa-percent"></i>
+												{:else}
+													<i class="fa-regular fa-money-bill-1"></i>
+												{/if}
+											</button>
+										</div>
+									</td>
+									<td>
 										<input
 											type="number"
-											class="w-full box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											class="w-full box-border border border-dashed dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
+											placeholder="Final"
+											form="order-edit-form"
+											value={order_item_final(data.order_item)}
+											readonly
+											disabled
+										/>
+									</td>
+									<td>
+										<input
+											type="number"
+											class="w-full box-border border border-dashed dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 											placeholder="Total"
 											form="order-edit-form"
-											value={Math.round(
-												parseFloat(data.order_item.price) * data.order_item.quantity * 100
-											) / 100}
+											value={order_item_total(data.order_item)}
 											readonly
 											disabled
 										/>
@@ -1104,19 +1157,31 @@
 					Save
 				</button>
 
-				<div class="flex flex-col flex-grow justify-center items-end space-y-1">
-					<span
-						class="text-md text-custom-text-light-darker dark:text-custom-text-dark-lighter font-bold"
-						>Total</span
-					>
+				<div class="flex flex-row flex-grow justify-end items-end gap-x-5">
+					{#if order_meta}
+						<div class="flex flex-col justify-center items-end gap-y-1">
+							<span
+								class="text-md text-custom-text-light-darker dark:text-custom-text-dark-lighter font-bold"
+								>Saved Total</span
+							>
 
-					<CurrencySpan
-						custom_class="text-2xl"
-						value={order_items_editing.reduce(
-							(acc, x) => acc + parseFloat(x.order_item.price) * x.order_item.quantity,
-							0
-						)}
-					/>
+							<CurrencySpan
+								custom_class="text-2xl"
+								value={parseFloat(order_meta.total ?? '-1.00')}
+							/>
+						</div>
+					{/if}
+					<div class="flex flex-col justify-center items-end gap-y-1">
+						<span
+							class="text-md text-custom-text-light-darker dark:text-custom-text-dark-lighter font-bold"
+							>Current Total</span
+						>
+
+						<CurrencySpan
+							custom_class="text-2xl"
+							value={order_total(order_items_editing.map((x) => x.order_item))}
+						/>
+					</div>
 				</div>
 			</div>
 		</div>
