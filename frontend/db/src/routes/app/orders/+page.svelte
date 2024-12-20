@@ -99,15 +99,15 @@
             search_nested: 'users.username'
 		},
 		{
-			api_name: 'amount_paid',
+			api_name: 'total',
 			api_request_name: null,
-			display_name: 'Amount paid',
+			display_name: 'Total',
 			display_map_fn: null,
 			current_sort: null,
 			type: {
 				type: 'currency'
 			},
-			edit: true,
+			edit: false,
 			readonly: true,
 			searchable: false
 		},
