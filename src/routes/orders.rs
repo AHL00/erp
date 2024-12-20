@@ -1027,7 +1027,7 @@ pub(super) async fn delete(
         order_items.id as id,
         row_to_json(inventory) as inventory,
         order_items.price as price,
-        order_items.quantity as quantity
+        order_items.quantity as quantity,
         order_items.discount as discount,
         order_items.discount_percentage as discount_percentage
     FROM order_items

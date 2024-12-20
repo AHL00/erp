@@ -75,7 +75,6 @@
 	}
 
     function get_column_by_search_column_name(col_name: string): CrudColumn | undefined {
-        console.log(col_name)
         return columns.find((column) => {
             if (!column.search_nested) {
                 return get_api_request_name(column) === col_name

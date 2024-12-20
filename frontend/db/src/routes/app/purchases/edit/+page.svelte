@@ -706,6 +706,7 @@
 							{#if !compare_purchase_meta(purchase_meta, purchase_meta_editing)}
 								<button
 									class="bg-red-500 text-white px-2 py-1 rounded-md"
+									type="reset"
 									on:click={() => {
 										set_pifs(purchase_meta);
 									}}
@@ -835,13 +836,16 @@
 												<span
 													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												>
-													{(data.purchase_item.quantity < 0 ? '' : '+') + data.purchase_item.quantity}
+													{(data.purchase_item.quantity < 0 ? '' : '+') +
+														data.purchase_item.quantity}
 												</span>
 											{:else if data.purchase_item.inventory_item && data.purchase_item.quantity !== purchase_items[i].quantity}
 												<span
 													class="w-min box-border border border-dashed italic dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 												>
-													{(-purchase_items[i].quantity + data.purchase_item.quantity < 0 ? '' : '+') +
+													{(-purchase_items[i].quantity + data.purchase_item.quantity < 0
+														? ''
+														: '+') +
 														(-purchase_items[i].quantity + data.purchase_item.quantity)}
 												</span>
 											{/if}
@@ -869,6 +873,7 @@
 											/>
 											{#if data.purchase_item.inventory_item && parseFloat(data.purchase_item.inventory_item.price) != parseFloat(data.purchase_item.price)}
 												<button
+													type="reset"
 													class="w-min box-border border dark:border-custom-dark-outline border-custom-light-outline text-sm rounded p-2 bg-transparent"
 													on:click={() => {
 														// truncate the price string to 2 decimal places
@@ -899,6 +904,7 @@
 										<div class="h-full w-full flex flex-row justify-center items-center space-x-2">
 											<button
 												class="bg-red-500 text-white px-2 py-1 rounded-md"
+                                                type="button"
 												on:click={() => {
 													// Remove the item from the array
 													purchase_items_editing = purchase_items_editing.filter(
@@ -918,6 +924,7 @@
 
 				<div class="flex pt-3">
 					<button
+                        type="button"
 						class="bg-green-500 text-white px-2 py-1 rounded-md"
 						on:click={create_new_purchase_item}
 					>

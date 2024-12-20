@@ -848,6 +848,7 @@
 						<div class="flex flex-row w-full justify-end space-x-3">
 							{#if !compare_order_meta(order_meta, order_meta_editing)}
 								<button
+					                type="reset"
 									class="bg-red-500 text-white px-2 py-1 rounded-md"
 									on:click={() => {
 										set_oifs(order_meta);
@@ -1036,6 +1037,7 @@
 												placeholder="Discount"
 												form="order-edit-form"
 												min="0"
+                                                max={data.order_item.discount_percentage ? 100 : Number.MAX_SAFE_INTEGER}
 												bind:value={data.order_item.discount}
 											/>
 											<button
@@ -1080,6 +1082,7 @@
 										<div class="h-full w-full flex flex-row justify-center items-center space-x-2">
 											<button
 												class="bg-red-500 text-white px-2 py-1 rounded-md"
+                                                type="button"
 												on:click={() => {
 													// Remove the item from the array
 													order_items_editing = order_items_editing.filter(
@@ -1101,6 +1104,7 @@
 					<button
 						class="bg-green-500 text-white px-2 py-1 rounded-md"
 						on:click={create_new_order_item}
+                        type="button"
 					>
 						Add new item
 					</button>
@@ -1125,6 +1129,7 @@
 
 				<button
 					id="view-order-button"
+                    type="button"
 					class="bg-green-500 text-white px-2 py-1 rounded-md"
 					on:click={() => {
 						open_in_new_tab(`/app/orders/invoice?id=${order_id}`);
@@ -1135,8 +1140,8 @@
 				</button>
 
 				<button
+                    type="submit"
 					form="order-edit-form"
-					type="submit"
 					id="save-order-button"
 					bind:this={save_button}
 					class="bg-green-500
