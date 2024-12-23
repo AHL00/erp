@@ -124,7 +124,7 @@ pub(super) async fn get(
 pub(super) async fn search(
     req: rocket::serde::json::Json<SearchRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_READ as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::PURCHASE_READ as u32 }>,
 ) -> Result<rocket::serde::json::Json<Vec<PurchaseMeta>>, ApiError> {
     let req = req.into_inner();
 
@@ -303,7 +303,7 @@ pub(super) struct PurchasePatchRequest {
 pub(super) async fn post(
     req: rocket::serde::json::Json<PurchasePostRequest>,
     mut db: crate::db::DB,
-    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_CREATE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let req = req.into_inner();
 
@@ -357,7 +357,7 @@ pub(super) async fn patch(
     id: i32,
     req: rocket::serde::json::Json<PurchasePatchRequest>,
     mut db: crate::db::DB,
-    _auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::PURCHASE_UPDATE as u32 }>,
 ) -> Result<ApiReturn<()>, ApiError> {
     let req = req.into_inner();
 
@@ -478,7 +478,7 @@ pub(super) async fn preview_update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<PurchaseItemUpdateRequest>>,
     mut db: crate::db::DB,
-    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_READ as u32 }>,
 ) -> Result<ApiReturn<Vec<StockUpdateFactory>>, ApiError> {
     let requests = req.into_inner();
 
@@ -543,7 +543,7 @@ pub(super) async fn update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<PurchaseItemUpdateRequest>>,
     mut db: crate::db::DB,
-    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_UPDATE as u32 }>,
 ) -> Result<ApiReturn<()>, ApiError> {
     let requests = req.into_inner();
 
@@ -816,7 +816,7 @@ pub(super) async fn update_items(
 pub(super) async fn delete(
     id: i32,
     mut db: crate::db::DB,
-    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::PURCHASE_DELETE as u32 }>,
 ) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
     let purchase_items: Vec<PurchaseItem> = sqlx::query_as(
         r#"

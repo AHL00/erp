@@ -9,6 +9,7 @@ pub mod reports;
 pub mod search;
 pub mod settings;
 pub mod suppliers;
+pub mod payments;
 
 pub mod public;
 
@@ -93,6 +94,8 @@ pub fn routes() -> Vec<rocket::Route> {
         settings::get_multiple,
         settings::set,
         settings::reset,
+        payments::get,
+        payments::count,
         // backup::restore,
         // customers::delete,
     ]
@@ -190,6 +193,12 @@ impl<'r> Responder<'r, 'static> for ApiError {
 impl From<sqlx::Error> for ApiError {
     fn from(error: sqlx::Error) -> Self {
         // Handle all generic database errors here
+        ApiError(Status::InternalServerError, error.to_string())
+    }
+}
+
+impl From<serde_json::Error> for ApiError {
+    fn from(error: serde_json::Error) -> Self {
         ApiError(Status::InternalServerError, error.to_string())
     }
 }

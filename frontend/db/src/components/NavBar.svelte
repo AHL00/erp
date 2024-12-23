@@ -32,7 +32,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']} all_or_any="any">
+	<PermissionGuard
+		permissions={['ORDER_READ', 'ORDER_CREATE', 'ORDER_DELETE', 'ORDER_UPDATE']}
+		all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/orders')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-clipboard-list"></i>
@@ -43,7 +46,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['PURCHASE_READ', 'PURCHASE_WRITE']} all_or_any="any">
+	<PermissionGuard
+		permissions={['PURCHASE_READ', 'PURCHASE_CREATE', 'PURCHASE_DELETE', 'PURCHASE_UPDATE']}
+		all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/purchases')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-cart-shopping"></i>
@@ -54,7 +60,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['EXPENSES_READ', 'EXPENSES_WRITE']} all_or_any="any">
+	<PermissionGuard
+		permissions={['EXPENSES_READ', 'EXPENSES_CREATE', 'EXPENSES_DELETE', 'EXPENSES_UPDATE']}
+		all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/expenses')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-money-check-dollar"></i>
@@ -65,7 +74,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['INVENTORY_READ']}>
+	<PermissionGuard
+		permissions={['INVENTORY_READ', 'INVENTORY_UPDATE', 'INVENTORY_DELETE', 'INVENTORY_CREATE']}
+		all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/inventory')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-warehouse"></i>
@@ -76,7 +88,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['CUSTOMERS_READ']}>
+	<PermissionGuard
+		permissions={['CUSTOMERS_READ', 'CUSTOMERS_CREATE', 'CUSTOMERS_DELETE', 'CUSTOMERS_UPDATE']}
+		all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/customers')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-people-carry-box"></i>
@@ -87,7 +102,10 @@
 
 	<div class="separator"></div>
 
-	<PermissionGuard permissions={['SUPPLIERS_READ']}>
+	<PermissionGuard
+		permissions={['SUPPLIERS_READ', 'SUPPLIERS_CREATE', 'SUPPLIERS_DELETE', 'SUPPLIERS_UPDATE']}
+        all_or_any="any"
+	>
 		<button class="sidebar-item" on:click={() => redirect('/app/suppliers')}>
 			<div class="sidebar-icon">
 				<i class="fa fa-truck"></i>

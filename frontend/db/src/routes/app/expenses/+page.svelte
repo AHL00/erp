@@ -117,7 +117,9 @@
 			objects_list={expenses_list}
 			crud_endpoint="expenses"
 			read_perms={['EXPENSES_READ']}
-			write_perms={['EXPENSES_WRITE']}
+			update_perms={['EXPENSES_UPDATE']}
+            delete_perms={['EXPENSES_DELETE']}
+            create_perms={['EXPENSES_CREATE']}
 			create_post_request={default_item}
 			delete_enabled={true}
 			{columns}

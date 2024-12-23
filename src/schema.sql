@@ -181,6 +181,130 @@ CREATE TABLE
         FOREIGN KEY (inventory_id) REFERENCES inventory (id)
     );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method_t') THEN
+        CREATE TYPE payment_method_t AS ENUM ('CASH', 'BANK', 'MOBILE', 'OTHER');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'party_type_t') THEN
+        CREATE TYPE party_type_t AS ENUM ('CUSTOMER', 'SUPPLIER', 'RETAIL');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transfer_type_t') THEN
+        CREATE TYPE transfer_type_t AS ENUM ('INCOMING', 'OUTGOING');
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS payments (
+    id SERIAL PRIMARY KEY,
+    date_time TIMESTAMP
+    WITH
+        TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- automatically set to current time
+        amount NUMERIC(32, 4) NOT NULL,
+        party_id INT,
+        party_type party_type_t NOT NULL,
+        transfer_type transfer_type_t NOT NULL,
+        method payment_method_t NOT NULL,
+        method_details TEXT,
+        notes TEXT,
+        created_by_user_id INT NOT NULL,
+        FOREIGN KEY (created_by_user_id) REFERENCES users (id)
+);
+
+-- Function to enforce foreign key constraint based on party_type
+CREATE OR REPLACE FUNCTION enforce_party_fk()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.party_type = 'CUSTOMER' THEN
+        -- Ensure party_id references customers table
+        IF NOT EXISTS (SELECT 1 FROM customers WHERE id = NEW.party_id) THEN
+            RAISE EXCEPTION 'Invalid party_id for CUSTOMER';
+        END IF;
+    ELSIF NEW.party_type = 'RETAIL' THEN
+        -- Ensure party_id references orders table
+        IF NOT EXISTS (SELECT 1 FROM orders WHERE id = NEW.party_id) THEN
+            RAISE EXCEPTION 'Invalid party_id for RETAIL, expected a valid order_id';
+        END IF;
+    ELSIF NEW.party_type = 'SUPPLIER' THEN
+        -- Ensure party_id references suppliers table
+        IF NOT EXISTS (SELECT 1 FROM suppliers WHERE id = NEW.party_id) THEN
+            RAISE EXCEPTION 'Invalid party_id for SUPPLIER';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'Invalid party_type';
+    END IF;
+
+    -- Handle updates to party_type
+    IF TG_OP = 'UPDATE' AND OLD.party_type <> NEW.party_type THEN
+        IF NEW.party_type = 'CUSTOMER' THEN
+            -- Ensure new party_id references customers table
+            IF NOT EXISTS (SELECT 1 FROM customers WHERE id = NEW.party_id) THEN
+                RAISE EXCEPTION 'Invalid party_id for CUSTOMER';
+            END IF;
+        ELSIF NEW.party_type = 'RETAIL' THEN
+            -- Ensure new party_id references orders table
+            IF NOT EXISTS (SELECT 1 FROM orders WHERE id = NEW.party_id) THEN
+                RAISE EXCEPTION 'Invalid party_id for RETAIL, expected a valid order_id';
+            END IF;
+        ELSIF NEW.party_type = 'SUPPLIER' THEN
+            -- Ensure new party_id references suppliers table
+            IF NOT EXISTS (SELECT 1 FROM suppliers WHERE id = NEW.party_id) THEN
+                RAISE EXCEPTION 'Invalid party_id for SUPPLIER';
+            END IF;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to call the function before insert or update
+DROP TRIGGER IF EXISTS enforce_party_fk_trigger ON payments;
+CREATE TRIGGER enforce_party_fk_trigger 
+BEFORE INSERT OR UPDATE ON payments
+FOR EACH ROW EXECUTE FUNCTION enforce_party_fk();
+
+-- Function to prevent deletion of referenced rows
+CREATE OR REPLACE FUNCTION prevent_deletion_if_referenced()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM payments WHERE party_id = OLD.id) THEN
+        IF TG_TABLE_NAME = 'customers' AND OLD.id IN (SELECT party_id FROM payments WHERE party_type = 'CUSTOMER') THEN
+            RAISE EXCEPTION 'Cannot delete customer with id % because it is referenced in payments', OLD.id;
+        END IF;
+        
+        IF TG_TABLE_NAME = 'suppliers' AND OLD.id IN (SELECT party_id FROM payments WHERE party_type = 'SUPPLIER') THEN
+            RAISE EXCEPTION 'Cannot delete supplier with id % because it is referenced in payments', OLD.id;
+        END IF;
+
+        IF TG_TABLE_NAME = 'orders' AND OLD.id IN (SELECT party_id FROM payments WHERE party_type = 'RETAIL') THEN
+            RAISE EXCEPTION 'Cannot delete order with id % because it is referenced in payments', OLD.id;
+        END IF;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers for customers, suppliers, and orders tables
+DROP TRIGGER IF EXISTS prevent_customer_deletion ON customers;
+CREATE TRIGGER prevent_customer_deletion
+BEFORE DELETE ON customers
+FOR EACH ROW
+EXECUTE FUNCTION prevent_deletion_if_referenced();
+
+DROP TRIGGER IF EXISTS prevent_supplier_deletion ON suppliers;
+CREATE TRIGGER prevent_supplier_deletion
+BEFORE DELETE ON suppliers
+FOR EACH ROW
+EXECUTE FUNCTION prevent_deletion_if_referenced();
+
+DROP TRIGGER IF EXISTS prevent_order_deletion ON orders;
+CREATE TRIGGER prevent_order_deletion
+BEFORE DELETE ON orders
+FOR EACH ROW
+EXECUTE FUNCTION prevent_deletion_if_referenced();
+
 CREATE TABLE
     IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,

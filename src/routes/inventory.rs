@@ -181,7 +181,7 @@ pub(super) async fn get(
 pub(super) async fn post(
     item: Json<InventoryItemPostRequest>,
     mut db: DB,
-    #[allow(unused)] auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    #[allow(unused)] auth: AuthGuard<{ UserPermissionEnum::INVENTORY_CREATE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
 
@@ -211,7 +211,7 @@ pub(super) async fn patch(
     item: Json<InventoryItemPatchRequest>,
     id: i32,
     mut db: DB,
-    #[allow(unused)] auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    #[allow(unused)] auth: AuthGuard<{ UserPermissionEnum::INVENTORY_UPDATE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = item.into_inner();
 

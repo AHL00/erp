@@ -137,7 +137,9 @@
 			objects_list={suppliers_list}
 			crud_endpoint="suppliers"
 			read_perms={['SUPPLIERS_READ']}
-			write_perms={['SUPPLIERS_WRITE']}
+            create_perms={['SUPPLIERS_CREATE']}
+            update_perms={['SUPPLIERS_UPDATE']}
+            delete_perms={['SUPPLIERS_DELETE']}
 			create_post_request={create_default}
 			{columns}
 		></CrudPanel>

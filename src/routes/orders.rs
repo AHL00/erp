@@ -82,6 +82,39 @@ impl From<OrderMetaRow> for OrderMeta {
     }
 }
 
+impl FromDB for OrderMeta {
+    async fn from_db(id: i32, db: &mut DB) -> Result<Self, ApiError> {
+        let order_meta: OrderMeta = sqlx::query_as(
+            r#"
+            SELECT 
+                orders.id,
+                orders.date_time,
+                orders.amount_paid,
+                orders.retail,
+                orders.retail_customer_name,
+                orders.retail_customer_phone,
+                orders.retail_customer_address,
+                orders.fulfilled,
+                orders.notes,
+                orders.total,
+                row_to_json(customers) AS customer,
+                row_to_json(users) AS created_by_user
+            FROM orders
+                LEFT JOIN customers ON orders.customer_id = customers.id
+                INNER JOIN users ON orders.created_by_user_id = users.id
+            WHERE orders.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&mut ***db)
+        .await
+        .map_err(|e| ApiError(Status::InternalServerError, e.to_string()))
+        .map(|row: OrderMetaRow| row.into())?;
+
+        Ok(order_meta.into())
+    }
+}
+
 /// GET /orders/<id>
 /// Response: OrderMeta
 #[rocket::get("/orders/<id>")]
@@ -382,7 +415,7 @@ pub(super) struct OrderPatchRequest {
 pub(super) async fn post(
     req: rocket::serde::json::Json<OrderPostRequest>,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_CREATE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let req = req.into_inner();
 
@@ -440,7 +473,7 @@ pub(super) async fn patch(
     id: i32,
     req: rocket::serde::json::Json<OrderPatchRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::ORDER_UPDATE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 
@@ -711,7 +744,7 @@ pub(super) async fn update_items(
     id: i32,
     req: rocket::serde::json::Json<Vec<OrderItemUpdateRequest>>,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_UPDATE as u32 }>,
 ) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
     let requests = req.into_inner();
 
@@ -1018,7 +1051,7 @@ pub(super) async fn update_items(
 pub(super) async fn delete(
     id: i32,
     mut db: DB,
-    auth: AuthGuard<{ UserPermissionEnum::ORDER_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::ORDER_DELETE as u32 }>,
 ) -> Result<ApiReturn<Vec<StockUpdate>>, ApiError> {
     // Add stock back for all items in the order
     let order_items: Vec<OrderItem> = sqlx::query_as(

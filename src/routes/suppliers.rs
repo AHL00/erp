@@ -124,7 +124,7 @@ pub(super) struct SupplierPostRequest {
 pub(super) async fn post(
     item: Json<SupplierPostRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::SUPPLIERS_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::SUPPLIERS_CREATE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
 
@@ -159,7 +159,7 @@ pub(super) async fn patch(
     id: i32,
     req: Json<SupplierPatchRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::SUPPLIERS_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::SUPPLIERS_UPDATE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 

@@ -136,7 +136,7 @@ pub(super) struct CustomerPostRequest {
 pub(super) async fn post(
     item: Json<CustomerPostRequest>,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_CREATE as u32 }>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let item = item.into_inner();
 
@@ -171,7 +171,7 @@ pub(super) async fn patch(
     req: Json<CustomerPatchRequest>,
     id: i32,
     mut db: DB,
-    _auth: AuthGuard<{ UserPermissionEnum::INVENTORY_WRITE as u32 }>,
+    _auth: AuthGuard<{ UserPermissionEnum::CUSTOMERS_UPDATE as u32 }>,
 ) -> Result<Status, ApiError> {
     let req = req.into_inner();
 

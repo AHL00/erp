@@ -151,7 +151,9 @@
 			objects_list={inventory_list}
 			crud_endpoint="inventory"
 			read_perms={['INVENTORY_READ']}
-			write_perms={['INVENTORY_WRITE']}
+            update_perms={['INVENTORY_UPDATE']}
+            delete_perms={['INVENTORY_DELETE']}
+            create_perms={['INVENTORY_CREATE']}
 			create_post_request={default_item}
 			{columns}
 		></CrudPanel>

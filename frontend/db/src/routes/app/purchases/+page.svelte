@@ -215,7 +215,7 @@
 </svelte:head>
 
 <div class="flex flex-col w-full h-screen min-h-0 items-center p-3 space-y-3 overflow-hidden">
-	<PermissionGuard permissions={['PURCHASE_WRITE']}>
+	<PermissionGuard permissions={['PURCHASE_CREATE']}>
 		<div class="w-full flex flex-row h-fit space-x-3">
 			<div
 				class="h-fit w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
@@ -275,8 +275,10 @@
 				objects_list={purchases_list}
 				crud_endpoint="purchases"
 				read_perms={['PURCHASE_READ']}
+                create_perms={['PURCHASE_CREATE']}
+                update_perms={['PURCHASE_UPDATE']}
+                delete_perms={['PURCHASE_DELETE']}
 				{post_delete_callback}
-				write_perms={['PURCHASE_WRITE']}
 				create_post_request={null}
 				edit_override={(item_id) => {
 					redirect(`/app/purchases/edit?id=${item_id}`);

@@ -653,7 +653,7 @@
 		}
 	}}
 >
-	<PermissionGuard permissions={['ORDER_READ', 'ORDER_WRITE']}>
+	<PermissionGuard permissions={['ORDER_READ', 'ORDER_UPDATE']}>
 		<div class="flex flex-col h-full w-full items-center overflow-hidden p-3 space-y-3">
 			<div
 				class="h-fit w-full p-3 space-y-3 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"

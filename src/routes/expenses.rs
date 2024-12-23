@@ -150,7 +150,7 @@ pub(super) struct ExpensePostRequest {
 pub(super) async fn post(
     mut db: DB,
     #[allow(unused)]
-    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_CREATE as u32 }>,
     expense: rocket::serde::json::Json<ExpensePostRequest>,
 ) -> Result<ApiReturn<i32>, ApiError> {
     let req = expense.into_inner();
@@ -182,7 +182,7 @@ pub(super) struct ExpensePatchRequest {
 pub(super) async fn patch(
     mut db: DB,
     #[allow(unused)]
-    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_UPDATE as u32 }>,
     id: i32,
     expense: rocket::serde::json::Json<ExpensePatchRequest>,
 ) -> Result<Status, ApiError> {
@@ -245,7 +245,7 @@ pub(super) async fn patch(
 pub(super) async fn delete(
     mut db: DB,
     #[allow(unused)]
-    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_WRITE as u32 }>,
+    auth: AuthGuard<{ UserPermissionEnum::EXPENSES_DELETE as u32 }>,
     id: i32,
 ) -> Result<Status, ApiError> {
     sqlx::query("DELETE FROM expenses WHERE id = $1")

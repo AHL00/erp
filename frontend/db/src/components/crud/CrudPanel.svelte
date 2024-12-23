@@ -41,7 +41,9 @@
 	export let post_delete_callback: (res: Response) => void = () => {};
 
 	export let read_perms: [UserPermissionEnum];
-	export let write_perms: [UserPermissionEnum];
+	export let create_perms: [UserPermissionEnum];
+	export let update_perms: [UserPermissionEnum];
+	export let delete_perms: [UserPermissionEnum];
 
 	/// Allows the parent to override the default edit function. It will send the item that was edited as an argument.
 	export let edit_override: ((item_id: number) => void) | null = null;
@@ -74,16 +76,16 @@
 		return columns.find((column) => get_api_request_name(column) === api_name);
 	}
 
-    function get_column_by_search_column_name(col_name: string): CrudColumn | undefined {
-        console.log(col_name)
-        return columns.find((column) => {
-            if (!column.search_nested) {
-                return get_api_request_name(column) === col_name
-            } else {
-                return column.search_nested === col_name
-            }
-        })
-    }
+	function get_column_by_search_column_name(col_name: string): CrudColumn | undefined {
+		console.log(col_name);
+		return columns.find((column) => {
+			if (!column.search_nested) {
+				return get_api_request_name(column) === col_name;
+			} else {
+				return column.search_nested === col_name;
+			}
+		});
+	}
 
 	function refresh_list() {
 		loading_count++;
@@ -617,10 +619,12 @@
 						<tr>
 							<!-- NOTE: This background color will have to be changed if the body's background color is changed.  
                             Inheriting is a mess so I'm just going to hardcode it. -->
-							<PermissionGuard permissions={write_perms}>
+							<PermissionGuard permissions={update_perms}>
 								{#if !edit_all_mode}
 									<th class="p-2 z-20 {background_color}"> Edit </th>
 								{/if}
+							</PermissionGuard>
+							<PermissionGuard permissions={delete_perms}>
 								{#if delete_enabled}
 									<th class="p-2 z-20 {background_color}"> Delete </th>
 								{/if}
@@ -698,7 +702,7 @@
 						{#if !edit_all_mode}
 							{#each objects_list as item}
 								<tr>
-									<PermissionGuard permissions={write_perms}>
+									<PermissionGuard permissions={update_perms}>
 										{#if !edit_all_mode}
 											<td class="p-2 text-center">
 												<button
@@ -711,6 +715,8 @@
 												</button>
 											</td>
 										{/if}
+									</PermissionGuard>
+									<PermissionGuard permissions={delete_perms}>
 										{#if delete_enabled}
 											<td class="p-2 text-center">
 												<button
@@ -723,21 +729,21 @@
 												</button>
 											</td>
 										{/if}
-										{#each custom_buttons as button}
-											<PermissionGuard permissions={button.permissions}>
-												<td class="p-2 text-center">
-													<button
-														class="font-bold"
-														on:click={() => {
-															button.callback(item);
-														}}
-													>
-														<i class="{button.font_awesome_icon} ml-2 opacity-80"></i>
-													</button>
-												</td>
-											</PermissionGuard>
-										{/each}
 									</PermissionGuard>
+									{#each custom_buttons as button}
+										<PermissionGuard permissions={button.permissions}>
+											<td class="p-2 text-center">
+												<button
+													class="font-bold"
+													on:click={() => {
+														button.callback(item);
+													}}
+												>
+													<i class="{button.font_awesome_icon} ml-2 opacity-80"></i>
+												</button>
+											</td>
+										</PermissionGuard>
+									{/each}
 									{#each columns as column}
 										<td class="p-2 text-{column.align}">
 											{#if column.display_map_fn !== null}
@@ -775,7 +781,7 @@
 								</tr>
 							{/each}
 						{:else}
-							<PermissionGuard permissions={write_perms}>
+							<PermissionGuard permissions={delete_perms}>
 								{#each objects_list as item}
 									{#if delete_enabled}
 										<td class="p-2">
@@ -799,7 +805,7 @@
 
 			<!-- Table controls -->
 			<div class="inline-flex px-2 pt-3 pb-2 justify-start">
-				<PermissionGuard permissions={write_perms}>
+				<PermissionGuard permissions={update_perms}>
 					{#if edit_override === null && false}
 						<div class="mx-1">
 							<button
@@ -821,11 +827,14 @@
 							</button>
 						</div>
 					{/if}
-					<div class="mx-1">
-						<div
-							class="inline-flex rounded-md text-custom-text-light-lighter dark:text-custom-text-dark-lighter gap-x-2"
-							role="group"
-						>
+				</PermissionGuard>
+
+				<div class="mx-1">
+					<div
+						class="inline-flex rounded-md text-custom-text-light-lighter dark:text-custom-text-dark-lighter gap-x-2"
+						role="group"
+					>
+						<PermissionGuard permissions={create_perms}>
 							{#if create_post_request !== null}
 								<button
 									type="button"
@@ -839,21 +848,21 @@
 									<span class="text-sm">New</span>
 								</button>
 							{/if}
+						</PermissionGuard>
 
-							<button
-								type="button"
-								class="rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
+						<button
+							type="button"
+							class="rounded-lg h-7 px-2 dark:bg-custom-dark hover:brightness-90 inline-flex items-center
                                 outline outline-1 outline-custom-light-outline dark:outline-custom-dark-outline z-10"
-								on:click={() => {
-									refresh_list();
-								}}
-							>
-								<i class="fas text-sm mr-2 fa-sync"></i>
-								<span class="text-sm">Refresh</span>
-							</button>
-						</div>
+							on:click={() => {
+								refresh_list();
+							}}
+						>
+							<i class="fas text-sm mr-2 fa-sync"></i>
+							<span class="text-sm">Refresh</span>
+						</button>
 					</div>
-				</PermissionGuard>
+				</div>
 
 				<div class="justify-self-end ml-auto mx-1 {search_request ? 'hidden' : ''}">
 					<div

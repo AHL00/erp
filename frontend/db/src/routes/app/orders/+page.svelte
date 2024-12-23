@@ -263,7 +263,7 @@
 </svelte:head>
 
 <div class="flex flex-col w-full h-screen min-h-0 items-center p-3 space-y-3 overflow-hidden">
-	<PermissionGuard permissions={['ORDER_WRITE']}>
+	<PermissionGuard permissions={['ORDER_CREATE']}>
 		<div class="w-full flex flex-row h-fit space-x-3">
 			<div
 				class="h-fit w-1/2 p-1 rounded-lg shadow-md bg-custom-lighter dark:bg-custom-dark flex flex-col"
@@ -368,7 +368,9 @@
 				objects_list={orders_list}
 				crud_endpoint="orders"
 				read_perms={['ORDER_READ']}
-				write_perms={['ORDER_WRITE']}
+				create_perms={['ORDER_CREATE']}
+                update_perms={['ORDER_UPDATE']}
+                delete_perms={['ORDER_DELETE']}
 				create_post_request={null}
 				edit_override={(item_id) => {
 					redirect(`/app/orders/edit?id=${item_id}`);
