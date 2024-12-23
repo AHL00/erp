@@ -102,7 +102,7 @@ BEGIN
     SELECT COALESCE(SUM(
         CASE
             WHEN discount_percentage THEN price * quantity * (1 - discount / 100)
-            ELSE price * quantity - discount
+            ELSE (price - discount) * quantity 
         END
     ), 0)
     INTO total
